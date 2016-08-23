@@ -1,0 +1,22 @@
+{
+  "name": "s2/search",
+  "description": "Search engine for PHP sites",
+  "authors": [
+    {
+      "name": "Roman Parpalak",
+      "email": "roman@written.ru"
+    }
+  ],
+  "license": "MIT",
+  "require": {
+    "symfony/polyfill-mbstring": "^1.2"
+  },
+  "require-dev": {
+    "codeception/codeception": "^2.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "S2\\Search\\": "src/S2/Search"
+    }
+  }
+}

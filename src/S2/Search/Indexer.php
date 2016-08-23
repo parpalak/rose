@@ -1,0 +1,197 @@
+<?php
+/**
+ * Creates search index
+ *
+ * @copyright 2010-2016 Roman Parpalak
+ * @license   MIT
+ */
+
+namespace S2\Search;
+
+use S2\Search\Entity\Indexable;
+use S2\Search\Stemmer\StemmerInterface;
+use S2\Search\Storage\StorageWriteInterface;
+
+/**
+ * Class Indexer
+ */
+class Indexer
+{
+	const TYPE_KEYWORD = 1;
+	const TYPE_TITLE   = 2;
+
+	/**
+	 * @var StorageWriteInterface
+	 */
+	protected $storage;
+
+	/**
+	 * @var StemmerInterface
+	 */
+	protected $stemmer;
+
+	/**
+	 * Indexer constructor.
+	 *
+	 * @param StorageWriteInterface $storage
+	 * @param StemmerInterface      $stemmer
+	 */
+	public function __construct(
+		StorageWriteInterface $storage,
+		StemmerInterface $stemmer
+	) {
+		$this->storage = $storage;
+		$this->stemmer = $stemmer;
+	}
+
+	/**
+	 * Cleaning up an HTML string.
+	 *
+	 * @param string $contents
+	 *
+	 * @return string
+	 */
+	protected static function strFromHtml($contents)
+	{
+		$contents = strip_tags($contents);
+
+		$contents = str_replace(['&nbsp;', "\xc2\xa0"], ' ', $contents);
+		$contents = preg_replace('#&[^;]{1,20};#', '', $contents);
+		$contents = mb_strtolower($contents);
+		$contents = preg_replace('#[^\-а-яё0-9a-z\^]+#u', ' ', $contents);
+
+		return $contents;
+	}
+
+	/**
+	 * @param string $contents
+	 *
+	 * @return string[]
+	 */
+	protected static function arrayFromStr($contents)
+	{
+		$words = explode(' ', $contents);
+		$words = array_filter($words, 'strlen');
+
+		return $words;
+	}
+
+	/**
+	 * @param string $word
+	 * @param int    $externalId
+	 * @param int    $type
+	 */
+	protected function addKeywordToIndex($word, $externalId, $type)
+	{
+		if ($word === '') {
+			return;
+		}
+
+		$word = str_replace('ё', 'е', $word);
+
+		if (strpos($word, ' ') !== false) {
+			$this->storage->addToMultipleKeywordIndex($word, $externalId, $type);
+		}
+		else {
+			$this->storage->addToSingleKeywordIndex($word, $externalId, $type);
+		}
+	}
+
+	/**
+	 * @param string $word
+	 * @param int    $externalId
+	 * @param int    $position
+	 */
+	protected function addWordToFulltext($word, $externalId, $position)
+	{
+		$word = $this->stemmer->stemWord($word);
+		$this->storage->addToFulltext($word, $externalId, $position);
+	}
+
+	/**
+	 * @param string $externalId
+	 * @param string $title
+	 * @param string $contents
+	 * @param string $keywords
+	 */
+	protected function addToIndex($externalId, $title, $contents, $keywords)
+	{
+		// Processing title
+		foreach (self::arrayFromStr($title) as $word) {
+			$this->addKeywordToIndex(trim($word), $externalId, self::TYPE_TITLE);
+		}
+
+		// Processing keywords
+		foreach (explode(',', $keywords) as $item) {
+			$this->addKeywordToIndex(trim($item), $externalId, self::TYPE_KEYWORD);
+		}
+
+		// Fulltext index
+		$words = self::arrayFromStr($title . ' ' . str_replace(', ', ' ', $keywords) . ' ' . $contents);
+
+		$i = 0;
+		foreach ($words as $word) {
+			if ($word == '-') {
+				continue;
+			}
+
+			$i++;
+
+			if ($this->storage->isExcluded($word)) {
+				continue;
+			}
+
+			// Remove russian ё from the fulltext index
+			if (false !== strpos($word, 'ё')) {
+				$word = str_replace('ё', 'е', $word);
+			}
+
+			$this->addWordToFulltext($word, $externalId, $i);
+
+			// If the word contains the hyphen, add a variant without it
+			if (strlen($word) > 1 && false !== strpos($word, '-')) {
+				foreach (explode('-', $word) as $subword) {
+					if ($subword) {
+						$this->addWordToFulltext($subword, $externalId, $i);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param string $externalId
+	 */
+	public function removeById($externalId)
+	{
+		$tocEntry = $this->storage->getTocByExternalId($externalId);
+
+		if ($tocEntry) {
+			$this->storage->removeFromIndex($externalId);
+			$this->storage->removeFromToc($externalId);
+		}
+	}
+
+	/**
+	 * @param Indexable $indexable
+	 */
+	public function add(Indexable $indexable)
+	{
+		$externalId  = $indexable->getId();
+		$oldTocEntry = $this->storage->getTocByExternalId($externalId);
+
+		$this->storage->addItemToToc($indexable->toTocEntry(), $externalId);
+
+		if ($oldTocEntry && $oldTocEntry->getHash() === $indexable->calcHash()) {
+			return;
+		}
+
+		$this->storage->removeFromIndex($externalId);
+		$this->addToIndex(
+			$externalId,
+			self::strFromHtml($indexable->getTitle()),
+			self::strFromHtml($indexable->getContent()),
+			$indexable->getKeywords()
+		);
+	}
+}
