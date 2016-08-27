@@ -19,8 +19,9 @@ class PorterStemmerRussian implements StemmerInterface
 	const RVRE             = '/^(.*?[аеиоуыэюя])(.*)$/u';
 	const DERIVATIONAL     = '/[^аеиоуыэюя][аеиоуыэюя]+[^аеиоуыэюя]+[аеиоуыэюя].*(?<=о)сть?$/u';
 
-	protected static $useCache       = true;
-	protected static $cache          = [];
+	protected $useCache = true;
+	protected $cache    = [];
+
 	protected static $irregularWords = [
 		'и'       => '',
 		'или'     => '',
@@ -210,8 +211,8 @@ class PorterStemmerRussian implements StemmerInterface
 		}
 
 		# Check against cache of stemmed words
-		if (self::$useCache && isset(self::$cache[$word])) {
-			return self::$cache[$word];
+		if ($this->useCache && isset($this->cache[$word])) {
+			return $this->cache[$word];
 		}
 
 		$stem = $word;
@@ -258,20 +259,20 @@ class PorterStemmerRussian implements StemmerInterface
 		}
 		while (false);
 
-		if (self::$useCache) {
-			self::$cache[$word] = $stem;
+		if ($this->useCache) {
+			$this->cache[$word] = $stem;
 		}
 
 		return $stem;
 	}
 
-	public static function setStemCaching($cachingLevel)
+	public function setStemCaching($cachingLevel)
 	{
-		self::$useCache = $cachingLevel;
+		$this->useCache = $cachingLevel;
 	}
 
-	public static function clearStemCache()
+	public function clearStemCache()
 	{
-		self::$cache = [];
+		$this->cache = [];
 	}
 }
