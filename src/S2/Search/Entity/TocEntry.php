@@ -130,4 +130,12 @@ class TocEntry
 
 		return $this;
 	}
+
+	/**
+	 * @return null|string
+	 */
+	public function getFormattedDate()
+	{
+		return $this->date !== null ? $this->date->format('c') : null;
+	}
 }

@@ -18,6 +18,9 @@ use S2\Search\Storage\StorageReadInterface;
  */
 class Finder
 {
+	const TYPE_TITLE            = 1;
+	const TYPE_KEYWORD          = 2;
+
 	/**
 	 * @var StorageReadInterface
 	 */
@@ -126,11 +129,11 @@ class Finder
 	 */
 	protected static function getKeywordWeight($type)
 	{
-		if ($type === Indexer::TYPE_KEYWORD) {
+		if ($type == self::TYPE_KEYWORD) {
 			return 30;
 		}
 
-		if ($type === Indexer::TYPE_TITLE) {
+		if ($type == self::TYPE_TITLE) {
 			return 20;
 		}
 
@@ -155,6 +158,18 @@ class Finder
 		}
 
 		return 10;
+	}
+
+	/**
+	 * Ignore frequent words encountering in indexed items.
+	 *
+	 * @param $tocSize
+	 *
+	 * @return mixed
+	 */
+	public static function fulltextRateExcludeNum($tocSize)
+	{
+		return max($tocSize * 0.5, 100);
 	}
 
 	/**
@@ -194,6 +209,9 @@ class Finder
 			$currPositions = [];
 			foreach (array_unique([$word, $this->stemmer->stemWord($word)]) as $searchWord) {
 				$fulltextIndexByWord = $this->storage->getFulltextByWord($searchWord);
+				if (count($fulltextIndexByWord) > self::fulltextRateExcludeNum($this->storage->getTocSize())) {
+					continue;
+				}
 				$currPositions       = array_merge($currPositions, $fulltextIndexByWord);
 
 				foreach ($fulltextIndexByWord as $externalId => $entries) {

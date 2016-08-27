@@ -8,6 +8,7 @@ namespace S2\Search\Storage;
 
 use S2\Search\Entity\TocEntry;
 use S2\Search\Exception\UnknownIdException;
+use S2\Search\Finder;
 
 /**
  * Class ArrayStorage
@@ -68,18 +69,20 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	/**
 	 * {@inheritdoc}
 	 */
-	public function addToFulltext($word, $externalId, $position)
+	public function addToFulltext(array $words, $externalId)
 	{
 		$id = $this->internalIdFromExternalId($externalId);
-		$this->fulltextProxy->addWord($word, $id, $position);
+		foreach ($words as $position => $word) {
+			$this->fulltextProxy->addWord($word, $id, (int) $position);
+		}
 	}
 
 	/**
-	 * {@inheritdoc}
+	 * Drops frequent words from index.
 	 */
 	public function cleanup()
 	{
-		$threshold = max(count($this->toc) * 0.5, 100);
+		$threshold = Finder::fulltextRateExcludeNum(count($this->toc));
 
 		foreach ($this->fulltextProxy->getFrequentWords($threshold) as $word => $stat) {
 			// Drop fulltext frequent or empty items
@@ -262,5 +265,13 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 		}
 
 		return $result;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function getTocSize()
+	{
+		return count($this->toc);
 	}
 }

@@ -115,6 +115,7 @@ class SnippetBuilder
 		$stems     = [];
 		$fullWords = [];
 		foreach ($foundWords[$externalId] as $word) {
+			// TODO PdoStorage::isExcluded() === false. Is it OK?
 			if (!$this->storage->isExcluded($word)) {
 				$stemmedWord             = $this->stemmer->stemWord($word);
 				$stems[]                 = $stemmedWord;

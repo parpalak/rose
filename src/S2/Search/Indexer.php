@@ -17,9 +17,6 @@ use S2\Search\Storage\StorageWriteInterface;
  */
 class Indexer
 {
-	const TYPE_KEYWORD = 1;
-	const TYPE_TITLE   = 2;
-
 	/**
 	 * @var StorageWriteInterface
 	 */
@@ -55,9 +52,9 @@ class Indexer
 	{
 		$contents = strip_tags($contents);
 
+		$contents = mb_strtolower($contents);
 		$contents = str_replace(['&nbsp;', "\xc2\xa0"], ' ', $contents);
 		$contents = preg_replace('#&[^;]{1,20};#', '', $contents);
-		$contents = mb_strtolower($contents);
 		$contents = preg_replace('#[^\-а-яё0-9a-z\^]+#u', ' ', $contents);
 
 		return $contents;
@@ -70,10 +67,7 @@ class Indexer
 	 */
 	protected static function arrayFromStr($contents)
 	{
-		$words = explode(' ', $contents);
-		$words = array_filter($words, 'strlen');
-
-		return $words;
+		return preg_split('#[ ]+#', $contents);
 	}
 
 	/**
@@ -98,17 +92,6 @@ class Indexer
 	}
 
 	/**
-	 * @param string $word
-	 * @param int    $externalId
-	 * @param int    $position
-	 */
-	protected function addWordToFulltext($word, $externalId, $position)
-	{
-		$word = $this->stemmer->stemWord($word);
-		$this->storage->addToFulltext($word, $externalId, $position);
-	}
-
-	/**
 	 * @param string $externalId
 	 * @param string $title
 	 * @param string $contents
@@ -118,45 +101,41 @@ class Indexer
 	{
 		// Processing title
 		foreach (self::arrayFromStr($title) as $word) {
-			$this->addKeywordToIndex(trim($word), $externalId, self::TYPE_TITLE);
+			$this->addKeywordToIndex(trim($word), $externalId, Finder::TYPE_TITLE);
 		}
 
 		// Processing keywords
 		foreach (explode(',', $keywords) as $item) {
-			$this->addKeywordToIndex(trim($item), $externalId, self::TYPE_KEYWORD);
+			$this->addKeywordToIndex(trim($item), $externalId, Finder::TYPE_KEYWORD);
 		}
 
 		// Fulltext index
-		$words = self::arrayFromStr($title . ' ' . str_replace(', ', ' ', $keywords) . ' ' . $contents);
+		// Remove russian ё from the fulltext index
+		$words = self::arrayFromStr(str_replace('ё', 'е', $title . ' ' . str_replace(', ', ' ', $keywords) . ' ' . $contents));
 
-		$i = 0;
-		foreach ($words as $word) {
-			if ($word == '-') {
+		$subwords = [];
+
+		foreach ($words as $i => &$word) {
+			if ($word == '-' || $this->storage->isExcluded($word)) {
+				unset($words[$i]);
 				continue;
 			}
-
-			$i++;
-
-			if ($this->storage->isExcluded($word)) {
-				continue;
-			}
-
-			// Remove russian ё from the fulltext index
-			if (false !== strpos($word, 'ё')) {
-				$word = str_replace('ё', 'е', $word);
-			}
-
-			$this->addWordToFulltext($word, $externalId, $i);
 
 			// If the word contains the hyphen, add a variant without it
 			if (strlen($word) > 1 && false !== strpos($word, '-')) {
-				foreach (explode('-', $word) as $subword) {
+				foreach (explode('-', $word) as $k => $subword) {
 					if ($subword) {
-						$this->addWordToFulltext($subword, $externalId, $i);
+						$subwords[$i + 0.1 * $k] = $this->stemmer->stemWord($subword);
 					}
 				}
 			}
+
+			$word = $this->stemmer->stemWord($word);
 		}
+		unset($word);
+
+		$this->storage->addToFulltext($words, $externalId);
+		$this->storage->addToFulltext($subwords, $externalId);
 	}
 
 	/**

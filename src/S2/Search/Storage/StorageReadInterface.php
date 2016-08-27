@@ -49,6 +49,11 @@ interface StorageReadInterface
 	public function getTocByExternalId($externalId);
 
 	/**
+	 * @return int
+	 */
+	public function getTocSize();
+
+	/**
 	 * @return TocEntry[]
 	 */
 	public function findTocByTitle($string);

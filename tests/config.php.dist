@@ -1,0 +1,7 @@
+<?php
+
+$s2_search_test_db = [
+	'dsn'      => 'mysql:dbname=s2_search_test;host=127.0.0.1',
+	'username' => 'root',
+	'passwd'   => '',
+];

@@ -14,11 +14,10 @@ use S2\Search\Entity\TocEntry;
 interface StorageWriteInterface
 {
 	/**
-	 * @param string $word
+	 * @param array  $words      Keys are the positions of corresponding words.
 	 * @param string $externalId
-	 * @param int    $position
 	 */
-	public function addToFulltext($word, $externalId, $position);
+	public function addToFulltext(array $words, $externalId);
 
 	/**
 	 * @param $externalId

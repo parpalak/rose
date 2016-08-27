@@ -50,8 +50,7 @@ class SingleFileArrayStorageTest extends Unit
 		$this->assertEquals(1, $entry1->getInternalId());
 		$this->assertEquals(2, $entry2->getInternalId());
 
-		$storage->addToFulltext('hello', 'test_id_1', 1);
-		$storage->addToFulltext('world', 'test_id_1', 2);
+		$storage->addToFulltext([1 => 'hello', 2 => 'world'], 'test_id_1');
 
 		$info = $storage->getFulltextByWord('hello');
 		$this->assertArrayHasKey('test_id_1', $info);
@@ -73,8 +72,7 @@ class SingleFileArrayStorageTest extends Unit
 		$entry3 = $storage->getTocByExternalId('test_id_3');
 		$this->assertNull($entry3);
 
-		$storage->addToFulltext('hello', 'test_id_2', 10);
-		$storage->addToFulltext('world', 'test_id_2', 20);
+		$storage->addToFulltext([10 => 'hello', 20 => 'world'], 'test_id_2');
 
 		$info = $storage->getFulltextByWord('world');
 		$this->assertArrayHasKey('test_id_1', $info);
