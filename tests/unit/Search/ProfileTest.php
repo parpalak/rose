@@ -20,7 +20,7 @@ use S2\Search\Storage\File\SingleFileArrayStorage;
  */
 class ProfileTest extends Unit
 {
-	const TEST_FILE_NUM = 14;
+	const TEST_FILE_NUM = 17;
 
 	/**
 	 * @return string
