@@ -9,6 +9,7 @@
   ],
   "license": "MIT",
   "require": {
+    "php": ">=5.4.0",
     "symfony/polyfill-mbstring": "^1.2"
   },
   "require-dev": {
