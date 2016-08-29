@@ -20,7 +20,7 @@ The index can be stored in a database or in a file. Storage is an abstraction la
 In most cases you gonna need a database storage `PdoStorage`.
 
 ```php
-$pdo = new \PDO('mysql:dbname=s2_search_test;host=127.0.0.1', 'username', 'passwd');
+$pdo = new \PDO('mysql:host=127.0.0.1;dbname=s2_search_test;charset=utf8', 'username', 'passwd');
 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
 use S2\Search\Storage\Database\PdoStorage;
