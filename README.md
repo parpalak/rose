@@ -87,7 +87,7 @@ The `Indexer::add()` method is used for adding and updating the index. If the co
 
 When you remove a page from the site, just call
 
-```
+```php
 $indexer->removeById($externalId);
 ```
 
@@ -113,7 +113,7 @@ $result->getWeightByExternalId(); // ['id_2' => 31, 'id_1' => 1]
 use S2\Search\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($storage, $stemmer);
-$snippets = $snippetBuilder->getSnippets($result, $snippetCallbackProvider = function (array $ids) {
+$snippets = $snippetBuilder->getSnippets($result, function (array $ids) {
 	$result = [];
 	foreach ($ids as $id) {
 		if ($id == 'id_1') {

@@ -16,6 +16,8 @@ use S2\Search\Storage\StorageReadInterface;
  */
 class SnippetBuilder
 {
+	const LINE_SEPARATOR = "\r";
+
 	/**
 	 * @var StorageReadInterface
 	 */
@@ -51,70 +53,76 @@ class SnippetBuilder
 		/** @var array $contentArray */
 		$contentArray = $callback($externalIds);
 
+		$result->addProfilePoint('Snippets: obtaining');
+
 		$contentArray = $this->cleanupContent($contentArray);
 
-		// Preparing for breaking into lines
-		$contentArray = preg_replace('#(?<=[\.?!;])[ \n\t]+#sS', "\r", $contentArray);
-		$foundWords   = $result->getFoundWordsByExternalId();
+		$result->addProfilePoint('Snippets: cleaning');
+
+		$foundWords = $result->getFoundWordsByExternalId();
 
 		$snippets = [];
 		foreach ($contentArray as $externalId => $content) {
-			$snippet = $this->buildSnippet($foundWords, $externalId, $content);
+			$snippet = $this->buildSnippet($foundWords[$externalId], $content);
 			$snippet->setDescription($this->storage->getTocByExternalId($externalId)->getDescription());
 			$snippets[$externalId] = $snippet;
 		}
+
+		$result->addProfilePoint('Snippets: building');
 
 		return $snippets;
 	}
 
 	/**
-	 * @param array $articles
+	 * @param array $contentArray
 	 *
 	 * @return array
 	 */
-	private function cleanupContent(array $articles)
+	private function cleanupContent(array $contentArray)
 	{
 		// Text cleanup
-		$replaceFrom = ["\r", 'ё', '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;'];
+		$replaceFrom = [self::LINE_SEPARATOR, 'ё', '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;'];
 		$replaceTo   = ['', 'е', ' ', '—', '–', '«', '»',];
 		foreach ([
 			'<br>',
 			'<br />',
-			'</h1>',
-			'</h2>',
-			'</h3>',
-			'</h4>',
-			'</p>',
-			'</pre>',
-			'</blockquote>',
-			'</li>',
+			'<h1>',
+			'<h2>',
+			'<h3>',
+			'<h4>',
+			'<p>',
+			'<pre>',
+			'<blockquote>',
+			'<li>',
 		] as $tag) {
 			$replaceFrom[] = $tag;
-			$replaceTo[]   = $tag . "\r";
+			$replaceTo[]   = $tag . self::LINE_SEPARATOR;
 		}
 
-		$articles = str_replace($replaceFrom, $replaceTo, $articles);
-		foreach ($articles as &$string) {
+		$contentArray = str_replace($replaceFrom, $replaceTo, $contentArray);
+		foreach ($contentArray as &$string) {
 			$string = strip_tags($string);
 		}
 		unset($string);
 
-		return $articles;
+		// Preparing for breaking into lines
+		$contentArray = preg_replace('#(?<=[\.?!;])[ \n\t]+#sS', self::LINE_SEPARATOR, $contentArray);
+
+		return $contentArray;
 	}
 
 	/**
-	 * @param array  $foundWords
-	 * @param string $externalId
-	 * @param string $content
+	 * @param string[] $foundWords
+	 * @param string   $content
 	 *
 	 * @return Snippet
 	 */
-	private function buildSnippet($foundWords, $externalId, $content)
+	private function buildSnippet($foundWords, $content)
 	{
 		// Stems of the words found in the $id chapter
 		$stems     = [];
 		$fullWords = [];
-		foreach ($foundWords[$externalId] as $word) {
+		foreach ($foundWords as $word) {
 			// TODO PdoStorage::isExcluded() === false. Is it OK?
 			if (!$this->storage->isExcluded($word)) {
 				$stemmedWord             = $this->stemmer->stemWord($word);
@@ -124,7 +132,7 @@ class SnippetBuilder
 		}
 
 		// Breaking the text into lines
-		$lines     = explode("\r", $content);
+		$lines     = explode(self::LINE_SEPARATOR, $content);
 		$textStart = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
 
 		if (empty($fullWords)) {
@@ -176,7 +184,7 @@ class SnippetBuilder
 		}
 
 		$i       = 0;
-		$snippet = $foundStems = [];
+		$lineNums = $foundStems = [];
 		foreach ($lines_with_weight as $weight => $line_num_array) {
 			while (count($line_num_array)) {
 				$i++;
@@ -207,16 +215,7 @@ class SnippetBuilder
 					$foundStems[$stem] = 1;
 				}
 
-				// Highlighting
-				$replace = [];
-				foreach ($found_words[$lineNum] as $word) {
-					$replace[$word] = '<i>' . $word . '</i>';
-				}
-
-				$snippet[$lineNum] = strtr(html_entity_decode($lines[$lineNum], ENT_HTML5|ENT_NOQUOTES, 'UTF-8'), $replace);
-				//$snippet[$lineNum] = strtr($lines[$lineNum], $replace);
-				// Cleaning up HTML entites TODO $word may be undefined
-				//$snippet[$lineNum] = preg_replace('#&[^;]{0,10}(?:<i>' . preg_quote($word, '#') . '</i>[^;]{0,15})+;#ue', 'str_replace(array("<i>", "</i>"), "", "\\0")', $snippet[$lineNum]);
+				$lineNums[] = $lineNum;
 
 				// If we have found all stems, we do not need any more sentence
 				if ($max == count($stems)) {
@@ -225,14 +224,30 @@ class SnippetBuilder
 			}
 		}
 
+		$snippetArray = [];
+		foreach ($lineNums as $lineNum) {
+			$snippetArray[$lineNum] = $lines[$lineNum];
+		}
+
 		// Sort sentences in the snippet according to the text order
 		$snippetStr = '';
-		ksort($snippet);
+		ksort($snippetArray);
 		$previous_line_num = -1;
-		foreach ($snippet as $lineNum => &$line) {
+		foreach ($snippetArray as $lineNum => &$line) {
+			// Highlighting
+			$replace = [];
+			foreach ($found_words[$lineNum] as $word) {
+				$replace[$word] = '<i>' . $word . '</i>';
+			}
+
+			$line = strtr(html_entity_decode($line, ENT_HTML5|ENT_NOQUOTES, 'UTF-8'), $replace);
+			//$snippet[$lineNum] = strtr($lines[$lineNum], $replace);
+			// Cleaning up HTML entites TODO $word may be undefined
+			//$snippet[$lineNum] = preg_replace('#&[^;]{0,10}(?:<i>' . preg_quote($word, '#') . '</i>[^;]{0,15})+;#ue', 'str_replace(array("<i>", "</i>"), "", "\\0")', $snippet[$lineNum]);
+
 			// Cleaning up unbalanced quotation makrs
 			$line = preg_replace('#«(.*?)»#Ss', '&laquo;\\1&raquo;', $line);
-			$line = str_replace(['&quot', '«', '»'], ['"', ''], $line);
+			$line = str_replace(['&quot;', '«', '»'], ['"', ''], $line);
 			if (substr_count($line, '"') % 2) {
 				$line = str_replace('"', '', $line);
 			}

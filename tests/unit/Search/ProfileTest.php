@@ -11,12 +11,15 @@ use S2\Search\Entity\Indexable;
 use S2\Search\Finder;
 use S2\Search\Helper\Helper;
 use S2\Search\Indexer;
+use S2\Search\SnippetBuilder;
 use S2\Search\Stemmer\PorterStemmerRussian;
 use S2\Search\Storage\Database\PdoStorage;
 use S2\Search\Storage\File\SingleFileArrayStorage;
 
 /**
  * Class ProfileTest
+ *
+ * @group profile
  */
 class ProfileTest extends Unit
 {
@@ -91,6 +94,16 @@ class ProfileTest extends Unit
 
 		$result = $finder->find('захотел разговаривать', true);
 
+		$snippetBuilder = new SnippetBuilder($storage, $stemmer);
+		$snippets       = $snippetBuilder->getSnippets($result, function (array $ids) {
+			$data = [];
+			foreach ($ids as $id) {
+				$data[$id] = file_get_contents(__DIR__ . '/../../Resource/data/' . $id);
+			}
+
+			return $data;
+		});
+
 		foreach (array_merge($indexProfilePoints, $loadingProfilePoints, $result->getProfilePoints()) as $point) {
 			codecept_debug(Helper::formatProfilePoint($point));
 		}
@@ -146,6 +159,16 @@ class ProfileTest extends Unit
 		$indexProfilePoints[] = Helper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
 
 		$result = $finder->find('захотел разговаривать', true);
+
+		$snippetBuilder = new SnippetBuilder($storage, $stemmer);
+		$snippets       = $snippetBuilder->getSnippets($result, function (array $ids) {
+			$data = [];
+			foreach ($ids as $id) {
+				$data[$id] = file_get_contents(__DIR__ . '/../../Resource/data/' . $id);
+			}
+
+			return $data;
+		});
 
 		foreach (array_merge($indexProfilePoints, $result->getProfilePoints()) as $point) {
 			codecept_debug(Helper::formatProfilePoint($point));
