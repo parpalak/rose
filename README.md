@@ -19,6 +19,8 @@ If you do not use composer (you really should!), you can download an archive, un
 The index can be stored in a database or in a file. Storage is an abstraction layer that hides implementation details.
 In most cases you gonna need a database storage `PdoStorage`.
 
+Both indexing and searching need the storage.
+
 ```php
 $pdo = new \PDO('mysql:host=127.0.0.1;dbname=s2_search_test;charset=utf8', 'username', 'passwd');
 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -58,8 +60,8 @@ $indexable = new Indexable(
 	'This is the first page to be indexed. I have to make up a content.'
 );
 $indexable
-	->setKeywords('singlekeyword, multiple keywords')            // The same as Meta Keywords
-	->setDescription('The description can be used for snippets') // The same as Meta Description
+	->setKeywords('singlekeyword, multiple keywords')       // The same as Meta Keywords
+	->setDescription('Description can be used in snippets') // The same as Meta Description
 	->setDate(new \DateTime('2016-08-24 00:00:00'))
 	->setUrl('url1')
 ;
@@ -68,7 +70,7 @@ $indexer->add($indexable);
 
 $indexable = new Indexable(
 	'id_2',
-	'To be continued...',
+	'Test page title 2',
 	'This is the second page to be indexed. Let\'s compose something new.'
 );
 $indexable->setKeywords('content, page');
@@ -94,26 +96,46 @@ $indexer->removeById($externalId);
 ### Searching
 
 Full-text search results can be obtained via `Finder` class.
+`$resultSet->getItems()` returns all the information about content items and their relevancy.
 
 ```php
 use S2\Search\Finder;
+use S2\Search\Entity\Query;
 
 $finder = new Finder($storage, $stemmer);
-$result = $finder->find('content');
-$result->getWeightByExternalId(); // ['id_2' => 31, 'id_1' => 1]
+$resultSet = $finder->find(new Query('content'));
+
+foreach ($resultSet->getItems() as $externalId => $item) {
+	                         // first iteration:          second iteration:
+	$externalId;             // 'id_2'                    'id_1'
+	$item->getTitle();       // 'Test page title 2'       'Test page title'
+	$item->getUrl();         // ''                        'url1'
+	$item->getDescription(); // ''                        'Description can be used in snippets'
+	$item->getDate();        // null                      new \DateTime('2016-08-24 00:00:00')
+	$item->getRelevancy();   // 1.0                       31.0
+    $item->getSnippet();     // ''                        'Description can be used in snippets'
+}
 ```
 
-`$result->getWeightByExternalId();` returns the IDs and relevancy of the content items.
+Modify the `Query` object to use a pagination:
+```php
+$query = new Query('content');
+$query
+	->setLimit(10)  // 10 results per page
+	->setOffset(20) // third page
+;
+$resultSet = $finder->find($query);
+```
 
 ### Snippets
 
-`SnippetBuilder` is a special class that provides text fragments containig found words.
+Snippets are small text fragments containing found words displaying in a search result. `SnippetBuilder` processes the source and selects best matching sentences.
 
 ```php
 use S2\Search\SnippetBuilder;
 
-$snippetBuilder = new SnippetBuilder($storage, $stemmer);
-$snippets = $snippetBuilder->getSnippets($result, function (array $ids) {
+$snippetBuilder = new SnippetBuilder($stemmer);
+$snippetBuilder->attachSnippets($result, function (array $ids) {
 	$result = [];
 	foreach ($ids as $id) {
 		if ($id == 'id_1') {
@@ -126,7 +148,9 @@ $snippets = $snippetBuilder->getSnippets($result, function (array $ids) {
 	return $result;
 });
 
-$snippets['id_1']->getValue(); // 'I have to make up a <i>content</i>.'
+$resultSet->getItems()['id_1']->getSnippet(); // 'I have to make up a <i>content</i>.'
 ```
 
-It highlights the found words with italics.
+`SnippetBuilder` highlights the found words with italics.
+
+Building snippets is quite a heavy operation. Use it together with pagination.

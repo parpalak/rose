@@ -8,6 +8,7 @@ namespace S2\Search\Test;
 
 use Codeception\Test\Unit;
 use S2\Search\Entity\Indexable;
+use S2\Search\Entity\Query;
 use S2\Search\Finder;
 use S2\Search\Helper\Helper;
 use S2\Search\Indexer;
@@ -36,6 +37,51 @@ class ProfileTest extends Unit
 	protected function _before()
 	{
 		@unlink($this->getTempFilename());
+	}
+
+	public function testSnippets()
+	{
+		$start = microtime(true);
+
+		return;
+		$filenames = glob(__DIR__ . '/../../Resource/data/' . '*.txt');
+		$filenames = array_slice($filenames, 0, self::TEST_FILE_NUM);
+
+		$indexProfilePoints[] = Helper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
+
+		$stems = ['захот', 'разговарива', 'мно', 'никогда'];
+		$regex = '#(?<=[^a-zа-я]|^)(' . implode('|', $stems) . ')[a-zа-я]*#Ssui';
+
+		$contentArray = [];
+		foreach ($filenames as $filename) {
+			$contentArray[] = file_get_contents($filename);
+		}
+		$indexProfilePoints[] = Helper::getProfilePoint('reading', -$start + ($start = microtime(true)));
+
+		for ($i = 5; $i--; ) {
+			foreach ($contentArray as $content) {
+				preg_match_all($regex, $content, $matches, PREG_OFFSET_CAPTURE);
+			}
+		}
+		$indexProfilePoints[] = Helper::getProfilePoint('matching 1', -$start + ($start = microtime(true)));
+
+		$content = implode("\r", $contentArray);
+		unset($contentArray);
+
+		$indexProfilePoints[] = Helper::getProfilePoint('concat', -$start + ($start = microtime(true)));
+
+		for ($i = 5; $i--; ) {
+			preg_match_all($regex, $content, $matches, PREG_OFFSET_CAPTURE);
+		}
+
+		$indexProfilePoints[] = Helper::getProfilePoint('matching 2', -$start + ($start = microtime(true)));
+
+//		codecept_debug($matches);
+
+		foreach (array_merge($indexProfilePoints) as $point) {
+			codecept_debug(Helper::formatProfilePoint($point));
+		}
+
 	}
 
 	public function testFileProfiling()
@@ -92,10 +138,10 @@ class ProfileTest extends Unit
 
 		$loadingProfilePoints = $storage->load(true);
 
-		$result = $finder->find('захотел разговаривать', true);
+		$result = $finder->find(new Query('захотел разговаривать'), true);
 
-		$snippetBuilder = new SnippetBuilder($storage, $stemmer);
-		$snippets       = $snippetBuilder->getSnippets($result, function (array $ids) {
+		$snippetBuilder = new SnippetBuilder($stemmer);
+		$snippetBuilder->attachSnippets($result, function (array $ids) {
 			$data = [];
 			foreach ($ids as $id) {
 				$data[$id] = file_get_contents(__DIR__ . '/../../Resource/data/' . $id);
@@ -158,10 +204,10 @@ class ProfileTest extends Unit
 
 		$indexProfilePoints[] = Helper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
 
-		$result = $finder->find('захотел разговаривать', true);
+		$result = $finder->find(new Query('захотел разговаривать'), true);
 
-		$snippetBuilder = new SnippetBuilder($storage, $stemmer);
-		$snippets       = $snippetBuilder->getSnippets($result, function (array $ids) {
+		$snippetBuilder = new SnippetBuilder($stemmer);
+		$snippetBuilder->attachSnippets($result, function (array $ids) {
 			$data = [];
 			foreach ($ids as $id) {
 				$data[$id] = file_get_contents(__DIR__ . '/../../Resource/data/' . $id);

@@ -6,10 +6,9 @@
 
 namespace S2\Search;
 
-use S2\Search\Entity\Result;
+use S2\Search\Entity\ResultSet;
 use S2\Search\Entity\Snippet;
 use S2\Search\Stemmer\StemmerInterface;
-use S2\Search\Storage\StorageReadInterface;
 
 /**
  * Class SnippetBuilder
@@ -19,11 +18,6 @@ class SnippetBuilder
 	const LINE_SEPARATOR = "\r";
 
 	/**
-	 * @var StorageReadInterface
-	 */
-	protected $storage;
-
-	/**
 	 * @var StemmerInterface
 	 */
 	protected $stemmer;
@@ -31,22 +25,20 @@ class SnippetBuilder
 	/**
 	 * SnippetBuilder constructor.
 	 *
-	 * @param StorageReadInterface $storage
 	 * @param StemmerInterface     $stemmer
 	 */
-	public function __construct(StorageReadInterface $storage, StemmerInterface $stemmer)
+	public function __construct(StemmerInterface $stemmer)
 	{
-		$this->storage = $storage;
 		$this->stemmer = $stemmer;
 	}
 
 	/**
-	 * @param Result   $result
-	 * @param callable $callback
+	 * @param ResultSet $result
+	 * @param callable  $callback
 	 *
 	 * @return Snippet[]
 	 */
-	public function getSnippets(Result $result, callable $callback)
+	public function attachSnippets(ResultSet $result, callable $callback)
 	{
 		$externalIds = array_keys($result->getWeightByExternalId());
 
@@ -61,16 +53,12 @@ class SnippetBuilder
 
 		$foundWords = $result->getFoundWordsByExternalId();
 
-		$snippets = [];
 		foreach ($contentArray as $externalId => $content) {
 			$snippet = $this->buildSnippet($foundWords[$externalId], $content);
-			$snippet->setDescription($this->storage->getTocByExternalId($externalId)->getDescription());
-			$snippets[$externalId] = $snippet;
+			$result->attachSnippet($externalId, $snippet);
 		}
 
 		$result->addProfilePoint('Snippets: building');
-
-		return $snippets;
 	}
 
 	/**
@@ -86,14 +74,14 @@ class SnippetBuilder
 		foreach ([
 			'<br>',
 			'<br />',
-			'<h1>',
-			'<h2>',
-			'<h3>',
-			'<h4>',
-			'<p>',
-			'<pre>',
-			'<blockquote>',
-			'<li>',
+			'</h1>',
+			'</h2>',
+			'</h3>',
+			'</h4>',
+			'</p>',
+			'</pre>',
+			'</blockquote>',
+			'</li>',
 		] as $tag) {
 			$replaceFrom[] = $tag;
 			$replaceTo[]   = $tag . self::LINE_SEPARATOR;
@@ -123,12 +111,10 @@ class SnippetBuilder
 		$stems     = [];
 		$fullWords = [];
 		foreach ($foundWords as $word) {
-			// TODO PdoStorage::isExcluded() === false. Is it OK?
-			if (!$this->storage->isExcluded($word)) {
-				$stemmedWord             = $this->stemmer->stemWord($word);
-				$stems[]                 = $stemmedWord;
-				$fullWords[$stemmedWord] = $word;
-			}
+			// TODO exclude words like 'to', 'and', ...?
+			$stemmedWord             = $this->stemmer->stemWord($word);
+			$stems[]                 = $stemmedWord;
+			$fullWords[$stemmedWord] = $word;
 		}
 
 		// Breaking the text into lines
@@ -183,7 +169,7 @@ class SnippetBuilder
 			$lines_with_weight[$weight][] = $lineNum;
 		}
 
-		$i       = 0;
+		$i        = 0;
 		$lineNums = $foundStems = [];
 		foreach ($lines_with_weight as $weight => $line_num_array) {
 			while (count($line_num_array)) {
@@ -240,7 +226,7 @@ class SnippetBuilder
 				$replace[$word] = '<i>' . $word . '</i>';
 			}
 
-			$line = strtr(html_entity_decode($line, ENT_HTML5|ENT_NOQUOTES, 'UTF-8'), $replace);
+			$line = strtr(html_entity_decode($line, ENT_HTML5 | ENT_NOQUOTES, 'UTF-8'), $replace);
 			//$snippet[$lineNum] = strtr($lines[$lineNum], $replace);
 			// Cleaning up HTML entites TODO $word may be undefined
 			//$snippet[$lineNum] = preg_replace('#&[^;]{0,10}(?:<i>' . preg_quote($word, '#') . '</i>[^;]{0,15})+;#ue', 'str_replace(array("<i>", "</i>"), "", "\\0")', $snippet[$lineNum]);

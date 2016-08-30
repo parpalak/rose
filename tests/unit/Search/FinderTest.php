@@ -18,9 +18,5 @@ class FinderTest extends Unit
 {
 	public function testFilterInput()
 	{
-		$this->assertEquals([1, 2], Finder::filterInput('1|||2'));
-		$this->assertEquals([1, 2], Finder::filterInput('1\\\\\\2'));
-		$this->assertEquals(['a', 'b'], Finder::filterInput('a/b'));
-		$this->assertEquals(['a', 'b'], Finder::filterInput(' a   b   '));
 	}
 }

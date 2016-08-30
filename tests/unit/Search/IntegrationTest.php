@@ -8,6 +8,7 @@ namespace S2\Search\Test;
 
 use Codeception\Test\Unit;
 use S2\Search\Entity\Indexable;
+use S2\Search\Entity\Query;
 use S2\Search\Finder;
 use S2\Search\Indexer;
 use S2\Search\SnippetBuilder;
@@ -71,7 +72,7 @@ class IntegrationTest extends Unit
 			$readStorage->load();
 		}
 		$finder         = new Finder($readStorage, $stemmer);
-		$snippetBuilder = new SnippetBuilder($readStorage, $stemmer);
+		$snippetBuilder = new SnippetBuilder($stemmer);
 
 		$snippetCallbackProvider = function (array $ids) use ($indexables) {
 			$result = [];
@@ -84,26 +85,44 @@ class IntegrationTest extends Unit
 			return $result;
 		};
 
-		$result1 = $finder->find('snippets');
-		$this->assertEquals([], $result1->getWeightByExternalId(), 'Do not index description');
+		// Query 1
+		$resultSet1 = $finder->find(new Query('snippets'));
+		$this->assertEquals([], $resultSet1->getWeightByExternalId(), 'Do not index description');
 
-		$result2  = $finder->find('content');
-		$snippets = $snippetBuilder->getSnippets($result2, $snippetCallbackProvider);
-		$this->assertEquals(['id_2' => 31, 'id_1' => 1], $result2->getWeightByExternalId());
-		$this->assertEquals('I have to make up a <i>content</i>.', $snippets['id_1']->getValue());
-		$this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $snippets['id_2']->getValue());
+		// Query 2
+		$resultSet2 = $finder->find(new Query('content'));
 
-		$result3  = $finder->find('сущность Plus');
-		$snippets = $snippetBuilder->getSnippets($result3, $snippetCallbackProvider);
-		$this->assertEquals('Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +.', $snippets['id_3']->getValue());
+		$this->assertEquals(['id_2' => 31, 'id_1' => 1], $resultSet2->getWeightByExternalId());
+
+		$items = $resultSet2->getItems();
+		$this->assertEquals('Description can be used in snippets', $items['id_1']->getSnippet());
+
+		$snippetBuilder->attachSnippets($resultSet2, $snippetCallbackProvider);
+
+		$items = $resultSet2->getItems();
+
+		$this->assertEquals('Test page title',                     $items['id_1']->getTitle());
+		$this->assertEquals('url1',                                $items['id_1']->getUrl());
+		$this->assertEquals('Description can be used in snippets', $items['id_1']->getDescription());
+		$this->assertEquals(new \DateTime('2016-08-24 00:00:00'),  $items['id_1']->getDate());
+		$this->assertEquals(1.0,                                   $items['id_1']->getRelevancy());
+		$this->assertEquals('I have to make up a <i>content</i>.', $items['id_1']->getSnippet());
+
+		$this->assertEquals(31, $items['id_2']->getRelevancy());
+		$this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items['id_2']->getSnippet());
+
+		// Query 3
+		$resultSet3 = $finder->find(new Query('сущность Plus'));
+		$snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);
+		$this->assertEquals('Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +.', $resultSet3->getItems()['id_3']->getSnippet());
 	}
 
 	public function indexableProvider()
 	{
 		$indexables = [
-			(new Indexable('id_1', 'Test page', 'This is the first page to be indexed. I have to make up a content.'))
+			(new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have to make up a content.'))
 				->setKeywords('singlekeyword, multiple keywords')
-				->setDescription('The description can be used for snippets')
+				->setDescription('Description can be used in snippets')
 				->setDate(new \DateTime('2016-08-24 00:00:00'))
 				->setUrl('url1')
 			,

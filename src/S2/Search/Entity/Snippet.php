@@ -19,7 +19,7 @@ class Snippet
 	/**
 	 * @var string
 	 */
-	protected $textStart = '';
+	protected $textIntroduction = '';
 
 	/**
 	 * @var float
@@ -27,41 +27,40 @@ class Snippet
 	protected $relevance = 0.0;
 
 	/**
-	 * @var string
-	 */
-	protected $description = '';
-
-	/**
 	 * Snippet constructor.
 	 *
-	 * @param string $snippet
-	 * @param string $textStart
+	 * @param string $value
+	 * @param string $textIntroduction
 	 * @param float  $relevance
 	 */
-	public function __construct($snippet, $textStart, $relevance)
+	public function __construct($value, $textIntroduction, $relevance)
 	{
-		$this->snippet   = $snippet;
-		$this->textStart = $textStart;
-		$this->relevance = $relevance;
-	}
-
-	/**
-	 * @param string $description
-	 */
-	public function setDescription($description)
-	{
-		$this->description = $description;
+		$this->snippet          = $value;
+		$this->textIntroduction = $textIntroduction;
+		$this->relevance        = $relevance;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getValue()
+	public function getSnippet()
 	{
-		if ($this->relevance > 0.6) {
-			return $this->snippet;
-		}
+		return $this->snippet;
+	}
 
-		return $this->description ?: $this->textStart;
+	/**
+	 * @return string
+	 */
+	public function getTextIntroduction()
+	{
+		return $this->textIntroduction;
+	}
+
+	/**
+	 * @return float
+	 */
+	public function getRelevance()
+	{
+		return $this->relevance;
 	}
 }

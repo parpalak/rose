@@ -8,7 +8,8 @@
 
 namespace S2\Search;
 
-use S2\Search\Entity\Result;
+use S2\Search\Entity\Query;
+use S2\Search\Entity\ResultSet;
 use S2\Search\Exception\UnknownKeywordTypeException;
 use S2\Search\Stemmer\StemmerInterface;
 use S2\Search\Storage\StorageReadInterface;
@@ -18,8 +19,8 @@ use S2\Search\Storage\StorageReadInterface;
  */
 class Finder
 {
-	const TYPE_TITLE            = 1;
-	const TYPE_KEYWORD          = 2;
+	const TYPE_TITLE   = 1;
+	const TYPE_KEYWORD = 2;
 
 	/**
 	 * @var StorageReadInterface
@@ -41,65 +42,6 @@ class Finder
 	{
 		$this->storage = $storage;
 		$this->stemmer = $stemmer;
-	}
-
-	/**
-	 * @param string $content
-	 *
-	 * @return string[]
-	 */
-	public static function filterInput($content)
-	{
-		$content = strip_tags($content);
-
-		$content = str_replace(['«', '»', '“', '”', '‘', '’'], '"', $content);
-		$content = str_replace(['---', '--', '–', '−',], '—', $content);
-		$content = preg_replace('#,\s+,#u', ',,', $content);
-		$content = preg_replace('#[^\-а-яё0-9a-z\^\.,\(\)";?!…:—]+#iu', ' ', $content);
-		$content = preg_replace('#\n+#', ' ', $content);
-		$content = preg_replace('#\s+#u', ' ', $content);
-		$content = mb_strtolower($content);
-
-		$content = preg_replace('#(,+)#u', '\\1 ', $content);
-
-		$content = preg_replace('#[ |\\/]+#', ' ', $content);
-
-		$words = explode(' ', $content);
-		foreach ($words as $k => $v) {
-			// Separate special chars from the letter combination
-			if (strlen($v) > 1) {
-				foreach (['—', '^', '(', ')', '"', ':', '?', '!'] as $specialChar) {
-					if (mb_substr($v, 0, 1) == $specialChar || mb_substr($v, -1) == $specialChar) {
-						$words[$k] = str_replace($specialChar, '', $v);
-						$words[]   = $specialChar;
-					}
-				}
-			}
-
-			// Separate hyphen from the letter combination
-			if (strlen($v) > 1 && (substr($v, 0, 1) == '-' || substr($v, -1) == '-')) {
-				$words[$k] = str_replace('-', '', $v);
-				$words[]   = '-';
-			}
-
-			// Replace 'ё' inside words
-			if (false !== strpos($v, 'ё') && $v != 'ё') {
-				$words[$k] = str_replace('ё', 'е', $v);
-			}
-
-			// Remove ','
-			if (preg_match('#^[^,]+,$#u', $v) || preg_match('#^,[^,]+$#u', $v)) {
-				$words[$k] = str_replace(',', '', $v);
-				$words[]   = ',';
-			}
-		}
-
-		$words = array_filter($words, 'strlen');
-
-		// Fix keys
-		$words = array_values($words);
-
-		return $words;
 	}
 
 	/**
@@ -197,10 +139,10 @@ class Finder
 	}
 
 	/**
-	 * @param string[] $words
-	 * @param Result   $result
+	 * @param string[]  $words
+	 * @param ResultSet $result
 	 */
-	protected function findFulltext(array $words, Result $result)
+	protected function findFulltext(array $words, ResultSet $result)
 	{
 		$wordWeight    = self::fulltextWordWeight(count($words));
 		$prevPositions = [];
@@ -212,7 +154,7 @@ class Finder
 				if (count($fulltextIndexByWord) > self::fulltextRateExcludeNum($this->storage->getTocSize())) {
 					continue;
 				}
-				$currPositions       = array_merge($currPositions, $fulltextIndexByWord);
+				$currPositions = array_merge($currPositions, $fulltextIndexByWord);
 
 				foreach ($fulltextIndexByWord as $externalId => $entries) {
 					$curWeight = $wordWeight * self::repeatWeightRatio(count($entries));
@@ -233,10 +175,10 @@ class Finder
 	}
 
 	/**
-	 * @param string $word
-	 * @param Result $result
+	 * @param string    $word
+	 * @param ResultSet $result
 	 */
-	protected function findSimpleKeywords($word, Result $result)
+	protected function findSimpleKeywords($word, ResultSet $result)
 	{
 		foreach ($this->storage->getSingleKeywordIndexByWord($word) as $externalId => $type) {
 			$result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
@@ -244,10 +186,10 @@ class Finder
 	}
 
 	/**
-	 * @param string $string
-	 * @param Result $result
+	 * @param string    $string
+	 * @param ResultSet $result
 	 */
-	protected function findSpacedKeywords($string, Result $result)
+	protected function findSpacedKeywords($string, ResultSet $result)
 	{
 		foreach ($this->storage->getMultipleKeywordIndexByString($string) as $externalId => $type) {
 			$result->addWordWeight($string, $externalId, self::getKeywordWeight($type));
@@ -255,16 +197,16 @@ class Finder
 	}
 
 	/**
-	 * @param string $query
-	 * @param bool   $isDebug
+	 * @param Query $query
+	 * @param bool  $isDebug
 	 *
-	 * @return Result
+	 * @return ResultSet
 	 */
-	public function find($query, $isDebug = false)
+	public function find(Query $query, $isDebug = false)
 	{
-		$result = new Result($isDebug);
+		$result = new ResultSet($query->getLimit(), $query->getOffset(), $isDebug);
 
-		$rawWords     = self::filterInput($query);
+		$rawWords     = $query->valueToArray();
 		$cleanedQuery = implode(' ', $rawWords);
 		$result->addProfilePoint('Input cleanup');
 
@@ -280,6 +222,12 @@ class Finder
 
 		$this->findFulltext($rawWords, $result);
 		$result->addProfilePoint('Fulltext search');
+
+		$result->freeze();
+
+		foreach ($result->getWeightByExternalId() as $externalId => $weight) {
+			$result->attachToc($externalId, $this->storage->getTocByExternalId($externalId));
+		}
 
 		return $result;
 	}
