@@ -12,14 +12,14 @@ This is a simple search engine with Russian morphology for content sites. It ind
 composer require s2/search
 ```
 
-If you do not use composer (you really should!), you can download an archive, unpack it somewhere and ensure including php-files from src/ directory based on PSR-0/4 scheme.
+If you do not use composer, download an archive, unpack it somewhere and ensure including php-files from src/ directory based on a PSR-0/4 scheme. Though you really should use composer.
 
 ## Usage
 ### Preparing storage
 The index can be stored in a database or in a file. Storage is an abstraction layer that hides implementation details.
 In most cases you gonna need a database storage `PdoStorage`.
 
-Both indexing and searching need the storage.
+Both indexing and searching require the storage.
 
 ```php
 $pdo = new \PDO('mysql:host=127.0.0.1;dbname=s2_search_test;charset=utf8', 'username', 'passwd');
@@ -112,8 +112,8 @@ foreach ($resultSet->getItems() as $externalId => $item) {
 	$item->getUrl();         // ''                        'url1'
 	$item->getDescription(); // ''                        'Description can be used in snippets'
 	$item->getDate();        // null                      new \DateTime('2016-08-24 00:00:00')
-	$item->getRelevancy();   // 1.0                       31.0
-    $item->getSnippet();     // ''                        'Description can be used in snippets'
+	$item->getRelevancy();   // 31.0                      1.0
+	$item->getSnippet();     // ''                        'Description can be used in snippets'
 }
 ```
 
