@@ -59,7 +59,7 @@ class IntegrationTest extends Unit
 		}
 
 		foreach ($indexables as $indexable) {
-			$indexer->add($indexable);
+			$indexer->index($indexable);
 		}
 
 		if ($writeStorage instanceof SingleFileArrayStorage) {

@@ -116,7 +116,7 @@ class ProfileTest extends Unit
 
 //			$indexProfilePoints[] = Helper::getProfilePoint('Reading item', -$start + ($start = microtime(true)));
 
-			$indexer->add($indexable);
+			$indexer->index($indexable);
 
 //			$indexProfilePoints[] = Helper::getProfilePoint('Indexing item', -$start + ($start = microtime(true)));
 		}
@@ -192,7 +192,7 @@ class ProfileTest extends Unit
 
 //			$indexProfilePoints[] = Helper::getProfilePoint('Reading item', -$start + ($start = microtime(true)));
 
-			$indexer->add($indexable);
+			$indexer->index($indexable);
 
 //			$indexProfilePoints[] = Helper::getProfilePoint('Indexing item', -$start + ($start = microtime(true)));
 		}

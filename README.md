@@ -66,7 +66,7 @@ $indexable
 	->setUrl('url1')
 ;
 
-$indexer->add($indexable);
+$indexer->index($indexable);
 
 $indexable = new Indexable(
 	'id_2',
@@ -75,7 +75,7 @@ $indexable = new Indexable(
 );
 $indexable->setKeywords('content, page');
 
-$indexer->add($indexable);
+$indexer->index($indexable);
 ```
 
 The constructor of `Indexable` requires 3 string arguments:
@@ -85,7 +85,7 @@ The constructor of `Indexable` requires 3 string arguments:
 
 You may also provide some optional parameters: keywords, description, date and URL. Keywords affect the relevancy. The description can be used for building a snippet (see below). It's a good idea to use the content of "keyword" and "description" meta-tags for this purpose (if you have any, of course). The URL can be an arbitrary string.
 
-The `Indexer::add()` method is used for adding and updating the index. If the content is not changed, this method skips the job. Otherwise, the content is being removed and indexed again.
+The `Indexer::index()` method is used both for adding and updating the index. If the content is not changed, this method skips the job. Otherwise, the content is being removed and indexed again.
 
 When you remove a page from the site, just call
 

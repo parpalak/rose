@@ -154,7 +154,7 @@ class Indexer
 	/**
 	 * @param Indexable $indexable
 	 */
-	public function add(Indexable $indexable)
+	public function index(Indexable $indexable)
 	{
 		$externalId  = $indexable->getId();
 		$oldTocEntry = $this->storage->getTocByExternalId($externalId);

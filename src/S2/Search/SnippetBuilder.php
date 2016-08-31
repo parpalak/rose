@@ -18,6 +18,11 @@ class SnippetBuilder
 	const LINE_SEPARATOR = "\r";
 
 	/**
+	 * @var string
+	 */
+	protected $highlightTemplate = '<i>%s</i>';
+
+	/**
 	 * @var StemmerInterface
 	 */
 	protected $stemmer;
@@ -30,6 +35,14 @@ class SnippetBuilder
 	public function __construct(StemmerInterface $stemmer)
 	{
 		$this->stemmer = $stemmer;
+	}
+
+	/**
+	 * @param string $highlightTemplate
+	 */
+	public function setHighlightTemplate($highlightTemplate)
+	{
+		$this->highlightTemplate = $highlightTemplate;
 	}
 
 	/**
@@ -223,7 +236,7 @@ class SnippetBuilder
 			// Highlighting
 			$replace = [];
 			foreach ($found_words[$lineNum] as $word) {
-				$replace[$word] = '<i>' . $word . '</i>';
+				$replace[$word] = $this->highlightWord($word);
 			}
 
 			$line = strtr(html_entity_decode($line, ENT_HTML5 | ENT_NOQUOTES, 'UTF-8'), $replace);
@@ -249,5 +262,15 @@ class SnippetBuilder
 		$snippetStr = str_replace('.... ', '... ', $snippetStr);
 
 		return new Snippet($snippetStr, $textStart, count($foundStems) * 1.0 / count($stems));
+	}
+
+	/**
+	 * @param $word
+	 *
+	 * @return string
+	 */
+	private function highlightWord($word)
+	{
+		return sprintf($this->highlightTemplate, $word);
 	}
 }
