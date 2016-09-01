@@ -66,7 +66,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			hash VARCHAR(80) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (external_id)
-        ) ENGINE=InnoDB;');
+		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'fulltext_index;');
 		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'fulltext_index (
@@ -75,7 +75,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			position INT(11) UNSIGNED NOT NULL,
 			KEY (word_id),
 			KEY (toc_id)
-        ) ENGINE=InnoDB;');
+		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'word;');
 		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'word (
@@ -83,7 +83,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			name VARCHAR(255) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			KEY (name)
-        ) ENGINE=InnoDB;');
+		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'keyword_index;');
 		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'keyword_index (
@@ -92,7 +92,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			type INT(11) UNSIGNED NOT NULL,
 			KEY (keyword),
 			KEY (toc_id)
-        ) ENGINE=InnoDB;');
+		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'keyword_multiple_index;');
 		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'keyword_multiple_index (
@@ -101,7 +101,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			type INT(11) UNSIGNED NOT NULL,
 			KEY (keyword),
 			KEY (toc_id)
-        ) ENGINE=InnoDB;');
+		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 	}
 
 	/**
