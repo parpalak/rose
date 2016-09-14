@@ -14,7 +14,7 @@ use S2\Search\Entity\ResultSet;
  *
  * @group entity
  */
-class ResultTest extends Unit
+class ResultSetTest extends Unit
 {
 	public function testLimit()
 	{
@@ -37,6 +37,15 @@ class ResultTest extends Unit
 		$this->assertEquals(34, $data['id_24']);
 		$this->assertEquals(33, $data['id_23']);
 	}
+
+	public function testEmpty()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->freeze();
+		$data = $resultSet->getItems();
+		$this->assertCount(0, $data);
+	}
+
 
 	/**
 	 * @param ResultSet $result

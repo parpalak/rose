@@ -52,7 +52,7 @@ class ResultSet
 	/**
 	 * @var ResultItem[]
 	 */
-	protected $items;
+	protected $items = [];
 
 	/**
 	 * Result cache
