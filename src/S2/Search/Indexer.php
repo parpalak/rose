@@ -125,7 +125,7 @@ class Indexer
 			if (strlen($word) > 1 && false !== strpos($word, '-')) {
 				foreach (explode('-', $word) as $k => $subword) {
 					if ($subword) {
-						$subwords[$i + 0.1 * $k] = $this->stemmer->stemWord($subword);
+						$subwords[(string) ($i + 0.1 * $k)] = $this->stemmer->stemWord($subword);
 					}
 				}
 			}

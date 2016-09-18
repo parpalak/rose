@@ -114,7 +114,29 @@ class IntegrationTest extends Unit
 		// Query 3
 		$resultSet3 = $finder->find(new Query('сущность Plus'));
 		$snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);
-		$this->assertEquals('Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +.', $resultSet3->getItems()['id_3']->getSnippet());
+		$this->assertEquals(
+			'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +.',
+			$resultSet3->getItems()['id_3']->getSnippet()
+		);
+
+		// Query 4
+		$resultSet4 = $finder->find(new Query('эпл'));
+		$this->assertCount(1, $resultSet4->getItems());
+
+		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
+		$this->assertEquals(
+			'Например, красно-черный, <i>эпл</i>-вотчем, и другие интересные комбинации.',
+			$resultSet4->getItems()['id_3']->getSnippet()
+		);
+
+		$resultSet4 = $finder->find(new Query('красный'));
+		$this->assertCount(1, $resultSet4->getItems());
+
+		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
+		$this->assertEquals(
+			'Например, <i>красно</i>-черный, эпл-вотчем, и другие интересные комбинации.',
+			$resultSet4->getItems()['id_3']->getSnippet()
+		);
 	}
 
 	public function indexableProvider()
@@ -132,7 +154,7 @@ class IntegrationTest extends Unit
 				->setDate(new \DateTime('2016-08-20 00:00:00'))
 				->setUrl('any string')
 			,
-			(new Indexable('id_3', 'Русский текст', '<p>Для проверки работы нужно написать побольше слов. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p>'))
+			(new Indexable('id_3', 'Русский текст', '<p>Для проверки работы нужно написать побольше слов. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации.</p>'))
 				->setKeywords('ключевые слова')
 				->setDescription('')
 				->setDate(new \DateTime('2016-08-22 00:00:00'))
