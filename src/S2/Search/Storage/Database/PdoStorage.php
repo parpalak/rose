@@ -294,8 +294,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute([$externalId]);
 			$entry->setInternalId($statement->fetch(\PDO::FETCH_COLUMN));
-
-			$this->tocCache[$externalId] = $entry;
 		}
 		else {
 			$sql = 'UPDATE ' . $this->prefix . 'toc SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
@@ -304,12 +302,14 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$statement->execute([
 				$entry->getTitle(),
 				$entry->getDescription(),
-				$entry->getDate()->format('c'),
+				$entry->getFormattedDate(),
 				$entry->getUrl(),
 				$entry->getHash(),
 				$tocId,
 			]);
 		}
+
+		$this->tocCache[$externalId] = $entry;
 	}
 
 	/**
