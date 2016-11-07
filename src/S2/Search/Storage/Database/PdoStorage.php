@@ -15,6 +15,12 @@ use S2\Search\Storage\StorageWriteInterface;
  */
 class PdoStorage implements StorageWriteInterface, StorageReadInterface
 {
+	const TOC                    = 'toc';
+	const WORD                   = 'word';
+	const FULLTEXT_INDEX         = 'fulltext_index';
+	const KEYWORD_INDEX          = 'keyword_index';
+	const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
+
 	/**
 	 * @var \PDO
 	 */
@@ -36,15 +42,28 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	protected $tocCache;
 
 	/**
+	 * @var array
+	 */
+	protected $options = [
+		self::TOC                    => 'toc',
+		self::WORD                   => 'word',
+		self::FULLTEXT_INDEX         => 'fulltext_index',
+		self::KEYWORD_INDEX          => 'keyword_index',
+		self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
+	];
+
+	/**
 	 * PdoStorage constructor.
 	 *
 	 * @param \PDO   $pdo
 	 * @param string $prefix
+	 * @param array  $options
 	 */
-	public function __construct(\PDO $pdo, $prefix = 's2_search_engine_')
+	public function __construct(\PDO $pdo, $prefix = 's2_search_engine_', array $options = [])
 	{
-		$this->pdo    = $pdo;
-		$this->prefix = $prefix;
+		$this->pdo     = $pdo;
+		$this->prefix  = $prefix;
+		$this->options = array_merge($this->options, $options);
 	}
 
 	/**
@@ -55,8 +74,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 		$this->tocCache      = [];
 		$this->cachedWordIds = [];
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'toc;');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'toc (
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::TOC] . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::TOC] . ' (
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			external_id VARCHAR(255) NOT NULL,
 			title VARCHAR(255) NOT NULL DEFAULT "",
@@ -68,8 +87,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			UNIQUE KEY (external_id)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'fulltext_index;');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'fulltext_index (
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (
 			word_id INT(11) UNSIGNED NOT NULL,
 			toc_id INT(11) UNSIGNED NOT NULL,
 			position INT(11) UNSIGNED NOT NULL,
@@ -77,16 +96,16 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'word;');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'word (
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::WORD] . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::WORD] . ' (
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			name VARCHAR(255) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			KEY (name)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'keyword_index;');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'keyword_index (
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' (
 			keyword VARCHAR(255) NOT NULL,
 			toc_id INT(11) UNSIGNED NOT NULL,
 			type INT(11) UNSIGNED NOT NULL,
@@ -94,8 +113,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . 'keyword_multiple_index;');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . 'keyword_multiple_index (
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' (
 			keyword VARCHAR(255) NOT NULL,
 			toc_id INT(11) UNSIGNED NOT NULL,
 			type INT(11) UNSIGNED NOT NULL,
@@ -111,9 +130,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$sql = '
 			SELECT t.external_id, f.position
-			FROM ' . $this->prefix . 'fulltext_index AS f
-			JOIN ' . $this->prefix . 'word AS w ON w.id = f.word_id
-			JOIN ' . $this->prefix . 'toc AS t ON t.id = f.toc_id
+			FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' AS f
+			JOIN ' . $this->prefix . $this->options[self::WORD] . ' AS w ON w.id = f.word_id
+			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = f.toc_id
 			WHERE w.name = ?
 		';
 
@@ -130,8 +149,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$sql = '
 			SELECT t.external_id, k.type
-			FROM ' . $this->prefix . 'keyword_index AS k
-			JOIN ' . $this->prefix . 'toc AS t ON t.id = k.toc_id
+			FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' AS k
+			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = k.toc_id
 			WHERE k.keyword = ?
 		';
 
@@ -151,8 +170,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$sql = '
 			SELECT t.external_id, k.type
-			FROM ' . $this->prefix . 'keyword_multiple_index AS k
-			JOIN ' . $this->prefix . 'toc AS t ON t.id = k.toc_id
+			FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' AS k
+			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = k.toc_id
 			WHERE k.keyword LIKE ? ESCAPE \'=\'
 		';
 
@@ -173,8 +192,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 *
 	 * @return mixed
 	 */
-	private function escapeLike($s, $e) {
-		return str_replace(array($e, '_', '%'), array($e.$e, $e.'_', $e.'%'), $s);
+	private function escapeLike($s, $e)
+	{
+		return str_replace([$e, '_', '%'], [$e . $e, $e . '_', $e . '%'], $s);
 	}
 
 	/**
@@ -192,13 +212,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$tocId = $this->getInternalIdFromExternalId($externalId);
 
-		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . 'fulltext_index WHERE toc_id = ?');
+		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' WHERE toc_id = ?');
 		$st->execute([$tocId]);
 
-		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . 'keyword_index WHERE toc_id = ?');
+		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' WHERE toc_id = ?');
 		$st->execute([$tocId]);
 
-		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . 'keyword_multiple_index WHERE toc_id = ?');
+		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' WHERE toc_id = ?');
 		$st->execute([$tocId]);
 	}
 
@@ -219,7 +239,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$data[] = $wordIds[$word] . ',' . $internalId . ',' . ((int) $position);
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . 'fulltext_index (word_id, toc_id, position) VALUES ( ' . implode('),(', $data) . ')';
+		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (word_id, toc_id, position) VALUES ( ' . implode('),(', $data) . ')';
 
 		$st = $this->pdo->prepare($sql);
 		$st->execute();
@@ -246,7 +266,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int) $type);
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . 'keyword_index (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
+		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
 
 		$st = $this->pdo->prepare($sql);
 		$st->execute();
@@ -264,7 +284,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int) $type);
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . 'keyword_multiple_index (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
+		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
 
 		$st = $this->pdo->prepare($sql);
 		$st->execute();
@@ -277,7 +297,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$tocId = $this->getInternalIdFromExternalId($externalId);
 		if (!$tocId) {
-			$sql = 'INSERT INTO ' . $this->prefix . 'toc (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
+			$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::TOC] . ' (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
 
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute([
@@ -289,14 +309,14 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 				$entry->getHash(),
 			]);
 
-			$sql = 'SELECT id FROM ' . $this->prefix . 'toc WHERE external_id = ?';
+			$sql = 'SELECT id FROM ' . $this->prefix . $this->options[self::TOC] . ' WHERE external_id = ?';
 
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute([$externalId]);
 			$entry->setInternalId($statement->fetch(\PDO::FETCH_COLUMN));
 		}
 		else {
-			$sql = 'UPDATE ' . $this->prefix . 'toc SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
+			$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] . ' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
 
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute([
@@ -340,7 +360,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	public function removeFromToc($externalId)
 	{
 		$sql = '
-			DELETE FROM ' . $this->prefix . 'toc
+			DELETE FROM ' . $this->prefix . $this->options[self::TOC] . '
 			WHERE external_id = ?
 		';
 		$st  = $this->pdo->prepare($sql);
@@ -382,7 +402,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			return $knownWords;
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . 'word (name) VALUES ("' . implode(
+		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::WORD] . ' (name) VALUES ("' . implode(
 				'"),("',
 				array_map(function ($x) {
 					return addslashes($x);
@@ -426,7 +446,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$sql = '
 			SELECT name, id
-			FROM ' . $this->prefix . 'word AS w
+			FROM ' . $this->prefix . $this->options[self::WORD] . ' AS w
 			WHERE name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 		';
 
@@ -446,7 +466,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 		if (isset($params['title'])) {
 			$sql = '
 				SELECT *
-				FROM ' . $this->prefix . 'toc AS t
+				FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t
 				WHERE t.title LIKE ? ESCAPE \'=\'
 			';
 
@@ -454,7 +474,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$st->execute(['%' . $this->escapeLike($params['title'], '=') . '%']);
 		}
 		else {
-			$sql = 'SELECT * FROM ' . $this->prefix . 'toc AS t';
+			$sql = 'SELECT * FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t';
 
 			$st = $this->pdo->prepare($sql);
 			$st->execute();
