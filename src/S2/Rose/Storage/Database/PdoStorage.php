@@ -7,6 +7,7 @@
 namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 
@@ -136,8 +137,16 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			WHERE w.name = ?
 		';
 
-		$statement = $this->pdo->prepare($sql);
-		$statement->execute([$word]);
+		try {
+			$statement = $this->pdo->prepare($sql);
+			$statement->execute([$word]);
+		}
+		catch (\PDOException $e) {
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+			}
+			throw $e;
+		}
 
 		return $statement->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_GROUP);
 	}
@@ -154,8 +163,16 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			WHERE k.keyword = ?
 		';
 
-		$st = $this->pdo->prepare($sql);
-		$st->execute([$word]);
+		try {
+			$st = $this->pdo->prepare($sql);
+			$st->execute([$word]);
+		}
+		catch (\PDOException $e) {
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+			}
+			throw $e;
+		}
 
 		// TODO \PDO::FETCH_UNIQUE seems to be a hack for caller. Rewrite?
 		$data = $st->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_GROUP | \PDO::FETCH_UNIQUE);
@@ -175,8 +192,16 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			WHERE k.keyword LIKE ? ESCAPE \'=\'
 		';
 
-		$statement = $this->pdo->prepare($sql);
-		$statement->execute(['% ' . $this->escapeLike($string, '=') . ' %']);
+		try {
+			$statement = $this->pdo->prepare($sql);
+			$statement->execute(['% ' . $this->escapeLike($string, '=') . ' %']);
+		}
+		catch (\PDOException $e) {
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+			}
+			throw $e;
+		}
 
 		// TODO \PDO::FETCH_UNIQUE seems to be a hack for caller. Rewrite?
 		$data = $statement->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_GROUP | \PDO::FETCH_UNIQUE);
@@ -363,16 +388,24 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			DELETE FROM ' . $this->prefix . $this->options[self::TOC] . '
 			WHERE external_id = ?
 		';
-		$st  = $this->pdo->prepare($sql);
-		$st->execute([$externalId]);
 
+		try {
+			$st  = $this->pdo->prepare($sql);
+			$st->execute([$externalId]);
+		}
+		catch (\PDOException $e) {
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+			}
+			throw $e;
+		}
 		unset($this->tocCache[$externalId]);
 	}
 
 	/**
 	 * @param string[] $words
 	 *
-	 * @return int
+	 * @return int[]
 	 */
 	private function getWordIds(array $words)
 	{
@@ -463,21 +496,29 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	private function getTocEntries(array $params = [])
 	{
-		if (isset($params['title'])) {
-			$sql = '
-				SELECT *
-				FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t
-				WHERE t.title LIKE ? ESCAPE \'=\'
-			';
+		try {
+			if (isset($params['title'])) {
+				$sql = '
+					SELECT *
+					FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t
+					WHERE t.title LIKE ? ESCAPE \'=\'
+				';
 
-			$st = $this->pdo->prepare($sql);
-			$st->execute(['%' . $this->escapeLike($params['title'], '=') . '%']);
+				$st = $this->pdo->prepare($sql);
+				$st->execute(['%' . $this->escapeLike($params['title'], '=') . '%']);
+			}
+			else {
+				$sql = 'SELECT * FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t';
+
+				$st = $this->pdo->prepare($sql);
+				$st->execute();
+			}
 		}
-		else {
-			$sql = 'SELECT * FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t';
-
-			$st = $this->pdo->prepare($sql);
-			$st->execute();
+		catch (\PDOException $e) {
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+			}
+			throw $e;
 		}
 
 		$result = [];
