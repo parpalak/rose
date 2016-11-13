@@ -4,7 +4,7 @@
  * @license   MIT
  */
 
-namespace S2\Search\Helper;
+namespace S2\Rose\Helper;
 
 /**
  * Class Helper

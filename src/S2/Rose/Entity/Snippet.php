@@ -4,7 +4,7 @@
  * @license   MIT
  */
 
-namespace S2\Search\Entity;
+namespace S2\Rose\Entity;
 
 /**
  * Class Snippet

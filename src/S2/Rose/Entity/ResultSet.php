@@ -4,10 +4,10 @@
  * @license   MIT
  */
 
-namespace S2\Search\Entity;
+namespace S2\Rose\Entity;
 
-use S2\Search\Exception\ImmutableException;
-use S2\Search\Helper\Helper;
+use S2\Rose\Exception\ImmutableException;
+use S2\Rose\Helper\Helper;
 
 /**
  * Class Result

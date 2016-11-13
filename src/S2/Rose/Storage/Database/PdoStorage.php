@@ -4,11 +4,11 @@
  * @license   MIT
  */
 
-namespace S2\Search\Storage\Database;
+namespace S2\Rose\Storage\Database;
 
-use S2\Search\Entity\TocEntry;
-use S2\Search\Storage\StorageReadInterface;
-use S2\Search\Storage\StorageWriteInterface;
+use S2\Rose\Entity\TocEntry;
+use S2\Rose\Storage\StorageReadInterface;
+use S2\Rose\Storage\StorageWriteInterface;
 
 /**
  * Class PdoStorage
@@ -59,7 +59,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 * @param string $prefix
 	 * @param array  $options
 	 */
-	public function __construct(\PDO $pdo, $prefix = 's2_search_engine_', array $options = [])
+	public function __construct(\PDO $pdo, $prefix = 's2_rose_', array $options = [])
 	{
 		$this->pdo     = $pdo;
 		$this->prefix  = $prefix;

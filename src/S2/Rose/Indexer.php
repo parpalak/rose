@@ -6,11 +6,11 @@
  * @license   MIT
  */
 
-namespace S2\Search;
+namespace S2\Rose;
 
-use S2\Search\Entity\Indexable;
-use S2\Search\Stemmer\StemmerInterface;
-use S2\Search\Storage\StorageWriteInterface;
+use S2\Rose\Entity\Indexable;
+use S2\Rose\Stemmer\StemmerInterface;
+use S2\Rose\Storage\StorageWriteInterface;
 
 /**
  * Class Indexer

@@ -1,8 +1,8 @@
 <?php
 
-// $s2_search_test_db
-$GLOBALS['s2_search_test_db'] = [
-	'dsn'      => 'mysql:host=127.0.0.1;dbname=s2_search_test;charset=utf8',
+// $s2_rose_test_db
+$GLOBALS['s2_rose_test_db'] = [
+	'dsn'      => 'mysql:host=127.0.0.1;dbname=s2_rose_test;charset=utf8',
 	'username' => 'root',
 	'passwd'   => '',
 ];

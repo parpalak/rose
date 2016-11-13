@@ -4,18 +4,18 @@
  * @license   MIT
  */
 
-namespace S2\Search\Test;
+namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Search\Entity\Indexable;
-use S2\Search\Entity\Query;
-use S2\Search\Finder;
-use S2\Search\Helper\Helper;
-use S2\Search\Indexer;
-use S2\Search\SnippetBuilder;
-use S2\Search\Stemmer\PorterStemmerRussian;
-use S2\Search\Storage\Database\PdoStorage;
-use S2\Search\Storage\File\SingleFileArrayStorage;
+use S2\Rose\Entity\Indexable;
+use S2\Rose\Entity\Query;
+use S2\Rose\Finder;
+use S2\Rose\Helper\Helper;
+use S2\Rose\Indexer;
+use S2\Rose\SnippetBuilder;
+use S2\Rose\Stemmer\PorterStemmerRussian;
+use S2\Rose\Storage\Database\PdoStorage;
+use S2\Rose\Storage\File\SingleFileArrayStorage;
 
 /**
  * Class ProfileTest
@@ -159,9 +159,9 @@ class ProfileTest extends Unit
 	{
 		$start = microtime(true);
 
-		global $s2_search_test_db;
+		global $s2_rose_test_db;
 
-		$pdo = new \PDO($s2_search_test_db['dsn'], $s2_search_test_db['username'], $s2_search_test_db['passwd']);
+		$pdo = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
 		$pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
 		$storage = new PdoStorage($pdo, 'profiling_');

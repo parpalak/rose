@@ -4,11 +4,11 @@
  * @license   MIT
  */
 
-namespace S2\Search\Storage\File;
+namespace S2\Rose\Storage\File;
 
-use S2\Search\Helper\Helper;
-use S2\Search\Storage\ArrayFulltextStorage;
-use S2\Search\Storage\ArrayStorage;
+use S2\Rose\Helper\Helper;
+use S2\Rose\Storage\ArrayFulltextStorage;
+use S2\Rose\Storage\ArrayStorage;
 
 /**
  * Class SingleFileArrayStorage

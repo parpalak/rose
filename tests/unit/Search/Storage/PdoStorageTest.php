@@ -4,11 +4,11 @@
  * @license   MIT
  */
 
-namespace S2\Search\Test;
+namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Search\Entity\TocEntry;
-use S2\Search\Storage\Database\PdoStorage;
+use S2\Rose\Entity\TocEntry;
+use S2\Rose\Storage\Database\PdoStorage;
 
 /**
  * Class PdoStorageTest
@@ -24,9 +24,9 @@ class PdoStorageTest extends Unit
 
 	public function _before()
 	{
-		global $s2_search_test_db;
+		global $s2_rose_test_db;
 
-		$this->pdo = new \PDO($s2_search_test_db['dsn'], $s2_search_test_db['username'], $s2_search_test_db['passwd']);
+		$this->pdo = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
 		$this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 	}
 

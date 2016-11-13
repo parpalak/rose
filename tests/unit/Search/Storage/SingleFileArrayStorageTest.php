@@ -4,11 +4,11 @@
  * @license   MIT
  */
 
-namespace S2\Search\Test;
+namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Search\Entity\TocEntry;
-use S2\Search\Storage\File\SingleFileArrayStorage;
+use S2\Rose\Entity\TocEntry;
+use S2\Rose\Storage\File\SingleFileArrayStorage;
 
 /**
  * Class SingleFileArrayStorageTest

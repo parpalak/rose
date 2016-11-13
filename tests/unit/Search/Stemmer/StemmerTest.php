@@ -4,11 +4,11 @@
  * @license   MIT
  */
 
-namespace S2\Search\Test\Stemmer;
+namespace S2\Rose\Test\Stemmer;
 
 use Codeception\Test\Unit;
-use S2\Search\Stemmer\PorterStemmerRussian;
-use S2\Search\Stemmer\StemmerInterface;
+use S2\Rose\Stemmer\PorterStemmerRussian;
+use S2\Rose\Stemmer\StemmerInterface;
 
 class StemmerTest extends Unit
 {

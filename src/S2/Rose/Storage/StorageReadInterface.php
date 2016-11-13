@@ -4,9 +4,9 @@
  * @license   MIT
  */
 
-namespace S2\Search\Storage;
+namespace S2\Rose\Storage;
 
-use S2\Search\Entity\TocEntry;
+use S2\Rose\Entity\TocEntry;
 
 /**
  * Interface IndexReadInterface

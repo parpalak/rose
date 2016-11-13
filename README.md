@@ -1,4 +1,4 @@
-# Search
+# Rose
 This is a simple search engine with Russian morphology for content sites. It indexes your content and provides a full-text search.
 
 ## Requirements
@@ -9,7 +9,7 @@ This is a simple search engine with Russian morphology for content sites. It ind
 ## Installation
 
 ```
-composer require s2/search
+composer require s2/rose
 ```
 
 If you do not use composer, download an archive, unpack it somewhere and ensure including php-files from src/ directory based on a PSR-0/4 scheme. Though you really should use composer.
@@ -22,10 +22,10 @@ In most cases you gonna need a database storage `PdoStorage`.
 Both indexing and searching require the storage.
 
 ```php
-$pdo = new \PDO('mysql:host=127.0.0.1;dbname=s2_search_test;charset=utf8', 'username', 'passwd');
+$pdo = new \PDO('mysql:host=127.0.0.1;dbname=s2_rose_test;charset=utf8', 'username', 'passwd');
 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-use S2\Search\Storage\Database\PdoStorage;
+use S2\Rose\Storage\Database\PdoStorage;
 
 $storage = new PdoStorage($pdo, 'table_prefix_');
 ```
@@ -35,15 +35,15 @@ When you want to rebuild the index, you call `PdoStorage::erase()` method:
 $storage->erase();
 ```
 
-It drops the index tables (if exist) and creates new ones from scratch. This method will be enough to upgrade to a new version of Search that breaks down the backward compatibility of the index.
+It drops the index tables (if exist) and creates new ones from scratch. This method will be enough to upgrade to a new version of Rose that breaks down the backward compatibility of the index.
 
 ### Indexing
 
 `Indexer` builds the search index. It depends on a stemmer and a storage.
 
 ```php
-use S2\Search\Indexer;
-use S2\Search\Stemmer\PorterStemmerRussian;
+use S2\Rose\Indexer;
+use S2\Rose\Stemmer\PorterStemmerRussian;
 
 $stemmer = new PorterStemmerRussian();
 $indexer = new Indexer($storage, $stemmer);
@@ -52,7 +52,7 @@ $indexer = new Indexer($storage, $stemmer);
 Indexer accepts your data in a special format. The data must be wrapped in the `Indexable` class:
 
 ```php
-use S2\Search\Entity\Indexable;
+use S2\Rose\Entity\Indexable;
 
 $indexable = new Indexable(
 	'id_1',            // External ID - an identifier in your system 
@@ -99,8 +99,8 @@ Full-text search results can be obtained via `Finder` class.
 `$resultSet->getItems()` returns all the information about content items and their relevancy.
 
 ```php
-use S2\Search\Finder;
-use S2\Search\Entity\Query;
+use S2\Rose\Finder;
+use S2\Rose\Entity\Query;
 
 $finder = new Finder($storage, $stemmer);
 $resultSet = $finder->find(new Query('content'));
@@ -132,7 +132,7 @@ $resultSet = $finder->find($query);
 Snippets are small text fragments containing found words displaying in a search result. `SnippetBuilder` processes the source and selects best matching sentences.
 
 ```php
-use S2\Search\SnippetBuilder;
+use S2\Rose\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($stemmer);
 $snippetBuilder->attachSnippets($result, function (array $ids) {

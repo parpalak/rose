@@ -4,7 +4,7 @@
  * @license   MIT
  */
 
-namespace S2\Search\Stemmer;
+namespace S2\Rose\Stemmer;
 
 /**
  * Interface StemmerInterface

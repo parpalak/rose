@@ -4,7 +4,7 @@
  * @license   MIT
  */
 
-namespace S2\Search\Storage;
+namespace S2\Rose\Storage;
 
 /**
  * Class ArrayFulltextStorage

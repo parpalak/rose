@@ -4,7 +4,7 @@
  * @license   MIT
  */
 
-namespace S2\Search\Exception;
+namespace S2\Rose\Exception;
 
 class UnknownKeywordTypeException extends \RuntimeException
 {

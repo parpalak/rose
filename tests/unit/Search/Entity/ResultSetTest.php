@@ -4,10 +4,10 @@
  * @license   MIT
  */
 
-namespace S2\Search\Test\Entity;
+namespace S2\Rose\Test\Entity;
 
 use Codeception\Test\Unit;
-use S2\Search\Entity\ResultSet;
+use S2\Rose\Entity\ResultSet;
 
 /**
  * Class ResultTest

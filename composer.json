@@ -1,5 +1,5 @@
 {
-  "name": "s2/search",
+  "name": "s2/rose",
   "description": "Search engine for PHP sites",
   "authors": [
     {
@@ -17,7 +17,7 @@
   },
   "autoload": {
     "psr-4": {
-      "S2\\Search\\": "src/S2/Search"
+      "S2\\Rose\\": "src/S2/Rose"
     }
   }
 }

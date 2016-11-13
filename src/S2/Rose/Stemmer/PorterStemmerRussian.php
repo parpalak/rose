@@ -1,6 +1,6 @@
 <?php
 
-namespace S2\Search\Stemmer;
+namespace S2\Rose\Stemmer;
 
 /**
  * Class PorterStemmerRussian

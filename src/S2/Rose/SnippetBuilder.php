@@ -4,11 +4,11 @@
  * @license   MIT
  */
 
-namespace S2\Search;
+namespace S2\Rose;
 
-use S2\Search\Entity\ResultSet;
-use S2\Search\Entity\Snippet;
-use S2\Search\Stemmer\StemmerInterface;
+use S2\Rose\Entity\ResultSet;
+use S2\Rose\Entity\Snippet;
+use S2\Rose\Stemmer\StemmerInterface;
 
 /**
  * Class SnippetBuilder

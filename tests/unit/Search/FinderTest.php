@@ -4,10 +4,10 @@
  * @license   MIT
  */
 
-namespace S2\Search\Test;
+namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Search\Finder;
+use S2\Rose\Finder;
 
 /**
  * Class FinderTest
