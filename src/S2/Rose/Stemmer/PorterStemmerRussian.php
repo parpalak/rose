@@ -20,9 +20,9 @@ class PorterStemmerRussian implements StemmerInterface
 	const DERIVATIONAL     = '/[^аеиоуыэюя][аеиоуыэюя]+[^аеиоуыэюя]+[аеиоуыэюя].*(?<=о)сть?$/u';
 
 	protected $useCache = true;
-	protected $cache    = [];
+	protected $cache    = array();
 
-	protected static $irregularWords = [
+	protected static $irregularWords = array(
 		'и'       => '',
 		'или'     => '',
 		'когда'   => '',
@@ -181,7 +181,7 @@ class PorterStemmerRussian implements StemmerInterface
 		'ищем'  => 'иска',
 		'ищете' => 'иска',
 		'ищут'  => 'иска',
-	];
+	);
 
 	protected static function s(&$s, $re, $to)
 	{
@@ -273,6 +273,6 @@ class PorterStemmerRussian implements StemmerInterface
 
 	public function clearStemCache()
 	{
-		$this->cache = [];
+		$this->cache = array();
 	}
 }

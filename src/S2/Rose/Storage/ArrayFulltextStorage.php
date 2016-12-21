@@ -14,7 +14,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
 	/**
 	 * @var array
 	 */
-	protected $fulltextIndex = [];
+	protected $fulltextIndex = array();
 
 	/**
 	 * @return array
@@ -42,10 +42,10 @@ class ArrayFulltextStorage implements FulltextProxyInterface
 	public function getByWord($word)
 	{
 		if (!isset($this->fulltextIndex[$word])) {
-			return [];
+			return array();
 		}
 
-		$result = [];
+		$result = array();
 		foreach ($this->fulltextIndex[$word] as $id => $entries) {
 			if (is_int($entries)) {
 				$result[$id][] = $entries;
@@ -102,7 +102,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
 	 */
 	public function getFrequentWords($threshold)
 	{
-		$result = [];
+		$result = array();
 		$link = &$this->fulltextIndex; // for memory optimization
 		foreach ($this->fulltextIndex as $word => $stat) {
 			// Drop fulltext frequent or empty items

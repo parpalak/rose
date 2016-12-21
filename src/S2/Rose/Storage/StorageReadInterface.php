@@ -54,6 +54,8 @@ interface StorageReadInterface
 	public function getTocSize();
 
 	/**
+	 * @param $string
+	 *
 	 * @return TocEntry[]
 	 */
 	public function findTocByTitle($string);

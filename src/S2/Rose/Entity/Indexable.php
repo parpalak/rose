@@ -213,11 +213,11 @@ class Indexable
 	 */
 	public function calcHash()
 	{
-		return md5(serialize([
+		return md5(serialize(array(
 			$this->getTitle(),
 			$this->getDescription(),
 			$this->getKeywords(),
 			$this->getContent()
-		]));
+		)));
 	}
 }

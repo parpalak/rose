@@ -108,7 +108,7 @@ class ResultItem
 	}
 
 	/**
-	 * @return Snippet
+	 * @return string
 	 */
 	public function getSnippet()
 	{

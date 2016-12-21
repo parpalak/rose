@@ -53,7 +53,7 @@ class Indexer
 		$contents = strip_tags($contents);
 
 		$contents = mb_strtolower($contents);
-		$contents = str_replace(['&nbsp;', "\xc2\xa0"], ' ', $contents);
+		$contents = str_replace(array('&nbsp;', "\xc2\xa0"), ' ', $contents);
 		$contents = preg_replace('#&[^;]{1,20};#', '', $contents);
 		$contents = preg_replace('#[^\-а-яё0-9a-z\^]+#u', ' ', $contents);
 
@@ -113,7 +113,7 @@ class Indexer
 		// Remove russian ё from the fulltext index
 		$words = self::arrayFromStr(str_replace('ё', 'е', $title . ' ' . str_replace(', ', ' ', $keywords) . ' ' . $contents));
 
-		$subwords = [];
+		$subwords = array();
 
 		foreach ($words as $i => &$word) {
 			if ($word == '-' || $this->storage->isExcluded($word)) {

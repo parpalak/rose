@@ -35,7 +35,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	/**
 	 * @var array
 	 */
-	protected $cachedWordIds = [];
+	protected $cachedWordIds = array();
 
 	/**
 	 * @var array
@@ -45,13 +45,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	/**
 	 * @var array
 	 */
-	protected $options = [
+	protected $options = array(
 		self::TOC                    => 'toc',
 		self::WORD                   => 'word',
 		self::FULLTEXT_INDEX         => 'fulltext_index',
 		self::KEYWORD_INDEX          => 'keyword_index',
 		self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
-	];
+	);
 
 	/**
 	 * PdoStorage constructor.
@@ -60,7 +60,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 * @param string $prefix
 	 * @param array  $options
 	 */
-	public function __construct(\PDO $pdo, $prefix = 's2_rose_', array $options = [])
+	public function __construct(\PDO $pdo, $prefix = 's2_rose_', array $options = array())
 	{
 		$this->pdo     = $pdo;
 		$this->prefix  = $prefix;
@@ -72,8 +72,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	public function erase()
 	{
-		$this->tocCache      = [];
-		$this->cachedWordIds = [];
+		$this->tocCache      = array();
+		$this->cachedWordIds = array();
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::TOC] . ';');
 		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::TOC] . ' (
@@ -139,7 +139,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 
 		try {
 			$statement = $this->pdo->prepare($sql);
-			$statement->execute([$word]);
+			$statement->execute(array($word));
 		}
 		catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -165,7 +165,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 
 		try {
 			$st = $this->pdo->prepare($sql);
-			$st->execute([$word]);
+			$st->execute(array($word));
 		}
 		catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -194,7 +194,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 
 		try {
 			$statement = $this->pdo->prepare($sql);
-			$statement->execute(['% ' . $this->escapeLike($string, '=') . ' %']);
+			$statement->execute(array('% ' . $this->escapeLike($string, '=') . ' %'));
 		}
 		catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -219,7 +219,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	private function escapeLike($s, $e)
 	{
-		return str_replace([$e, '_', '%'], [$e . $e, $e . '_', $e . '%'], $s);
+		return str_replace(array($e, '_', '%'), array($e . $e, $e . '_', $e . '%'), $s);
 	}
 
 	/**
@@ -227,7 +227,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	public function findTocByTitle($string)
 	{
-		return $this->getTocEntries(['title' => $string]);
+		return $this->getTocEntries(array('title' => $string));
 	}
 
 	/**
@@ -238,13 +238,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 		$tocId = $this->getInternalIdFromExternalId($externalId);
 
 		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' WHERE toc_id = ?');
-		$st->execute([$tocId]);
+		$st->execute(array($tocId));
 
 		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' WHERE toc_id = ?');
-		$st->execute([$tocId]);
+		$st->execute(array($tocId));
 
 		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' WHERE toc_id = ?');
-		$st->execute([$tocId]);
+		$st->execute(array($tocId));
 	}
 
 	/**
@@ -259,7 +259,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 		$internalId = $this->getInternalIdFromExternalId($externalId);
 		$wordIds    = $this->getWordIds($words);
 
-		$data = [];
+		$data = array();
 		foreach ($words as $position => $word) {
 			$data[] = $wordIds[$word] . ',' . $internalId . ',' . ((int) $position);
 		}
@@ -286,8 +286,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$internalId = $this->getInternalIdFromExternalId($externalId);
 
-		$data = [];
-		foreach ([$word] as $keyword) {// Ready to bulk insert
+		$data = array();
+		foreach (array($word) as $keyword) {// Ready for bulk insert
 			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int) $type);
 		}
 
@@ -304,8 +304,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$internalId = $this->getInternalIdFromExternalId($externalId);
 
-		$data = [];
-		foreach ([$string] as $keyword) {// Ready to bulk insert
+		$data = array();
+		foreach (array($string) as $keyword) {// Ready for bulk insert
 			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int) $type);
 		}
 
@@ -325,33 +325,33 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::TOC] . ' (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
 
 			$statement = $this->pdo->prepare($sql);
-			$statement->execute([
+			$statement->execute(array(
 				$externalId,
 				$entry->getTitle(),
 				$entry->getDescription(),
 				$entry->getFormattedDate(),
 				$entry->getUrl(),
 				$entry->getHash(),
-			]);
+			));
 
 			$sql = 'SELECT id FROM ' . $this->prefix . $this->options[self::TOC] . ' WHERE external_id = ?';
 
 			$statement = $this->pdo->prepare($sql);
-			$statement->execute([$externalId]);
+			$statement->execute(array($externalId));
 			$entry->setInternalId($statement->fetch(\PDO::FETCH_COLUMN));
 		}
 		else {
 			$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] . ' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
 
 			$statement = $this->pdo->prepare($sql);
-			$statement->execute([
+			$statement->execute(array(
 				$entry->getTitle(),
 				$entry->getDescription(),
 				$entry->getFormattedDate(),
 				$entry->getUrl(),
 				$entry->getHash(),
 				$tocId,
-			]);
+			));
 		}
 
 		$this->tocCache[$externalId] = $entry;
@@ -391,7 +391,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 
 		try {
 			$st  = $this->pdo->prepare($sql);
-			$st->execute([$externalId]);
+			$st->execute(array($externalId));
 		}
 		catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -409,8 +409,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	private function getWordIds(array $words)
 	{
-		$knownWords   = [];
-		$unknownWords = [];
+		$knownWords   = array();
+		$unknownWords = array();
 		foreach ($words as $k => $word) {
 			if (isset($this->cachedWordIds[$word])) {
 				$knownWords[$word] = $this->cachedWordIds[$word];
@@ -486,7 +486,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 		$st = $this->pdo->prepare($sql);
 		$st->execute(array_values($words));
 
-		return $st->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE) ?: [];
+		return $st->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE) ?: array();
 	}
 
 	/**
@@ -494,7 +494,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 *
 	 * @return array
 	 */
-	private function getTocEntries(array $params = [])
+	private function getTocEntries(array $params = array())
 	{
 		try {
 			if (isset($params['title'])) {
@@ -505,7 +505,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 				';
 
 				$st = $this->pdo->prepare($sql);
-				$st->execute(['%' . $this->escapeLike($params['title'], '=') . '%']);
+				$st->execute(array('%' . $this->escapeLike($params['title'], '=') . '%'));
 			}
 			else {
 				$sql = 'SELECT * FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t';
@@ -521,7 +521,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			throw $e;
 		}
 
-		$result = [];
+		$result = array();
 		foreach ($st->fetchAll() as $row) {
 			$tocEntry = new TocEntry(
 				$row['title'],

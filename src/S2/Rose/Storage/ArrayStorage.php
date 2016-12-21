@@ -18,27 +18,27 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	/**
 	 * @var array
 	 */
-	protected $excludedWords = [];
+	protected $excludedWords = array();
 
 	/**
 	 * @var array
 	 */
-	protected $indexSingleKeywords = [];
+	protected $indexSingleKeywords = array();
 
 	/**
 	 * @var array
 	 */
-	protected $indexBaseKeywords = [];
+	protected $indexBaseKeywords = array();
 
 	/**
 	 * @var array
 	 */
-	protected $indexMultiKeywords = [];
+	protected $indexMultiKeywords = array();
 
 	/**
 	 * @var TocEntry[]
 	 */
-	protected $toc = [];
+	protected $toc = array();
 
 	/**
 	 * @var FulltextProxyInterface
@@ -48,7 +48,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	/**
 	 * @var array
 	 */
-	protected $externalIdMap = [];
+	protected $externalIdMap = array();
 
 	/**
 	 * {@inheritdoc}
@@ -128,7 +128,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	public function getSingleKeywordIndexByWord($word)
 	{
 		if (!isset($this->indexSingleKeywords[$word])) {
-			return [];
+			return array();
 		}
 
 		return $this->makeKeysExternalIds($this->indexSingleKeywords[$word]);
@@ -149,7 +149,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	{
 		$string = ' ' . $string . ' ';
 
-		$result = [];
+		$result = array();
 		foreach ($this->indexMultiKeywords as $keyword => $weightsById) {
 			if (strpos($string, ' ' . $keyword . ' ') !== false) {
 				$result[] = $this->makeKeysExternalIds($weightsById);
@@ -182,7 +182,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	 */
 	private function makeKeysExternalIds(array $data)
 	{
-		$result = [];
+		$result = array();
 		foreach ($data as $id => $items) {
 			$externalId          = $this->externalIdFromInternalId($id);
 			$result[$externalId] = $items;
@@ -257,7 +257,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	 */
 	public function findTocByTitle($string)
 	{
-		$result = [];
+		$result = array();
 		foreach ($this->toc as $externalId => $entry) {
 			if (strpos(mb_strtolower($entry->getTitle()), mb_strtolower($string)) !== false) {
 				$result[$externalId] = $entry;

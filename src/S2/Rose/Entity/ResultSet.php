@@ -37,12 +37,12 @@ class ResultSet
 	/**
 	 * @var array
 	 */
-	protected $data = [];
+	protected $data = array();
 
 	/**
 	 * @var array
 	 */
-	protected $profilePoints = [];
+	protected $profilePoints = array();
 
 	/**
 	 * @var bool
@@ -52,7 +52,7 @@ class ResultSet
 	/**
 	 * @var ResultItem[]
 	 */
-	protected $items = [];
+	protected $items = array();
 
 	/**
 	 * Result cache
@@ -153,7 +153,7 @@ class ResultSet
 			return $this->foundWeights;
 		}
 
-		$this->foundWeights = [];
+		$this->foundWeights = array();
 		foreach ($this->data as $externalId => $stat) {
 			$this->foundWeights[$externalId] = array_sum($stat);
 		}
@@ -185,7 +185,7 @@ class ResultSet
 			return $this->foundWords;
 		}
 
-		$this->foundWords = [];
+		$this->foundWords = array();
 		foreach ($this->data as $externalId => $stat) {
 			foreach ($stat as $word => $weight) {
 				if (0 !== strpos($word, '*n_')) {
@@ -215,12 +215,13 @@ class ResultSet
 	 */
 	public function attachToc($externalId, TocEntry $tocEntry)
 	{
+		$weights = $this->getWeightByExternalId();
 		$this->items[$externalId] = new ResultItem(
 			$tocEntry->getTitle(),
 			$tocEntry->getDescription(),
 			$tocEntry->getDate(),
 			$tocEntry->getUrl(),
-			$this->getWeightByExternalId()[$externalId]
+			$weights[$externalId]
 		);
 	}
 

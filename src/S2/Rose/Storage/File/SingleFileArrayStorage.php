@@ -38,15 +38,15 @@ class SingleFileArrayStorage extends ArrayStorage
 	 */
 	public function load($isDebug = false)
 	{
+		$return = array();
 		if (count($this->toc)) {
-			return [];
+			return $return;
 		}
 
 		if (!is_file($this->filename)) {
-			return[];
+			return $return;
 		}
 
-		$return = [];
 		if ($isDebug) {
 			$start_time = microtime(true);
 		}
@@ -60,38 +60,38 @@ class SingleFileArrayStorage extends ArrayStorage
 		$end = strpos($data, "\n");
 		$my_data = substr($data, 8, $end);
 		$data = substr($data, $end + 1);
-		$this->fulltextProxy->setFulltextIndex(unserialize($my_data) ?: []);
+		$this->fulltextProxy->setFulltextIndex(unserialize($my_data) ?: array());
 
 		$end                 = strpos($data, "\n");
 		$my_data             = substr($data, 8, $end);
 		$data                = substr($data, $end + 1);
-		$this->excludedWords = unserialize($my_data) ?: [];
+		$this->excludedWords = unserialize($my_data) ?: array();
 
 		$end                       = strpos($data, "\n");
 		$my_data                   = substr($data, 8, $end);
 		$data                      = substr($data, $end + 1);
-		$this->indexSingleKeywords = unserialize($my_data) ?: [];
+		$this->indexSingleKeywords = unserialize($my_data) ?: array();
 
 		$end                     = strpos($data, "\n");
 		$my_data                 = substr($data, 8, $end);
 		$data                    = substr($data, $end + 1);
-		$this->indexBaseKeywords = unserialize($my_data) ?: [];
+		$this->indexBaseKeywords = unserialize($my_data) ?: array();
 
 		$end                      = strpos($data, "\n");
 		$my_data                  = substr($data, 8, $end);
 		$data                     = substr($data, $end + 1);
-		$this->indexMultiKeywords = unserialize($my_data) ?: [];
+		$this->indexMultiKeywords = unserialize($my_data) ?: array();
 
 		$end = strpos($data, "\n");
 		$my_data = substr($data, 8, $end);
 		$data = substr($data, $end + 1);
-		$this->toc = unserialize($my_data) ?: [];
+		$this->toc = unserialize($my_data) ?: array();
 
 		if ($isDebug) {
 			$return[] = Helper::getProfilePoint('Unserializing index', -$start_time + ($start_time = microtime(true)));
 		}
 
-		$this->externalIdMap = [];
+		$this->externalIdMap = array();
 		foreach ($this->toc as $externalId => $entry) {
 			$this->externalIdMap[$entry->getInternalId()] = $externalId;
 		}

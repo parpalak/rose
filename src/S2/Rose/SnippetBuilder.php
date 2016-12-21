@@ -49,7 +49,7 @@ class SnippetBuilder
 	 * @param ResultSet $result
 	 * @param callable  $callback
 	 *
-	 * @return Snippet[]
+	 * @return $this
 	 */
 	public function attachSnippets(ResultSet $result, callable $callback)
 	{
@@ -72,6 +72,8 @@ class SnippetBuilder
 		}
 
 		$result->addProfilePoint('Snippets: building');
+
+		return $this;
 	}
 
 	/**
@@ -82,9 +84,9 @@ class SnippetBuilder
 	private function cleanupContent(array $contentArray)
 	{
 		// Text cleanup
-		$replaceFrom = [self::LINE_SEPARATOR, 'ё', '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;'];
-		$replaceTo   = ['', 'е', ' ', '—', '–', '«', '»',];
-		foreach ([
+		$replaceFrom = array(self::LINE_SEPARATOR, 'ё', '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;');
+		$replaceTo   = array('', 'е', ' ', '—', '–', '«', '»');
+		foreach (array(
 			'<br>',
 			'<br />',
 			'</h1>',
@@ -95,7 +97,7 @@ class SnippetBuilder
 			'</pre>',
 			'</blockquote>',
 			'</li>',
-		] as $tag) {
+		) as $tag) {
 			$replaceFrom[] = $tag;
 			$replaceTo[]   = $tag . self::LINE_SEPARATOR;
 		}
@@ -121,8 +123,8 @@ class SnippetBuilder
 	private function buildSnippet($foundWords, $content)
 	{
 		// Stems of the words found in the $id chapter
-		$stems     = [];
-		$fullWords = [];
+		$stems     = array();
+		$fullWords = array();
 		foreach ($foundWords as $word) {
 			// TODO exclude words like 'to', 'and', ...?
 			$stemmedWord             = $this->stemmer->stemWord($word);
@@ -145,7 +147,7 @@ class SnippetBuilder
 		$lineNum = 0;
 		$lineEnd = strlen($lines[$lineNum]);
 
-		$found_words = $found_stems_lines = $lines_weight = [];
+		$found_words = $found_stems_lines = $lines_weight = array();
 		foreach ($matches[0] as $i => $wordInfo) {
 			$word        = mb_strtolower($wordInfo[0]);
 			$stem        = mb_strtolower($matches[1][$i][0]);
@@ -177,13 +179,13 @@ class SnippetBuilder
 		arsort($lines_weight);
 
 		// Small array rearrangement
-		$lines_with_weight = [];
+		$lines_with_weight = array();
 		foreach ($lines_weight as $lineNum => $weight) {
 			$lines_with_weight[$weight][] = $lineNum;
 		}
 
 		$i        = 0;
-		$lineNums = $foundStems = [];
+		$lineNums = $foundStems = array();
 		foreach ($lines_with_weight as $weight => $line_num_array) {
 			while (count($line_num_array)) {
 				$i++;
@@ -223,7 +225,7 @@ class SnippetBuilder
 			}
 		}
 
-		$snippetArray = [];
+		$snippetArray = array();
 		foreach ($lineNums as $lineNum) {
 			$snippetArray[$lineNum] = $lines[$lineNum];
 		}
@@ -234,7 +236,7 @@ class SnippetBuilder
 		$previous_line_num = -1;
 		foreach ($snippetArray as $lineNum => &$line) {
 			// Highlighting
-			$replace = [];
+			$replace = array();
 			foreach ($found_words[$lineNum] as $word) {
 				$replace[$word] = $this->highlightWord($word);
 			}
@@ -246,7 +248,7 @@ class SnippetBuilder
 
 			// Cleaning up unbalanced quotation makrs
 			$line = preg_replace('#«(.*?)»#Ss', '&laquo;\\1&raquo;', $line);
-			$line = str_replace(['&quot;', '«', '»'], ['"', ''], $line);
+			$line = str_replace(array('&quot;', '«', '»'), array('"', ''), $line);
 			if (substr_count($line, '"') % 2) {
 				$line = str_replace('"', '', $line);
 			}

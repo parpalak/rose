@@ -92,8 +92,8 @@ class Query
 		$content = strip_tags($this->value);
 
 		// Normalize
-		$content = str_replace(['«', '»', '“', '”', '‘', '’'], '"', $content);
-		$content = str_replace(['---', '--', '–', '−',], '—', $content);
+		$content = str_replace(array('«', '»', '“', '”', '‘', '’'), '"', $content);
+		$content = str_replace(array('---', '--', '–', '−'), '—', $content);
 		$content = preg_replace('#,\s+,#u', ',,', $content);
 		$content = preg_replace('#[^\-а-яё0-9a-z\^\.,\(\)";?!…:—]+#iu', ' ', $content);
 		$content = preg_replace('#\n+#', ' ', $content);
@@ -108,7 +108,7 @@ class Query
 		foreach ($words as $k => $v) {
 			// Separate special chars from the letter combination
 			if (strlen($v) > 1) {
-				foreach (['—', '^', '(', ')', '"', ':', '?', '!'] as $specialChar) {
+				foreach (array('—', '^', '(', ')', '"', ':', '?', '!') as $specialChar) {
 					if (mb_substr($v, 0, 1) == $specialChar || mb_substr($v, -1) == $specialChar) {
 						$words[$k] = str_replace($specialChar, '', $v);
 						$words[]   = $specialChar;

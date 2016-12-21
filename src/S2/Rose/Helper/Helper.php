@@ -19,12 +19,12 @@ class Helper
 	 */
 	public static function getProfilePoint($message, $duration)
 	{
-		return [
+		return array(
 			'message'           => $message,
 			'duration'          => $duration,
 			'memory_usage'      => memory_get_usage(),
 			'memory_peak_usage' => memory_get_peak_usage(),
-		];
+		);
 	}
 
 	/**

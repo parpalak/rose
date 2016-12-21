@@ -145,11 +145,11 @@ class Finder
 	protected function findFulltext(array $words, ResultSet $result)
 	{
 		$wordWeight    = self::fulltextWordWeight(count($words));
-		$prevPositions = [];
+		$prevPositions = array();
 
 		foreach ($words as $word) {
-			$currPositions = [];
-			foreach (array_unique([$word, $this->stemmer->stemWord($word)]) as $searchWord) {
+			$currPositions = array();
+			foreach (array_unique(array($word, $this->stemmer->stemWord($word))) as $searchWord) {
 				$fulltextIndexByWord = $this->storage->getFulltextByWord($searchWord);
 				if (count($fulltextIndexByWord) > self::fulltextRateExcludeNum($this->storage->getTocSize())) {
 					continue;
