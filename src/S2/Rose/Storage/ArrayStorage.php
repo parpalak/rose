@@ -209,7 +209,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	private function internalIdFromExternalId($externalId)
 	{
 		if (!isset($this->toc[$externalId])) {
-			throw new UnknownIdException('External id "%s" not found in index.');
+			throw UnknownIdException::createFromExternalId($externalId);
 		}
 
 		return $this->toc[$externalId]->getInternalId();

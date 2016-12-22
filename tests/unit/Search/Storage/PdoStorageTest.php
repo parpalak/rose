@@ -65,6 +65,7 @@ class PdoStorageTest extends Unit
 		$storage->addItemToToc($tocEntry3, 'id_2');
 
 		$entry = $storage->getTocByExternalId('id_2');
+		$this->assertGreaterThan(0, $entry->getInternalId());
 		$this->assertEquals($tocEntry3->getHash(), $entry->getHash());
 
 		// Removing from index

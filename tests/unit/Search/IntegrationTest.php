@@ -19,11 +19,11 @@ use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 
 /**
- * Class IndexerTest
+ * Class IntegrationTest
  */
 class IntegrationTest extends Unit
 {
-	const TEST_FILE_NUM = 14;
+	const TEST_FILE_NUM = 17;
 
 	/**
 	 * @return string
@@ -106,7 +106,7 @@ class IntegrationTest extends Unit
 		$this->assertEquals('Description can be used in snippets', $items['id_1']->getDescription());
 		$this->assertEquals(new \DateTime('2016-08-24 00:00:00'),  $items['id_1']->getDate());
 		$this->assertEquals(1.0,                                   $items['id_1']->getRelevancy());
-		$this->assertEquals('I have to make up a <i>content</i>.', $items['id_1']->getSnippet());
+		$this->assertEquals('I have changed the <i>content</i>.',  $items['id_1']->getSnippet());
 
 		$this->assertEquals(31, $items['id_2']->getRelevancy());
 		$this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items['id_2']->getSnippet());
@@ -159,6 +159,12 @@ class IntegrationTest extends Unit
 				->setDescription('')
 				->setDate(new \DateTime('2016-08-22 00:00:00'))
 				->setUrl('/якобы.урл')
+			,
+			(new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have changed the content.'))
+				->setKeywords('singlekeyword, multiple keywords')
+				->setDescription('Description can be used in snippets')
+				->setDate(new \DateTime('2016-08-24 00:00:00'))
+				->setUrl('url1')
 			,
 		];
 

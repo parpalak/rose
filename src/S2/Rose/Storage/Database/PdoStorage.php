@@ -7,6 +7,7 @@
 namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
@@ -235,7 +236,12 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	public function removeFromIndex($externalId)
 	{
-		$tocId = $this->getInternalIdFromExternalId($externalId);
+		try {
+			$tocId = $this->getInternalIdFromExternalId($externalId);
+		}
+		catch (UnknownIdException $e) {
+			return;
+		}
 
 		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' WHERE toc_id = ?');
 		$st->execute(array($tocId));
@@ -320,8 +326,23 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	 */
 	public function addItemToToc(TocEntry $entry, $externalId)
 	{
-		$tocId = $this->getInternalIdFromExternalId($externalId);
-		if (!$tocId) {
+		try {
+			$tocId = $this->getInternalIdFromExternalId($externalId);
+
+			$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] . ' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
+
+			$statement = $this->pdo->prepare($sql);
+			$statement->execute(array(
+				$entry->getTitle(),
+				$entry->getDescription(),
+				$entry->getFormattedDate(),
+				$entry->getUrl(),
+				$entry->getHash(),
+				$tocId,
+			));
+			$entry->setInternalId($tocId);
+		}
+		catch (UnknownIdException $e) {
 			$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::TOC] . ' (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
 
 			$statement = $this->pdo->prepare($sql);
@@ -339,19 +360,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute(array($externalId));
 			$entry->setInternalId($statement->fetch(\PDO::FETCH_COLUMN));
-		}
-		else {
-			$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] . ' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
-
-			$statement = $this->pdo->prepare($sql);
-			$statement->execute(array(
-				$entry->getTitle(),
-				$entry->getDescription(),
-				$entry->getFormattedDate(),
-				$entry->getUrl(),
-				$entry->getHash(),
-				$tocId,
-			));
 		}
 
 		$this->tocCache[$externalId] = $entry;
@@ -467,7 +475,11 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		$tocEntry = $this->getTocByExternalId($externalId);
 
-		return $tocEntry ? $tocEntry->getInternalId() : null;
+		if (!$tocEntry) {
+			throw UnknownIdException::createFromExternalId($externalId);
+		}
+
+		return $tocEntry->getInternalId();
 	}
 
 	/**
