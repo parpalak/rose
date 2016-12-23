@@ -328,39 +328,55 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	{
 		try {
 			$tocId = $this->getInternalIdFromExternalId($externalId);
-
-			$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] . ' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
-
-			$statement = $this->pdo->prepare($sql);
-			$statement->execute(array(
-				$entry->getTitle(),
-				$entry->getDescription(),
-				$entry->getFormattedDate(),
-				$entry->getUrl(),
-				$entry->getHash(),
-				$tocId,
-			));
-			$entry->setInternalId($tocId);
 		}
 		catch (UnknownIdException $e) {
-			$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::TOC] . ' (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
+			try {
+				$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::TOC] .
+					' (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
 
-			$statement = $this->pdo->prepare($sql);
-			$statement->execute(array(
-				$externalId,
-				$entry->getTitle(),
-				$entry->getDescription(),
-				$entry->getFormattedDate(),
-				$entry->getUrl(),
-				$entry->getHash(),
-			));
+				$statement = $this->pdo->prepare($sql);
+				$statement->execute(array(
+					$externalId,
+					$entry->getTitle(),
+					$entry->getDescription(),
+					$entry->getFormattedDate(),
+					$entry->getUrl(),
+					$entry->getHash(),
+				));
 
-			$sql = 'SELECT id FROM ' . $this->prefix . $this->options[self::TOC] . ' WHERE external_id = ?';
+				$internalId = $this->selectInternalId($externalId);
+				$entry->setInternalId($internalId);
 
-			$statement = $this->pdo->prepare($sql);
-			$statement->execute(array($externalId));
-			$entry->setInternalId($statement->fetch(\PDO::FETCH_COLUMN));
+				$this->tocCache[$externalId] = $entry;
+
+				return;
+			}
+			catch (\PDOException $e) {
+				if ($e->errorInfo[1] == 1062) {
+					// Duplicate entry for external_id key.
+					// Other process has already inserted the TOC entry. Refresh the cache.
+					$this->tocCache = null;
+					$tocId = $this->getInternalIdFromExternalId($externalId);
+				}
+				else {
+					throw $e;
+				}
+			}
 		}
+
+		$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] .
+			' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
+
+		$statement = $this->pdo->prepare($sql);
+		$statement->execute(array(
+			$entry->getTitle(),
+			$entry->getDescription(),
+			$entry->getFormattedDate(),
+			$entry->getUrl(),
+			$entry->getHash(),
+			$tocId,
+		));
+		$entry->setInternalId($tocId);
 
 		$this->tocCache[$externalId] = $entry;
 	}
@@ -467,9 +483,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 	}
 
 	/**
-	 * @param $externalId
+	 * @param string $externalId
 	 *
-	 * @return int|null
+	 * @return int
 	 */
 	private function getInternalIdFromExternalId($externalId)
 	{
@@ -560,5 +576,21 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 		}
 
 		return $this->tocCache;
+	}
+
+	/**
+	 * @param string $externalId
+	 *
+	 * @return mixed
+	 */
+	private function selectInternalId($externalId)
+	{
+		$sql = 'SELECT id FROM ' . $this->prefix . $this->options[self::TOC] . ' WHERE external_id = ?';
+
+		$statement = $this->pdo->prepare($sql);
+		$statement->execute([$externalId]);
+		$internalId = $statement->fetch(\PDO::FETCH_COLUMN);
+
+		return $internalId;
 	}
 }

@@ -104,6 +104,23 @@ class PdoStorageTest extends Unit
 		$this->assertNull($entry);
 	}
 
+	public function testParallelProcesses()
+	{
+		$storage = new PdoStorage($this->pdo, 'test_');
+		$storage->erase();
+
+		$storage2 = new PdoStorage($this->pdo, 'test_');
+		$storage2->getTocSize(); // Caching TOC
+
+		// Indexing
+		$tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+		$storage->addItemToToc($tocEntry1, 'id_1');
+
+		// Race condition
+		$tocEntry1mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '9654321');
+		$storage2->addItemToToc($tocEntry1mod, 'id_1');
+	}
+
 	/**
 	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
