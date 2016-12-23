@@ -361,7 +361,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 					$tocId = $this->getInternalIdFromExternalId($externalId);
 				}
 				elseif ($e->getCode() === '42S02') {
-					throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another proccess?', 0, $e);
+					throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
 				}
 				else {
 					throw $e;
@@ -609,7 +609,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 		$sql = 'SELECT id FROM ' . $this->prefix . $this->options[self::TOC] . ' WHERE external_id = ?';
 
 		$statement = $this->pdo->prepare($sql);
-		$statement->execute([$externalId]);
+		$statement->execute(array($externalId));
 		$internalId = $statement->fetch(\PDO::FETCH_COLUMN);
 
 		return $internalId;
