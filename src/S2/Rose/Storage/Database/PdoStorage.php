@@ -11,11 +11,12 @@ use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
+use S2\Rose\Storage\TransactionalStorageInterface;
 
 /**
  * Class PdoStorage
  */
-class PdoStorage implements StorageWriteInterface, StorageReadInterface
+class PdoStorage implements StorageWriteInterface, StorageReadInterface, TransactionalStorageInterface
 {
 	const TOC                    = 'toc';
 	const WORD                   = 'word';
@@ -267,7 +268,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 
 		$data = array();
 		foreach ($words as $position => $word) {
-			$data[] = $wordIds[$word] . ',' . $internalId . ',' . ((int) $position);
+			$expr        = $wordIds[$word] . ',' . $internalId . ',' . ((int) $position);
+			$data[$expr] = $expr;
 		}
 
 		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (word_id, toc_id, position) VALUES ( ' . implode('),(', $data) . ')';
@@ -358,6 +360,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 					$this->tocCache = null;
 					$tocId = $this->getInternalIdFromExternalId($externalId);
 				}
+				elseif ($e->getCode() === '42S02') {
+					throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another proccess?', 0, $e);
+				}
 				else {
 					throw $e;
 				}
@@ -424,6 +429,22 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface
 			throw $e;
 		}
 		unset($this->tocCache[$externalId]);
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function startTransaction()
+	{
+		$this->pdo->beginTransaction();
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function commitTransaction()
+	{
+		$this->pdo->commit();
 	}
 
 	/**

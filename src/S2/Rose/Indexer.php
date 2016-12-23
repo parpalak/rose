@@ -11,6 +11,7 @@ namespace S2\Rose;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\StorageWriteInterface;
+use S2\Rose\Storage\TransactionalStorageInterface;
 
 /**
  * Class Indexer
@@ -156,21 +157,27 @@ class Indexer
 	 */
 	public function index(Indexable $indexable)
 	{
+		if ($this->storage instanceof TransactionalStorageInterface) {
+			$this->storage->startTransaction();
+		}
+
 		$externalId  = $indexable->getId();
 		$oldTocEntry = $this->storage->getTocByExternalId($externalId);
 
 		$this->storage->addItemToToc($indexable->toTocEntry(), $externalId);
 
-		if ($oldTocEntry && $oldTocEntry->getHash() === $indexable->calcHash()) {
-			return;
+		if (!$oldTocEntry || $oldTocEntry->getHash() !== $indexable->calcHash()) {
+			$this->storage->removeFromIndex($externalId);
+			$this->addToIndex(
+				$externalId,
+				self::strFromHtml($indexable->getTitle()),
+				self::strFromHtml($indexable->getContent()),
+				$indexable->getKeywords()
+			);
 		}
 
-		$this->storage->removeFromIndex($externalId);
-		$this->addToIndex(
-			$externalId,
-			self::strFromHtml($indexable->getTitle()),
-			self::strFromHtml($indexable->getContent()),
-			$indexable->getKeywords()
-		);
+		if ($this->storage instanceof TransactionalStorageInterface) {
+			$this->storage->commitTransaction();
+		}
 	}
 }
