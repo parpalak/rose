@@ -82,9 +82,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			external_id VARCHAR(255) NOT NULL,
 			title VARCHAR(255) NOT NULL DEFAULT "",
-			description TEXT NOT NULL DEFAULT "",
+			description TEXT NOT NULL,
 			added_at DATETIME NULL,
-			url TEXT NOT NULL DEFAULT "",
+			url TEXT NOT NULL,
 			hash VARCHAR(80) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (external_id)
