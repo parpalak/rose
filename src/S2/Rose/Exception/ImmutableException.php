@@ -9,7 +9,7 @@ namespace S2\Rose\Exception;
 /**
  * Class ImmutableException
  */
-class ImmutableException extends \RuntimeException
+class ImmutableException extends RuntimeException
 {
 
 }

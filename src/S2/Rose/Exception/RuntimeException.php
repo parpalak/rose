@@ -6,7 +6,7 @@
 
 namespace S2\Rose\Exception;
 
-class UnknownKeywordTypeException extends RuntimeException
+class RuntimeException extends \RuntimeException
 {
 
 }

@@ -6,10 +6,12 @@
 
 namespace S2\Rose\Storage\Exception;
 
+use S2\Rose\Exception\RuntimeException;
+
 /**
  * Class EmptyIndexException
  */
-class EmptyIndexException extends \RuntimeException
+class EmptyIndexException extends RuntimeException
 {
 
 }

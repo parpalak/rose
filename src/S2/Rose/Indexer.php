@@ -9,6 +9,8 @@
 namespace S2\Rose;
 
 use S2\Rose\Entity\Indexable;
+use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Exception\UnknownException;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 use S2\Rose\Storage\TransactionalStorageInterface;
@@ -157,27 +159,38 @@ class Indexer
 	 */
 	public function index(Indexable $indexable)
 	{
-		if ($this->storage instanceof TransactionalStorageInterface) {
-			$this->storage->startTransaction();
+		try {
+			if ($this->storage instanceof TransactionalStorageInterface) {
+				$this->storage->startTransaction();
+			}
+
+			$externalId  = $indexable->getId();
+			$oldTocEntry = $this->storage->getTocByExternalId($externalId);
+
+			$this->storage->addItemToToc($indexable->toTocEntry(), $externalId);
+
+			if (!$oldTocEntry || $oldTocEntry->getHash() !== $indexable->calcHash()) {
+				$this->storage->removeFromIndex($externalId);
+				$this->addToIndex(
+					$externalId,
+					self::strFromHtml($indexable->getTitle()),
+					self::strFromHtml($indexable->getContent()),
+					$indexable->getKeywords()
+				);
+			}
+
+			if ($this->storage instanceof TransactionalStorageInterface) {
+				$this->storage->commitTransaction();
+			}
 		}
-
-		$externalId  = $indexable->getId();
-		$oldTocEntry = $this->storage->getTocByExternalId($externalId);
-
-		$this->storage->addItemToToc($indexable->toTocEntry(), $externalId);
-
-		if (!$oldTocEntry || $oldTocEntry->getHash() !== $indexable->calcHash()) {
-			$this->storage->removeFromIndex($externalId);
-			$this->addToIndex(
-				$externalId,
-				self::strFromHtml($indexable->getTitle()),
-				self::strFromHtml($indexable->getContent()),
-				$indexable->getKeywords()
-			);
-		}
-
-		if ($this->storage instanceof TransactionalStorageInterface) {
-			$this->storage->commitTransaction();
+		catch (\Exception $e) {
+			if ($this->storage instanceof TransactionalStorageInterface) {
+				$this->storage->rollbackTransaction();
+			}
+			if (!($e instanceof RuntimeException)) {
+				throw new UnknownException('Unknown exception occured while indexing.', 0, $e);
+			}
+			throw $e;
 		}
 	}
 }

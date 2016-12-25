@@ -20,4 +20,9 @@ interface TransactionalStorageInterface
 	 * Commits a transaction
 	 */
 	public function commitTransaction();
+
+	/**
+	 * Rollbacks a transaction
+	 */
+	public function rollbackTransaction();
 }

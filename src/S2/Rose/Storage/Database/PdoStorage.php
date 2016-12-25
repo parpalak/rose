@@ -104,7 +104,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			name VARCHAR(255) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
-			KEY (name)
+			UNIQUE KEY (name)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ';');
@@ -244,14 +244,25 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			return;
 		}
 
-		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' WHERE toc_id = ?');
-		$st->execute(array($tocId));
+		try {
+			$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' WHERE toc_id = ?');
+			$st->execute(array($tocId));
 
-		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' WHERE toc_id = ?');
-		$st->execute(array($tocId));
+			$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' WHERE toc_id = ?');
+			$st->execute(array($tocId));
 
-		$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' WHERE toc_id = ?');
-		$st->execute(array($tocId));
+			$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' WHERE toc_id = ?');
+			$st->execute(array($tocId));
+		}
+		catch (\PDOException $e) {
+			if ($e->errorInfo[1] == 1412) {
+				throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
+			}
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
+			}
+			throw $e;
+		}
 	}
 
 	/**
@@ -448,11 +459,19 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 	}
 
 	/**
+	 * {@inheritdoc}
+	 */
+	public function rollbackTransaction()
+	{
+		$this->pdo->rollBack();
+	}
+
+	/**
 	 * @param string[] $words
 	 *
 	 * @return int[]
 	 */
-	private function getWordIds(array $words)
+	protected function getWordIds(array $words)
 	{
 		$knownWords   = array();
 		$unknownWords = array();
@@ -530,10 +549,19 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			SELECT name, id
 			FROM ' . $this->prefix . $this->options[self::WORD] . ' AS w
 			WHERE name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
+			LOCK IN SHARE MODE
 		';
 
-		$st = $this->pdo->prepare($sql);
-		$st->execute(array_values($words));
+		try {
+			$st = $this->pdo->prepare($sql);
+			$st->execute(array_values($words));
+		}
+		catch (\PDOException $e) {
+			if ($e->errorInfo[1] == 1412) {
+				throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
+			}
+			throw $e;
+		}
 
 		return $st->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE) ?: array();
 	}

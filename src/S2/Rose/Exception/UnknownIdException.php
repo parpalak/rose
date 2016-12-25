@@ -9,7 +9,7 @@ namespace S2\Rose\Exception;
 /**
  * Class UnknownIdExtension
  */
-class UnknownIdException extends \RuntimeException
+class UnknownIdException extends RuntimeException
 {
 	/**
 	 * @param string $externalId

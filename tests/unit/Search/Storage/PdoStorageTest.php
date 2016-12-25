@@ -121,6 +121,57 @@ class PdoStorageTest extends Unit
 		$storage2->addItemToToc($tocEntry1mod, 'id_1');
 	}
 
+	public function testTransactions()
+	{
+ 		// This test should lock on SELECT query, not INSERT.
+		// How this could be tested automatically?
+		return;
+		global $s2_rose_test_db;
+
+		$pdo2 = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
+		$pdo2->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+		$storage = new PdoStorage($this->pdo, 'test_tr_');
+		$storage->erase();
+
+		$storage->startTransaction();
+		$storage->addItemToToc(
+			new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+			'id_1'
+		);
+		$storage->addToFulltext(['word1', 'word2', 'word3'], 'id_1');
+
+		$storage2 = new PdoStorage($pdo2, 'test_tr_');
+		$storage2->startTransaction();
+		$storage2->addItemToToc(
+			new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', 'qwerty'),
+			'id_2'
+		);
+		$storage2->addToFulltext(['word1', 'word5'], 'id_2');
+		$storage2->commitTransaction();
+
+		$storage->addToFulltext(['word4', 'word5', 'word6'], 'id_1');
+		$storage->commitTransaction();
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
+	 */
+	public function testBrokenDb()
+	{
+		$storage = new PdoStorage($this->pdo, 'test_');
+		$storage->erase();
+
+		$storage->addItemToToc(
+			new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+			'id_1'
+		);
+
+		$this->pdo->exec('DROP TABLE test_keyword_multiple_index;');
+
+		$storage->removeFromIndex('id_1');
+	}
+
 	/**
 	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
