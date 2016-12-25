@@ -95,7 +95,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			word_id INT(11) UNSIGNED NOT NULL,
 			toc_id INT(11) UNSIGNED NOT NULL,
 			position INT(11) UNSIGNED NOT NULL,
-			KEY (word_id),
+			PRIMARY KEY (word_id, toc_id, position),
 			KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
@@ -104,7 +104,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			name VARCHAR(255) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
-			UNIQUE KEY (name)
+			KEY (name)
 		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
 		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ';');
@@ -499,6 +499,10 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			return $knownWords;
 		}
 
+		// This query can potentially lead to duplicates in the 'word' table.
+		// I've tried the unique index on the name field, but it slows down
+		// select queries.
+		// Now there are no duplicates due to "SELECT ... LOCK IN SHARE MODE".
 		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::WORD] . ' (name) VALUES ("' . implode(
 				'"),("',
 				array_map(function ($x) {
