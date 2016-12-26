@@ -111,7 +111,7 @@ class Finder
 	 */
 	public static function fulltextRateExcludeNum($tocSize)
 	{
-		return max($tocSize * 0.5, 100);
+		return max($tocSize * 0.5, 20);
 	}
 
 	/**
