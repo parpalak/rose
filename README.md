@@ -142,13 +142,13 @@ foreach ($resultSet->getItems() as $externalId => $item) {
 
 ### Snippets
 
-Snippets are small text fragments containing found words displaying in a search result. `SnippetBuilder` processes the source and selects best matching sentences.
+Snippets are small text fragments containing found words displaying in a search result. `SnippetBuilder` processes the source and selects best matching sentences. It should be done just before `$resultSet->getItems()`:
 
 ```php
 use S2\Rose\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($stemmer);
-$snippetBuilder->attachSnippets($result, function (array $ids) {
+$snippetBuilder->attachSnippets($resultSet, function (array $ids) {
 	$result = [];
 	foreach ($ids as $id) {
 		if ($id == 'id_1') {
