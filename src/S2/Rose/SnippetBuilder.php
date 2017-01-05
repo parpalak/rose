@@ -53,7 +53,7 @@ class SnippetBuilder
 	 */
 	public function attachSnippets(ResultSet $result, callable $callback)
 	{
-		$externalIds = array_keys($result->getWeightByExternalId());
+		$externalIds = $result->getSortedExternalIds();
 
 		/** @var array $contentArray */
 		$contentArray = $callback($externalIds);

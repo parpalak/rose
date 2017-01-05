@@ -59,7 +59,7 @@ class ResultSet
 	 *
 	 * @var array
 	 */
-	protected $foundWeights;
+	protected $sortedRelevance;
 
 	/**
 	 * Result cache
@@ -143,33 +143,33 @@ class ResultSet
 	/**
 	 * @return array
 	 */
-	public function getWeightByExternalId()
+	public function getSortedRelevanceByExternalId()
 	{
 		if (!$this->isFrozen) {
 			throw new ImmutableException('One cannot read a result before freezing it.');
 		}
 
-		if ($this->foundWeights !== null) {
-			return $this->foundWeights;
+		if ($this->sortedRelevance !== null) {
+			return $this->sortedRelevance;
 		}
 
-		$this->foundWeights = array();
+		$this->sortedRelevance = array();
 		foreach ($this->data as $externalId => $stat) {
-			$this->foundWeights[$externalId] = array_sum($stat);
+			$this->sortedRelevance[$externalId] = array_sum($stat);
 		}
 
-		// Order by weight
-		arsort($this->foundWeights);
+		// Order by relevance
+		arsort($this->sortedRelevance);
 
 		if ($this->limit > 0) {
-			$this->foundWeights = array_slice(
-				$this->foundWeights,
+			$this->sortedRelevance = array_slice(
+				$this->sortedRelevance,
 				$this->offset,
 				$this->limit
 			);
 		}
 
-		return $this->foundWeights;
+		return $this->sortedRelevance;
 	}
 
 	/**
@@ -215,13 +215,11 @@ class ResultSet
 	 */
 	public function attachToc($externalId, TocEntry $tocEntry)
 	{
-		$weights = $this->getWeightByExternalId();
 		$this->items[$externalId] = new ResultItem(
 			$tocEntry->getTitle(),
 			$tocEntry->getDescription(),
 			$tocEntry->getDate(),
-			$tocEntry->getUrl(),
-			$weights[$externalId]
+			$tocEntry->getUrl()
 		);
 	}
 
@@ -242,6 +240,33 @@ class ResultSet
 	 */
 	public function getItems()
 	{
+		$relevanceArray = $this->getSortedRelevanceByExternalId();
+
+		$result = array();
+		foreach ($relevanceArray as $externalId => $relevance) {
+			$result[$externalId] = $this->items[$externalId]->setRelevance($relevance);
+		}
+
 		return $this->items;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	public function getFoundExternalIds()
+	{
+		if (!$this->isFrozen) {
+			throw new ImmutableException('One cannot read a result before freezing it.');
+		}
+
+		return array_keys($this->data);
+	}
+
+	/**
+	 * @return string[]
+	 */
+	public function getSortedExternalIds()
+	{
+		return array_keys($this->getSortedRelevanceByExternalId());
 	}
 }

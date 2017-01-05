@@ -87,12 +87,12 @@ class IntegrationTest extends Unit
 
 		// Query 1
 		$resultSet1 = $finder->find(new Query('snippets'));
-		$this->assertEquals([], $resultSet1->getWeightByExternalId(), 'Do not index description');
+		$this->assertEquals([], $resultSet1->getSortedRelevanceByExternalId(), 'Do not index description');
 
 		// Query 2
 		$resultSet2 = $finder->find(new Query('content'));
 
-		$this->assertEquals(['id_2' => 31, 'id_1' => 1], $resultSet2->getWeightByExternalId());
+		$this->assertEquals(['id_2' => 31, 'id_1' => 1], $resultSet2->getSortedRelevanceByExternalId());
 
 		$items = $resultSet2->getItems();
 		$this->assertEquals('Description can be used in snippets', $items['id_1']->getSnippet());
@@ -105,10 +105,10 @@ class IntegrationTest extends Unit
 		$this->assertEquals('url1',                                $items['id_1']->getUrl());
 		$this->assertEquals('Description can be used in snippets', $items['id_1']->getDescription());
 		$this->assertEquals(new \DateTime('2016-08-24 00:00:00'),  $items['id_1']->getDate());
-		$this->assertEquals(1.0,                                   $items['id_1']->getRelevancy());
+		$this->assertEquals(1.0,                                   $items['id_1']->getRelevance());
 		$this->assertEquals('I have changed the <i>content</i>.',  $items['id_1']->getSnippet());
 
-		$this->assertEquals(31, $items['id_2']->getRelevancy());
+		$this->assertEquals(31, $items['id_2']->getRelevance());
 		$this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items['id_2']->getSnippet());
 
 		// Query 3

@@ -83,7 +83,7 @@ The constructor of `Indexable` requires 3 string arguments:
 - page title;
 - page content.
 
-You may also provide some optional parameters: keywords, description, date and URL. Keywords affect the relevancy. The description can be used for building a snippet (see below). It's a good idea to use the content of "keyword" and "description" meta-tags for this purpose (if you have any, of course). The URL can be an arbitrary string.
+You may also provide some optional parameters: keywords, description, date and URL. Keywords affect the relevance. The description can be used for building a snippet (see below). It's a good idea to use the content of "keyword" and "description" meta-tags for this purpose (if you have any, of course). The URL can be an arbitrary string.
 
 The `Indexer::index()` method is used both for adding and updating the index. If the content is not changed, this method skips the job. Otherwise, the content is being removed and indexed again.
 
@@ -96,7 +96,7 @@ $indexer->removeById($externalId);
 ### Searching
 
 Full-text search results can be obtained via `Finder` class.
-`$resultSet->getItems()` returns all the information about content items and their relevancy.
+`$resultSet->getItems()` returns all the information about content items and their relevance.
 
 ```php
 use S2\Rose\Finder;
@@ -112,7 +112,7 @@ foreach ($resultSet->getItems() as $externalId => $item) {
 	$item->getUrl();         // ''                        'url1'
 	$item->getDescription(); // ''                        'Description can be used in snippets'
 	$item->getDate();        // null                      new \DateTime('2016-08-24 00:00:00')
-	$item->getRelevancy();   // 31.0                      1.0
+	$item->getRelevance();   // 31.0                      1.0
 	$item->getSnippet();     // ''                        'Description can be used in snippets'
 }
 ```

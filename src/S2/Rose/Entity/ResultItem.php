@@ -34,7 +34,7 @@ class ResultItem
 	/**
 	 * @var float
 	 */
-	protected $relevancy = 0.0;
+	protected $relevance = 0.0;
 
 	/**
 	 * @var Snippet
@@ -48,23 +48,39 @@ class ResultItem
 	 * @param string    $description
 	 * @param \DateTime $date
 	 * @param string    $url
-	 * @param float     $relevancy
+	 * @param float     $relevance
 	 */
-	public function __construct($title, $description, \DateTime $date = null, $url, $relevancy)
+	public function __construct($title, $description, \DateTime $date = null, $url, $relevance = null)
 	{
 		$this->title       = $title;
 		$this->description = $description;
 		$this->date        = $date;
 		$this->url         = $url;
-		$this->relevancy   = $relevancy;
+		$this->relevance   = $relevance;
 	}
 
 	/**
 	 * @param Snippet $snippet
+	 *
+	 * @return $this
 	 */
 	public function setSnippet($snippet)
 	{
 		$this->snippet = $snippet;
+
+		return $this;
+	}
+
+	/**
+	 * @param float $relevance
+	 *
+	 * @return $this
+	 */
+	public function setRelevance($relevance)
+	{
+		$this->relevance = $relevance;
+
+		return $this;
 	}
 
 	/**
@@ -102,9 +118,9 @@ class ResultItem
 	/**
 	 * @return float
 	 */
-	public function getRelevancy()
+	public function getRelevance()
 	{
-		return $this->relevancy;
+		return $this->relevance;
 	}
 
 	/**

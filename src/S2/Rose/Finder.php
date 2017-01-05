@@ -225,7 +225,7 @@ class Finder
 
 		$result->freeze();
 
-		foreach ($result->getWeightByExternalId() as $externalId => $weight) {
+		foreach ($result->getFoundExternalIds() as $externalId) {
 			$result->attachToc($externalId, $this->storage->getTocByExternalId($externalId));
 		}
 
