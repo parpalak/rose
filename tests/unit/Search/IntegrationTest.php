@@ -20,6 +20,8 @@ use S2\Rose\Storage\StorageWriteInterface;
 
 /**
  * Class IntegrationTest
+ *
+ * @group int
  */
 class IntegrationTest extends Unit
 {
@@ -110,6 +112,11 @@ class IntegrationTest extends Unit
 
 		$this->assertEquals(31, $items['id_2']->getRelevance());
 		$this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items['id_2']->getSnippet());
+
+		$resultSet2 = $finder->find(new Query('content'));
+		$resultSet2->setRelevanceRatio('id_1', 3.14);
+
+		$this->assertEquals(['id_2' => 31, 'id_1' => 3.14], $resultSet2->getSortedRelevanceByExternalId());
 
 		// Query 3
 		$resultSet3 = $finder->find(new Query('сущность Plus'));

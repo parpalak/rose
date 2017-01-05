@@ -16,8 +16,18 @@ class UnknownIdException extends RuntimeException
 	 *
 	 * @return static
 	 */
-	public static function createFromExternalId($externalId)
+	public static function createIndexMissingExternalId($externalId)
 	{
 		return new static(sprintf('External id "%s" not found in index.', $externalId));
+	}
+
+	/**
+	 * @param string $externalId
+	 *
+	 * @return static
+	 */
+	public static function createResultMissingExternalId($externalId)
+	{
+		return new static(sprintf('External id "%s" not found in result.', $externalId));
 	}
 }

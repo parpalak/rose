@@ -127,6 +127,19 @@ $query
 $resultSet = $finder->find($query);
 ```
 
+Adjust the relevance for favorite and popular pages:
+```php
+$resultSet = $finder->find(new Query('content'));
+echo $resultSet->getFoundExternalIds(); // ['id_1', 'id_2']
+$resultSet->setRelevanceRatio('id_1', 3.14);
+
+foreach ($resultSet->getItems() as $externalId => $item) {
+	                         // first iteration:          second iteration:
+	$externalId;             // 'id_2'                    'id_1'
+	$item->getRelevance();   // 31.0                      3.14
+}
+```
+
 ### Snippets
 
 Snippets are small text fragments containing found words displaying in a search result. `SnippetBuilder` processes the source and selects best matching sentences.

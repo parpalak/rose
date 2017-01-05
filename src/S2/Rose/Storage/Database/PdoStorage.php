@@ -536,7 +536,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 		$tocEntry = $this->getTocByExternalId($externalId);
 
 		if (!$tocEntry) {
-			throw UnknownIdException::createFromExternalId($externalId);
+			throw UnknownIdException::createIndexMissingExternalId($externalId);
 		}
 
 		return $tocEntry->getInternalId();

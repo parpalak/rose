@@ -8,11 +8,13 @@ namespace S2\Rose\Test\Entity;
 
 use Codeception\Test\Unit;
 use S2\Rose\Entity\ResultSet;
+use S2\Rose\Entity\Snippet;
 
 /**
  * Class ResultTest
  *
  * @group entity
+ * @group result
  */
 class ResultSetTest extends Unit
 {
@@ -21,7 +23,6 @@ class ResultSetTest extends Unit
 		$result = $this->prepareResult(new ResultSet());
 		$data   = $result->getSortedRelevanceByExternalId();
 		$this->assertCount(30, $data);
-
 
 		$result = $this->prepareResult(new ResultSet(2));
 		$data   = $result->getSortedRelevanceByExternalId();
@@ -38,6 +39,57 @@ class ResultSetTest extends Unit
 		$this->assertEquals(33, $data['id_23']);
 	}
 
+	/**
+	 * @expectedException \S2\Rose\Exception\UnknownIdException
+	 */
+	public function testSetRelevanceInvalidExternalId()
+	{
+		$result = $this->prepareResult(new ResultSet());
+		$result->setRelevanceRatio('not_found', 2);
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\RuntimeException
+	 */
+	public function testSetRelevanceInvalidRatio()
+	{
+		$result = $this->prepareResult(new ResultSet());
+		$result->setRelevanceRatio('id_10', array('not a number'));
+	}
+
+	public function testSetRelevance()
+	{
+		$result = $this->prepareResult(new ResultSet(2));
+		$foundExternalIds = $result->getFoundExternalIds();
+		$this->assertCount(30, $foundExternalIds);
+		$this->assertContains('id_29', $foundExternalIds);
+		$this->assertContains('id_10', $foundExternalIds);
+
+		$result->setRelevanceRatio('id_10', 2.7);
+
+		$data = $result->getSortedRelevanceByExternalId();
+
+		$this->assertCount(2, $data);
+		$this->assertEquals((10 + 10) * 2.7, $data['id_10']);
+		$this->assertEquals((10 + 29), $data['id_29']);
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 * @expectedExceptionMessage One cannot set relevance ratios after sorting the result.
+	 */
+	public function testNoSetRelevanceAfterSorting()
+	{
+		$result = $this->prepareResult(new ResultSet(2));
+		$this->assertContains('id_10', $result->getFoundExternalIds());
+
+		$result->setRelevanceRatio('id_10', 2.72);
+
+		$data = $result->getSortedRelevanceByExternalId();
+
+		$result->setRelevanceRatio('id_10', 3.14);
+	}
+
 	public function testEmpty()
 	{
 		$resultSet = new ResultSet();
@@ -46,6 +98,68 @@ class ResultSetTest extends Unit
 		$this->assertCount(0, $data);
 	}
 
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 */
+	public function testNotFrozenGetItems()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->getItems();
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\UnknownIdException
+	 */
+	public function testNotFrozenAttachSnippet()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->attachSnippet('not found', new Snippet('', '', 1));
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 */
+	public function testNotFrozenGetFoundExternalIds()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->getFoundExternalIds();
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 */
+	public function testNotFrozenSetRelevanceRatio()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->setRelevanceRatio('not found', 2);
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 */
+	public function testNotFrozenGetFoundWordsByExternalId()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->getFoundWordsByExternalId();
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 */
+	public function testNotFrozenGetSortedExternalIds()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->getSortedExternalIds();
+	}
+
+	/**
+	 * @expectedException \S2\Rose\Exception\ImmutableException
+	 */
+	public function testNotFrozenGetSortedRelevanceByExternalId()
+	{
+		$resultSet = new ResultSet();
+		$resultSet->getSortedRelevanceByExternalId();
+	}
 
 	/**
 	 * @param ResultSet $result
@@ -55,8 +169,9 @@ class ResultSetTest extends Unit
 	private function prepareResult(ResultSet $result)
 	{
 		for ($i = 30; $i--;) {
-			$result->addWordWeight('test1', 'id_' . $i, $i);
-			$result->addWordWeight('test2', 'id_' . $i, 10);
+			$externalId = 'id_' . $i;
+			$result->addWordWeight('test1', $externalId, $i);
+			$result->addWordWeight('test2', $externalId, 10);
 		}
 
 		$result->freeze();

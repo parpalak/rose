@@ -7,6 +7,8 @@
 namespace S2\Rose\Entity;
 
 use S2\Rose\Exception\ImmutableException;
+use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Helper\Helper;
 
 /**
@@ -67,6 +69,13 @@ class ResultSet
 	 * @var array
 	 */
 	protected $foundWords;
+
+	/**
+	 * Relevance corrections
+	 *
+	 * @var array
+	 */
+	protected $externalRelevanceRatios = array();
 
 	/**
 	 * Result constructor.
@@ -141,6 +150,31 @@ class ResultSet
 	}
 
 	/**
+	 * @param string $externalId
+	 * @param float  $ratio
+	 */
+	public function setRelevanceRatio($externalId, $ratio)
+	{
+		if (!$this->isFrozen) {
+			throw new ImmutableException('One cannot provide external relevance ratios before freezing the result.');
+		}
+
+		if ($this->sortedRelevance !== null) {
+			throw new ImmutableException('One cannot set relevance ratios after sorting the result.');
+		}
+
+		if (!isset($this->data[$externalId])) {
+			throw UnknownIdException::createResultMissingExternalId($externalId);
+		}
+
+		if (!is_float($ratio)) {
+			throw new RuntimeException(sprintf('Ratio must be a float value. "%s" given.', print_r($ratio, true)));
+		}
+
+		$this->externalRelevanceRatios[$externalId] = $ratio;
+	}
+
+	/**
 	 * @return array
 	 */
 	public function getSortedRelevanceByExternalId()
@@ -155,7 +189,11 @@ class ResultSet
 
 		$this->sortedRelevance = array();
 		foreach ($this->data as $externalId => $stat) {
-			$this->sortedRelevance[$externalId] = array_sum($stat);
+			$relevance = array_sum($stat);
+			if (isset($this->externalRelevanceRatios[$externalId])) {
+				$relevance *= $this->externalRelevanceRatios[$externalId];
+			}
+			$this->sortedRelevance[$externalId] = $relevance;
 		}
 
 		// Order by relevance
@@ -230,7 +268,7 @@ class ResultSet
 	public function attachSnippet($externalId, Snippet $snippet)
 	{
 		if (!isset($this->items[$externalId])) {
-			throw new \RuntimeException(sprintf('ResultSet does not contain external id "%s".', $externalId));
+			throw UnknownIdException::createResultMissingExternalId($externalId);
 		}
 		$this->items[$externalId]->setSnippet($snippet);
 	}
