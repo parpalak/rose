@@ -167,7 +167,7 @@ class ResultSet
 			throw UnknownIdException::createResultMissingExternalId($externalId);
 		}
 
-		if (!is_float($ratio)) {
+		if (!is_numeric($ratio)) {
 			throw new RuntimeException(sprintf('Ratio must be a float value. "%s" given.', print_r($ratio, true)));
 		}
 

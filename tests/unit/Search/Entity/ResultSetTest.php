@@ -66,12 +66,14 @@ class ResultSetTest extends Unit
 		$this->assertContains('id_10', $foundExternalIds);
 
 		$result->setRelevanceRatio('id_10', 2.7);
+		$result->setRelevanceRatio('id_29', '1.1');
 
 		$data = $result->getSortedRelevanceByExternalId();
 
 		$this->assertCount(2, $data);
+		$this->assertEquals('id_10', array_keys($data)[0]);
 		$this->assertEquals((10 + 10) * 2.7, $data['id_10']);
-		$this->assertEquals((10 + 29), $data['id_29']);
+		$this->assertEquals((10 + 29) * 1.1, $data['id_29']);
 	}
 
 	/**
