@@ -118,6 +118,13 @@ class IntegrationTest extends Unit
 
 		$this->assertEquals(['id_2' => 31, 'id_1' => 3.14], $resultSet2->getSortedRelevanceByExternalId());
 
+		$resultSet2 = $finder->find(new Query('content'));
+		$resultSet2->setRelevanceRatio('id_1', 100);
+		$resultItems = $resultSet2->getItems();
+		$this->assertCount(2, $resultItems);
+		$this->assertEquals('id_1', array_keys($resultItems)[0], 'Sorting by relevance is not working');
+		$this->assertEquals(100, $resultItems['id_1']->getRelevance());
+
 		// Query 3
 		$resultSet3 = $finder->find(new Query('сущность Plus'));
 		$snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);

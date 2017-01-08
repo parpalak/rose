@@ -285,7 +285,7 @@ class ResultSet
 			$result[$externalId] = $this->items[$externalId]->setRelevance($relevance);
 		}
 
-		return $this->items;
+		return $result;
 	}
 
 	/**
