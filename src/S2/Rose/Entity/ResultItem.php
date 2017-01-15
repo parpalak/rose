@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -132,9 +132,11 @@ class ResultItem
 			return $this->description;
 		}
 
-		if ($this->snippet->getRelevance() > 0.6) {
-			return $this->snippet->getSnippet();
+		$snippet = $this->snippet->getSnippet(0.6);
+		if ($snippet) {
+			return $snippet;
 		}
+
 
 		return $this->description ?: $this->snippet->getTextIntroduction();
 	}

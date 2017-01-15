@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -64,18 +64,18 @@ class ResultSet
 	protected $sortedRelevance;
 
 	/**
-	 * Result cache
-	 *
-	 * @var array
-	 */
-	protected $foundWords;
-
-	/**
 	 * Relevance corrections
 	 *
 	 * @var array
 	 */
 	protected $externalRelevanceRatios = array();
+
+	/**
+	 * Positions of found words
+	 *
+	 * @var array
+	 */
+	protected $positions = array();
 
 	/**
 	 * Result constructor.
@@ -120,8 +120,9 @@ class ResultSet
 	 * @param string $word
 	 * @param string $externalId
 	 * @param float  $weight
+	 * @param int[]  $positions
 	 */
-	public function addWordWeight($word, $externalId, $weight)
+	public function addWordWeight($word, $externalId, $weight, $positions = array())
 	{
 		if ($this->isFrozen) {
 			throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
@@ -129,9 +130,11 @@ class ResultSet
 
 		if (!isset ($this->data[$externalId][$word])) {
 			$this->data[$externalId][$word] = $weight;
+			$this->positions[$externalId][$word] = $positions;
 		}
 		else {
 			$this->data[$externalId][$word] += $weight;
+			$this->positions[$externalId][$word] = array_merge($this->positions[$externalId][$word], $positions);
 		}
 	}
 
@@ -213,26 +216,13 @@ class ResultSet
 	/**
 	 * @return array
 	 */
-	public function getFoundWordsByExternalId()
+	public function getFoundWordPositionsByExternalId()
 	{
 		if (!$this->isFrozen) {
 			throw new ImmutableException('One cannot read a result before freezing it.');
 		}
 
-		if ($this->foundWords !== null) {
-			return $this->foundWords;
-		}
-
-		$this->foundWords = array();
-		foreach ($this->data as $externalId => $stat) {
-			foreach ($stat as $word => $weight) {
-				if (0 !== strpos($word, '*n_')) {
-					$this->foundWords[$externalId][] = $word;
-				}
-			}
-		}
-
-		return $this->foundWords;
+		return $this->positions;
 	}
 
 	/**

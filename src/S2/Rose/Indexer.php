@@ -2,7 +2,7 @@
 /**
  * Creates search index
  *
- * @copyright 2010-2016 Roman Parpalak
+ * @copyright 2010-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -47,20 +47,21 @@ class Indexer
 	/**
 	 * Cleaning up an HTML string.
 	 *
-	 * @param string $contents
+	 * @param string $content
+	 * @param string $allowedSymbols
 	 *
 	 * @return string
 	 */
-	protected static function strFromHtml($contents)
+	public static function strFromHtml($content, $allowedSymbols = '')
 	{
-		$contents = strip_tags($contents);
+		$content = strip_tags($content);
 
-		$contents = mb_strtolower($contents);
-		$contents = str_replace(array('&nbsp;', "\xc2\xa0"), ' ', $contents);
-		$contents = preg_replace('#&[^;]{1,20};#', '', $contents);
-		$contents = preg_replace('#[^\-а-яё0-9a-z\^]+#u', ' ', $contents);
+		$content = mb_strtolower($content);
+		$content = str_replace(array('&nbsp;', "\xc2\xa0"), ' ', $content);
+		$content = preg_replace('#&[^;]{1,20};#', '', $content);
+		$content = preg_replace('#[^\\-а-яё0-9a-z\\^_' . $allowedSymbols . ']+#u', ' ', $content);
 
-		return $contents;
+		return $content;
 	}
 
 	/**
@@ -68,7 +69,7 @@ class Indexer
 	 *
 	 * @return string[]
 	 */
-	protected static function arrayFromStr($contents)
+	public static function arrayFromStr($contents)
 	{
 		return preg_split('#[ ]+#', $contents);
 	}
@@ -97,10 +98,10 @@ class Indexer
 	/**
 	 * @param string $externalId
 	 * @param string $title
-	 * @param string $contents
+	 * @param string $content
 	 * @param string $keywords
 	 */
-	protected function addToIndex($externalId, $title, $contents, $keywords)
+	protected function addToIndex($externalId, $title, $content, $keywords)
 	{
 		// Processing title
 		foreach (self::arrayFromStr($title) as $word) {
@@ -114,7 +115,9 @@ class Indexer
 
 		// Fulltext index
 		// Remove russian ё from the fulltext index
-		$words = self::arrayFromStr(str_replace('ё', 'е', $title . ' ' . str_replace(', ', ' ', $keywords) . ' ' . $contents));
+		$words = self::arrayFromStr(str_replace('ё', 'е',
+			$content . ' ' . $title . ' ' . str_replace(', ', ' ', $keywords)
+		));
 
 		$subwords = array();
 

@@ -2,7 +2,7 @@
 /**
  * Fulltext and keyword search
  *
- * @copyright 2010-2016 Roman Parpalak
+ * @copyright 2010-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -156,9 +156,9 @@ class Finder
 				}
 				$currPositions = array_merge($currPositions, $fulltextIndexByWord);
 
-				foreach ($fulltextIndexByWord as $externalId => $entries) {
-					$curWeight = $wordWeight * self::repeatWeightRatio(count($entries));
-					$result->addWordWeight($word, $externalId, $curWeight);
+				foreach ($fulltextIndexByWord as $externalId => $positions) {
+					$curWeight = $wordWeight * self::repeatWeightRatio(count($positions));
+					$result->addWordWeight($word, $externalId, $curWeight, $positions);
 				}
 			}
 

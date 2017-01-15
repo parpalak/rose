@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -129,7 +129,7 @@ class IntegrationTest extends Unit
 		$resultSet3 = $finder->find(new Query('сущность Plus'));
 		$snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +.',
+			'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
 			$resultSet3->getItems()['id_3']->getSnippet()
 		);
 
@@ -139,7 +139,7 @@ class IntegrationTest extends Unit
 
 		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Например, красно-черный, <i>эпл</i>-вотчем, и другие интересные комбинации.',
+			'Например, красно-черный, <i>эпл-вотчем</i>, и другие интересные комбинации.',
 			$resultSet4->getItems()['id_3']->getSnippet()
 		);
 
@@ -148,7 +148,7 @@ class IntegrationTest extends Unit
 
 		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Например, <i>красно</i>-черный, эпл-вотчем, и другие интересные комбинации.',
+			'Например, <i>красно-черный</i>, эпл-вотчем, и другие интересные комбинации.',
 			$resultSet4->getItems()['id_3']->getSnippet()
 		);
 	}

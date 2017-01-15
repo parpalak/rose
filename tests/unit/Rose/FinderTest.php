@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -88,10 +88,10 @@ class FinderTest extends Unit
 		$items = $resultSet->getItems();
 		$this->assertCount(3, $items);
 
-		$weights = $resultSet->getFoundWordsByExternalId();
+		$weights = $resultSet->getFoundWordPositionsByExternalId();
 		$this->assertCount(3, $weights);
-		$this->assertEquals(['find', 'replace'], $weights['id_1']);
-		$this->assertEquals(['find', 'replace'], $weights['id_2']);
-		$this->assertEquals(['find'], $weights['id_3']);
+		$this->assertEquals(['find' => [], 'replace' => []], $weights['id_1']);
+		$this->assertEquals(['find' => [10, 20], 'replace' => [12]], $weights['id_2']);
+		$this->assertEquals(['find' => [1]], $weights['id_3']);
 	}
 }

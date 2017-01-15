@@ -142,7 +142,7 @@ class ResultSetTest extends Unit
 	public function testNotFrozenGetFoundWordsByExternalId()
 	{
 		$resultSet = new ResultSet();
-		$resultSet->getFoundWordsByExternalId();
+		$resultSet->getFoundWordPositionsByExternalId();
 	}
 
 	/**
