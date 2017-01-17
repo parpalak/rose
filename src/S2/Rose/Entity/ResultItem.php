@@ -132,7 +132,7 @@ class ResultItem
 			return $this->description;
 		}
 
-		$snippet = $this->snippet->getSnippet(0.6);
+		$snippet = $this->snippet->toString(0.6);
 		if ($snippet) {
 			return $snippet;
 		}

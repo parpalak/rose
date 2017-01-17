@@ -97,7 +97,7 @@ class Snippet
 	 *
 	 * @return string
 	 */
-	public function getSnippet($acceptableRelevance = 0.6)
+	public function toString($acceptableRelevance = 0.6)
 	{
 		$a = $this->snippetLineWeights;
 

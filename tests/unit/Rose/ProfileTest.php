@@ -39,6 +39,49 @@ class ProfileTest extends Unit
 		@unlink($this->getTempFilename());
 	}
 
+	public function testSnippet()
+	{
+		$start = microtime(true);
+
+		$filenames = glob(__DIR__ . '/../../Resource/data/' . '*.txt');
+		$filenames = array_slice($filenames, 0, self::TEST_FILE_NUM);
+
+		$stemmer        = new PorterStemmerRussian();
+		$snippetBuilder = new SnippetBuilder($stemmer);
+
+		$indexProfilePoints[] = Helper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
+
+		$contentArray = [];
+		foreach ($filenames as $filename) {
+			$contentArray[] = file_get_contents($filename);
+		}
+		$indexProfilePoints[] = Helper::getProfilePoint('reading', -$start + ($start = microtime(true)));
+
+		$contentArray = $snippetBuilder->cleanupContent($contentArray);
+		$indexProfilePoints[] = Helper::getProfilePoint('cleanup', -$start + ($start = microtime(true)));
+
+		$start2 = $start;
+
+		foreach ($contentArray as $content) {
+			$snippet = $snippetBuilder->buildSnippet(['test' => [83, 90], 'test2' => [49, 55]], $content);
+
+			$indexProfilePoints[] = Helper::getProfilePoint('pre-building', -$start + ($start = microtime(true)));
+
+			$snippet = $snippet->toString();
+//			codecept_debug($snippet);
+
+			$indexProfilePoints[] = Helper::getProfilePoint('post-building', -$start + ($start = microtime(true)));
+		}
+
+		$indexProfilePoints[] = Helper::getProfilePoint('building', -$start2 + (microtime(true)));
+
+//		codecept_debug($matches);
+
+		foreach (array_merge($indexProfilePoints) as $point) {
+			codecept_debug(Helper::formatProfilePoint($point));
+		}
+	}
+
 	public function testSnippets()
 	{
 		$start = microtime(true);

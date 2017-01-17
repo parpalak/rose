@@ -36,7 +36,7 @@ class SnippetTest extends Unit
 
 		$this->assertEquals(
 			'Testing string to highlight some <i>test</i> values. <i>Test</i> <i>is</i> case-sensitive.',
-			$snippet->getSnippet()
+			$snippet->toString()
 		);
 	}
 
@@ -63,7 +63,7 @@ class SnippetTest extends Unit
 
 		$this->assertEquals(
 			'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
-			$snippet->getSnippet()
+			$snippet->toString()
 		);
 	}
 }

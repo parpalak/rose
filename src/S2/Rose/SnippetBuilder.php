@@ -82,7 +82,7 @@ class SnippetBuilder
 	 *
 	 * @return array
 	 */
-	private function cleanupContent(array $contentArray)
+	public function cleanupContent(array $contentArray)
 	{
 		// Text cleanup
 		$replaceFrom = array(self::LINE_SEPARATOR, 'ё', '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;');
@@ -116,12 +116,12 @@ class SnippetBuilder
 	}
 
 	/**
-	 * @param array   $foundPositionsByWords
-	 * @param string  $content
+	 * @param array  $foundPositionsByWords
+	 * @param string $content
 	 *
 	 * @return Snippet
 	 */
-	private function buildSnippet($foundPositionsByWords, $content)
+	public function buildSnippet($foundPositionsByWords, $content)
 	{
 		$_allPositions = array();
 		foreach ($foundPositionsByWords as $word => $positions) {
@@ -129,12 +129,13 @@ class SnippetBuilder
 		}
 
 		// Breaking the text into lines
-		$lines     = explode(self::LINE_SEPARATOR, $content);
-		$textStart = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
+		$lines = explode(self::LINE_SEPARATOR, $content);
 
-		$snippet = new Snippet($textStart, count($foundPositionsByWords));
+		$textStart    = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
+		$foundWordNum = count($foundPositionsByWords);
+		$snippet      = new Snippet($textStart, $foundWordNum);
 
-		if (empty($_allPositions)) {
+		if ($foundWordNum == 0) {
 			return $snippet;
 		}
 
