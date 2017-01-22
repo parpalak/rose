@@ -139,7 +139,7 @@ class IntegrationTest extends Unit
 
 		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Например, красно-черный, <i>эпл-вотчем</i>, и другие интересные комбинации.',
+			'Например, красно-черный, <i>эпл</i>-вотчем, и другие интересные комбинации.',
 			$resultSet4->getItems()['id_3']->getSnippet()
 		);
 
@@ -148,7 +148,7 @@ class IntegrationTest extends Unit
 
 		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Например, <i>красно-черный</i>, эпл-вотчем, и другие интересные комбинации.',
+			'Например, <i>красно</i>-черный, эпл-вотчем, и другие интересные комбинации.',
 			$resultSet4->getItems()['id_3']->getSnippet()
 		);
 	}

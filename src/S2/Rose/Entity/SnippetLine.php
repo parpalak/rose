@@ -24,31 +24,30 @@ class SnippetLine
 	protected $line = '';
 
 	/**
+	 * @var int
+	 */
+	protected $foundStemCount = 0;
+
+	/**
 	 * SnippetLine constructor.
 	 *
 	 * @param string   $line
 	 * @param string[] $foundWords
+	 * @param int      $foundStemCount
 	 */
-	public function __construct($line, array $foundWords)
+	public function __construct($line, array $foundWords, $foundStemCount)
 	{
-		$this->line       = $line;
-		$this->foundWords = $foundWords;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function getLine()
-	{
-		return $this->line;
+		$this->line           = $line;
+		$this->foundWords     = $foundWords;
+		$this->foundStemCount = $foundStemCount;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getWordCount()
+	public function getStemCount()
 	{
-		return count($this->foundWords);
+		return $this->foundStemCount;
 	}
 
 	/**
@@ -67,7 +66,7 @@ class SnippetLine
 	public function getHighlighted($highlightTemplate)
 	{
 		if (strpos($highlightTemplate, '%s') === false) {
-			throw new RuntimeException('Highlight template must contain "%s" substring.');
+			throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
 		}
 
 		$line       = $this->line;

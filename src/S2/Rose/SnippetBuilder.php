@@ -123,9 +123,13 @@ class SnippetBuilder
 	 */
 	public function buildSnippet($foundPositionsByWords, $content)
 	{
-		$_allPositions = array();
+		// Stems of the words found in the $id chapter
+		$stems     = array();
+		$fullWords = array();
 		foreach ($foundPositionsByWords as $word => $positions) {
-			$_allPositions = array_merge($_allPositions, $positions);
+			$stemmedWord             = $this->stemmer->stemWord($word);
+			$stems[]                 = $stemmedWord;
+			$fullWords[$stemmedWord] = $word;
 		}
 
 		// Breaking the text into lines
@@ -143,29 +147,38 @@ class SnippetBuilder
 			$snippet->setHighlightTemplate($this->highlightTemplate);
 		}
 
-		$cleanedLines = explode(self::LINE_SEPARATOR, Indexer::strFromHtml($content, '\\r'));
+		// Check the text for the query words
+		// Modifier S works poorly on cyrillic :(
+		preg_match_all('#(?<=[^a-zа-я]|^)(' . implode('|', $stems) . ')[a-zа-я]*#Ssui', $content, $matches, PREG_OFFSET_CAPTURE);
 
-		$offset = 0;
-		$fff    = array();
-		foreach ($lines as $lineIndex => $lineStr) {
-			$lineWords  = Indexer::arrayFromStr(trim($cleanedLines[$lineIndex]));
-			$nextOffset = $offset + count($lineWords);
+		$lineNum = 0;
+		$lineEnd = strlen($lines[$lineNum]);
 
-			$found = false;
-			foreach ($_allPositions as $position) {
-				if ($position >= $offset && $position < $nextOffset) {
-					$found           = true;
-					$foundWord       = $lineWords[$position - $offset];
-					$fff[$foundWord] = 1;
-				}
+		$foundWordsInLines = $foundStemsInLines = array();
+		foreach ($matches[0] as $i => $wordInfo) {
+			$word        = mb_strtolower($wordInfo[0]);
+			$stem        = mb_strtolower($matches[1][$i][0]);
+			$stemmedWord = $this->stemmer->stemWord($word);
+
+			// Ignore entry if the word stem differs from needed ones
+			if ($stem != $word && $stem != $stemmedWord && $stemmedWord != $fullWords[$stem]) {
+				continue;
 			}
 
-			if ($found) {
-				$snippet->attachSnippetLine($lineIndex, new SnippetLine($lineStr, array_keys($fff)));
-				$fff = array();
+			$offset = $wordInfo[1];
+
+			while ($lineEnd < $offset && isset($lines[$lineNum + 1])) {
+				$lineNum++;
+				$lineEnd += 1 + strlen($lines[$lineNum]);
 			}
 
-			$offset = $nextOffset;
+			$foundStemsInLines[$lineNum][$stem] = 1;
+			$foundWordsInLines[$lineNum][$word] = 1;
+		}
+
+		foreach ($foundStemsInLines as $lineIndex => $foundStemsInLine) {
+			$snippetLine = new SnippetLine($lines[$lineIndex], array_keys($foundWordsInLines[$lineIndex]), count($foundStemsInLine));
+			$snippet->attachSnippetLine($lineIndex, $snippetLine);
 		}
 
 		return $snippet;

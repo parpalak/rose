@@ -20,12 +20,14 @@ class SnippetTest extends Unit
 	{
 		$snippetLine1 = new SnippetLine(
 			'Testing string to highlight some test values.',
-			['test']
+			['test'],
+			1
 		);
 
 		$snippetLine2 = new SnippetLine(
 			'Test is case-sensitive.',
-			['Test', 'is']
+			['Test', 'is'],
+			2
 		);
 
 		$snippet = new Snippet('introduction', 2);
@@ -58,7 +60,7 @@ class SnippetTest extends Unit
 		$snippet = new Snippet('introduction', 2);
 
 		foreach ($data as $row) {
-			$snippet->attachSnippetLine($row[0], new SnippetLine($row[1], $row[2]));
+			$snippet->attachSnippetLine($row[0], new SnippetLine($row[1], $row[2], count($row[2])));
 		}
 
 		$this->assertEquals(

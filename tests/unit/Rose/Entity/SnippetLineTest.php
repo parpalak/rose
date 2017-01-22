@@ -20,7 +20,8 @@ class SnippetLineTest extends Unit
 	{
 		$snippetLine = new SnippetLine(
 			'Testing string to highlight some test values, Test is case-sensitive.',
-			['test', 'is']
+			['test', 'is'],
+			2
 		);
 
 		$this->assertEquals('Testing string to highlight some <i>test</i> values, Test <i>is</i> case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
@@ -30,7 +31,8 @@ class SnippetLineTest extends Unit
 	{
 		$snippetLine = new SnippetLine(
 			'Testing string to highlight some test values, Test is case-sensitive.',
-			['Test']
+			['Test'],
+			1
 		);
 
 		$this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
@@ -43,7 +45,8 @@ class SnippetLineTest extends Unit
 	{
 		$snippetLine = new SnippetLine(
 			'Testing string to highlight some test values, Test is case-sensitive.',
-			['test', 'is']
+			['test', 'is'],
+			2
 		);
 		$snippetLine->getHighlighted('<i></i>');
 	}

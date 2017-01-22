@@ -63,7 +63,7 @@ class ProfileTest extends Unit
 		$start2 = $start;
 
 		foreach ($contentArray as $content) {
-			$snippet = $snippetBuilder->buildSnippet(['test' => [83, 90], 'test2' => [49, 55]], $content);
+			$snippet = $snippetBuilder->buildSnippet(['test' => [83, 90], 'test2' => [49, 55, 142]], $content);
 
 			$indexProfilePoints[] = Helper::getProfilePoint('pre-building', -$start + ($start = microtime(true)));
 
