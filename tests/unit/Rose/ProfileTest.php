@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -38,7 +38,7 @@ class ProfileTest extends Unit
 	{
 		@unlink($this->getTempFilename());
 	}
-
+/*
 	public function testSnippet()
 	{
 		$start = microtime(true);
@@ -81,7 +81,7 @@ class ProfileTest extends Unit
 			codecept_debug(Helper::formatProfilePoint($point));
 		}
 	}
-
+*/
 	public function testSnippets()
 	{
 		$start = microtime(true);

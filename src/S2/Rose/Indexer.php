@@ -69,7 +69,7 @@ class Indexer
 	 *
 	 * @return string[]
 	 */
-	public static function arrayFromStr($contents)
+	protected static function arrayFromStr($contents)
 	{
 		return preg_split('#[ ]+#', $contents);
 	}

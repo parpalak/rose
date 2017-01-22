@@ -137,7 +137,6 @@ class ResultItem
 			return $snippet;
 		}
 
-
 		return $this->description ?: $this->snippet->getTextIntroduction();
 	}
 }

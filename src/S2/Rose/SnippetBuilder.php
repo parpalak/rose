@@ -148,8 +148,13 @@ class SnippetBuilder
 		}
 
 		// Check the text for the query words
-		// Modifier S works poorly on cyrillic :(
-		preg_match_all('#(?<=[^a-zа-я]|^)(' . implode('|', $stems) . ')[a-zа-я]*#Ssui', $content, $matches, PREG_OFFSET_CAPTURE);
+		// TODO: Make sure the modifier S works correct on cyrillic
+		preg_match_all(
+			'#(?<=[^a-zа-я]|^)(' . implode('|', $stems) . ')[a-zа-я]*#Ssui',
+			$content,
+			$matches,
+			PREG_OFFSET_CAPTURE
+		);
 
 		$lineNum = 0;
 		$lineEnd = strlen($lines[$lineNum]);
@@ -177,7 +182,11 @@ class SnippetBuilder
 		}
 
 		foreach ($foundStemsInLines as $lineIndex => $foundStemsInLine) {
-			$snippetLine = new SnippetLine($lines[$lineIndex], array_keys($foundWordsInLines[$lineIndex]), count($foundStemsInLine));
+			$snippetLine = new SnippetLine(
+				$lines[$lineIndex],
+				array_keys($foundWordsInLines[$lineIndex]),
+				count($foundStemsInLine)
+			);
 			$snippet->attachSnippetLine($lineIndex, $snippetLine);
 		}
 
