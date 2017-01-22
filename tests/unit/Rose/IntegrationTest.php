@@ -151,6 +151,16 @@ class IntegrationTest extends Unit
 			'Например, <i>красно</i>-черный, эпл-вотчем, и другие интересные комбинации.',
 			$resultSet4->getItems()['id_3']->getSnippet()
 		);
+
+		// Query 5
+		$resultSet5 = $finder->find(new Query('русский'));
+		$this->assertCount(1, $resultSet5->getItems());
+		$this->assertEquals(21, $resultSet5->getItems()['id_3']->getRelevance());
+
+		$resultSet5 = $finder->find(new Query('русскому'));
+		$this->assertCount(1, $resultSet5->getItems());
+		$this->assertEquals(21, $resultSet5->getItems()['id_3']->getRelevance());
+
 	}
 
 	public function indexableProvider()

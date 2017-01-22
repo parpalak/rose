@@ -180,7 +180,19 @@ class Finder
 	 */
 	protected function findSimpleKeywords($words, ResultSet $result)
 	{
-		foreach ($this->storage->getSingleKeywordIndexByWords($words) as $word => $data) {
+		$wordsWithStems = $words;
+
+		$map = array();
+		foreach ($words as $word) {
+			$stem = $this->stemmer->stemWord($word);
+			if ($stem != $word) {
+				$map[$stem] = $word;
+			}
+			$wordsWithStems[] = $stem;
+		}
+
+		foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems) as $keyword => $data) {
+			$word = isset($map[$keyword]) ? $map[$keyword] : $keyword;
 			foreach ($data as $externalId => $type) {
 				$result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
 			}

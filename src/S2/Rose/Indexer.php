@@ -105,7 +105,7 @@ class Indexer
 	{
 		// Processing title
 		foreach (self::arrayFromStr($title) as $word) {
-			$this->addKeywordToIndex(trim($word), $externalId, Finder::TYPE_TITLE);
+			$this->addKeywordToIndex($this->stemmer->stemWord(trim($word)), $externalId, Finder::TYPE_TITLE);
 		}
 
 		// Processing keywords
