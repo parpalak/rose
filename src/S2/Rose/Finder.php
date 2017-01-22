@@ -175,13 +175,15 @@ class Finder
 	}
 
 	/**
-	 * @param string    $word
+	 * @param string[]  $words
 	 * @param ResultSet $result
 	 */
-	protected function findSimpleKeywords($word, ResultSet $result)
+	protected function findSimpleKeywords($words, ResultSet $result)
 	{
-		foreach ($this->storage->getSingleKeywordIndexByWord($word) as $externalId => $type) {
-			$result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
+		foreach ($this->storage->getSingleKeywordIndexByWords($words) as $word => $data) {
+			foreach ($data as $externalId => $type) {
+				$result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
+			}
 		}
 	}
 
@@ -215,9 +217,7 @@ class Finder
 		}
 		$result->addProfilePoint('Keywords with space');
 
-		foreach ($rawWords as $word) {
-			$this->findSimpleKeywords($word, $result);
-		}
+		$this->findSimpleKeywords($rawWords, $result);
 		$result->addProfilePoint('Simple keywords');
 
 		$this->findFulltext($rawWords, $result);

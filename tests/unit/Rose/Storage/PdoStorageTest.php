@@ -121,6 +121,33 @@ class PdoStorageTest extends Unit
 		$storage2->addItemToToc($tocEntry1mod, 'id_1');
 	}
 
+	public function testAddToSingleKeywordIndex()
+	{
+		$storage = new PdoStorage($this->pdo, 'test_');
+		$storage->erase();
+
+		$tocEntry = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+		$storage->addItemToToc($tocEntry, 'id_1');
+
+		$tocEntry2 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+		$storage->addItemToToc($tocEntry2, 'id_2');
+
+		$tocEntry3 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+		$storage->addItemToToc($tocEntry3, 'id_3');
+
+		$storage->addToSingleKeywordIndex('type1', 'id_1', 1);
+		$storage->addToSingleKeywordIndex('type2', 'id_1', 2);
+		$storage->addToSingleKeywordIndex('type1', 'id_2', 1);
+		$storage->addToSingleKeywordIndex('type1', 'id_3', 1);
+		$storage->addToSingleKeywordIndex('type1-1', 'id_1', 1);
+
+		$data = $storage->getSingleKeywordIndexByWords(['type1', 'type2']);
+		$this->assertCount(2, $data);
+		$this->assertCount(3, $data['type1']);
+		$this->assertEquals(1, $data['type1']['id_1']);
+		$this->assertEquals(2, $data['type2']['id_1']);
+	}
+
 	public function testTransactions()
 	{
  		// This test should lock on SELECT query, not INSERT.
@@ -251,7 +278,7 @@ class PdoStorageTest extends Unit
 	public function testNonExistentDbGetSingleKeywordIndexByString()
 	{
 		$storage = new PdoStorage($this->pdo, 'non_existent_');
-		$storage->getSingleKeywordIndexByWord('keyword');
+		$storage->getSingleKeywordIndexByWords(['keyword']);
 	}
 
 	/**

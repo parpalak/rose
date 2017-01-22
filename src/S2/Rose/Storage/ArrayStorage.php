@@ -125,13 +125,19 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getSingleKeywordIndexByWord($word)
+	public function getSingleKeywordIndexByWords(array $words)
 	{
-		if (!isset($this->indexSingleKeywords[$word])) {
-			return array();
+		$result = array();
+		foreach ($words as $word) {
+			if (isset($this->indexSingleKeywords[$word])) {
+				$result[$word] = $this->makeKeysExternalIds($this->indexSingleKeywords[$word]);
+			}
+			else {
+				$result[$word] = array();
+			}
 		}
 
-		return $this->makeKeysExternalIds($this->indexSingleKeywords[$word]);
+		return $result;
 	}
 
 	/**

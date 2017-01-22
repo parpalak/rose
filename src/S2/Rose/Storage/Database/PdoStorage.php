@@ -156,18 +156,18 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getSingleKeywordIndexByWord($word)
+	public function getSingleKeywordIndexByWords(array $words)
 	{
 		$sql = '
-			SELECT t.external_id, k.type
+			SELECT k.keyword, t.external_id, k.type
 			FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' AS k
 			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = k.toc_id
-			WHERE k.keyword = ?
+			WHERE k.keyword IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 		';
 
 		try {
 			$st = $this->pdo->prepare($sql);
-			$st->execute(array($word));
+			$st->execute($words);
 		}
 		catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -176,10 +176,15 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 			throw $e;
 		}
 
-		// TODO \PDO::FETCH_UNIQUE seems to be a hack for caller. Rewrite?
-		$data = $st->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_GROUP | \PDO::FETCH_UNIQUE);
+		$data = $st->fetchAll(\PDO::FETCH_ASSOC);
 
-		return $data;
+		$result = array();
+		foreach ($data as $row) {
+			// TODO Making items unique seems to be a hack for caller. Rewrite indexing?
+			$result[$row['keyword']][$row['external_id']] = $row['type'];
+		}
+
+		return $result;
 	}
 
 	/**

@@ -28,11 +28,11 @@ interface StorageReadInterface
 	public function isExcluded($word);
 
 	/**
-	 * @param string $word
+	 * @param string[] $words
 	 *
 	 * @return array
 	 */
-	public function getSingleKeywordIndexByWord($word);
+	public function getSingleKeywordIndexByWords(array $words);
 
 	/**
 	 * @param string $string

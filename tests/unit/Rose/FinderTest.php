@@ -64,17 +64,23 @@ class FinderTest extends Unit
 				}
 				throw new \RuntimeException(sprintf('Unknown word "%s" in StorageReadInterface stub.', $word));
 			},
-			'getSingleKeywordIndexByWord' => function ($word) {
-				if ($word == 'find') {
-					return ['id_1' => 1, 'id_2' => 2];
+			'getSingleKeywordIndexByWords' => function ($words) {
+				$result = [];
+				foreach ($words as $word) {
+					if ($word == 'find') {
+						$result[$word] = ['id_1' => 1, 'id_2' => 2];
+					}
+					elseif ($word == 'and') {
+						$result[$word] = [];
+					}
+					elseif ($word == 'replace') {
+						$result[$word] = ['id_1' => 1];
+					}
+					else {
+						throw new \RuntimeException(sprintf('Unknown word "%s" in StorageReadInterface stub.', $word));
+					}
 				}
-				if ($word == 'and') {
-					return [];
-				}
-				if ($word == 'replace') {
-					return ['id_1' => 1];
-				}
-				throw new \RuntimeException(sprintf('Unknown word "%s" in StorageReadInterface stub.', $word));
+				return $result;
 			},
 			'getTocByExternalId' => function ($id) {
 				return new TocEntry('Title ' . $id, '', null, 'url_' . $id, 'hash_' . $id);
