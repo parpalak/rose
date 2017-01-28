@@ -161,12 +161,13 @@ class SnippetBuilder
 
 		$foundWordsInLines = $foundStemsInLines = array();
 		foreach ($matches[0] as $i => $wordInfo) {
-			$word        = mb_strtolower($wordInfo[0]);
-			$stem        = mb_strtolower($matches[1][$i][0]);
-			$stemmedWord = $this->stemmer->stemWord($word);
+			$word           = $wordInfo[0];
+			$stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
+			$stem           = mb_strtolower($matches[1][$i][0]);
+			$stemmedWord    = $this->stemmer->stemWord($word);
 
 			// Ignore entry if the word stem differs from needed ones
-			if ($stem != $word && $stem != $stemmedWord && $stemmedWord != $fullWords[$stem]) {
+			if (!$stemEqualsWord && $stem != $stemmedWord && $stemmedWord != $fullWords[$stem]) {
 				continue;
 			}
 

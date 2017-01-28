@@ -13,7 +13,10 @@ use S2\Rose\Finder;
 use S2\Rose\Indexer;
 use S2\Rose\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerRussian;
+use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Database\PdoStorage;
+use S2\Rose\Storage\StorageReadInterface;
+use S2\Rose\Storage\StorageWriteInterface;
 
 /**
  * Class SnippetBuilderTest
@@ -23,30 +26,62 @@ use S2\Rose\Storage\Database\PdoStorage;
 class SnippetBuilderTest extends Unit
 {
 	/**
-	 * @dataProvider indexableProvider
-	 *
-	 * @param Indexable[]           $indexables
+	 * @var StorageReadInterface
 	 */
-	public function testSnippets(array $indexables) {
+	protected $readStorage;
+
+	/**
+	 * @var StorageWriteInterface
+	 */
+	protected $writeStorage;
+
+	/**
+	 * @var StemmerInterface
+	 */
+	protected $stemmer;
+
+	/**
+	 * @var Indexer
+	 */
+	protected $indexer;
+
+	/**
+	 * @var Finder
+	 */
+	protected $finder;
+
+	/**
+	 * @var SnippetBuilder
+	 */
+	protected $snippetBuilder;
+
+	public function _before()
+	{
 		global $s2_rose_test_db;
 
 		$pdo = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
 		$pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-		$readStorage =  new PdoStorage($pdo, 'test_');
-		$writeStorage =  new PdoStorage($pdo, 'test_');
+		$this->readStorage  = new PdoStorage($pdo, 'test_');
+		$this->writeStorage = new PdoStorage($pdo, 'test_');
+		$this->writeStorage->erase();
 
-		$stemmer = new PorterStemmerRussian();
-		$indexer = new Indexer($writeStorage, $stemmer);
+		$this->stemmer        = new PorterStemmerRussian();
+		$this->indexer        = new Indexer($this->writeStorage, $this->stemmer);
+		$this->finder         = new Finder($this->readStorage, $this->stemmer);
+		$this->snippetBuilder = new SnippetBuilder($this->stemmer);
+	}
 
-		$writeStorage->erase();
-
+	/**
+	 * @dataProvider indexableProvider
+	 *
+	 * @param Indexable[] $indexables
+	 */
+	public function testSnippets(array $indexables)
+	{
 		foreach ($indexables as $indexable) {
-			$indexer->index($indexable);
+			$this->indexer->index($indexable);
 		}
-
-		$finder         = new Finder($readStorage, $stemmer);
-		$snippetBuilder = new SnippetBuilder($stemmer);
 
 		$snippetCallbackProvider = function (array $ids) use ($indexables) {
 			$result = [];
@@ -60,11 +95,20 @@ class SnippetBuilderTest extends Unit
 		};
 
 		//$resultSet = $finder->find(new Query('предпосылки и развитие'));
-		$resultSet = $finder->find(new Query('механическая природа'));
-		$snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
+		$resultSet = $this->finder->find(new Query('механическая природа'));
+		$this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
 		$this->assertEquals(
 			'Если пренебречь малыми величинами, то видно, что <i>механическая</i> <i>природа</i> устойчиво требует большего внимания к анализу ошибок, которые дает устойчивый маховик.',
+			$resultSet->getItems()['id_3']->getSnippet()
+		);
+
+		// Check if highlighting works with different upper and lower cases.
+		$resultSet = $this->finder->find(new Query('если пренебречь'));
+		$this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
+
+		$this->assertEquals(
+			'Ошибка астатически дает более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа. <i>Если</i> <i>пренебречь</i> малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые дает устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет <i>пренебречь</i> колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.',
 			$resultSet->getItems()['id_3']->getSnippet()
 		);
 	}
@@ -86,11 +130,11 @@ class SnippetBuilderTest extends Unit
 
 Ошибка астатически даёт более простую систему дифференциальных уравнений, если исключить небольшой угол тангажа. Если пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет пренебречь колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.
 
-Уравнение возмущенного движения поступательно характеризует подвижный объект. Прецессия гироскопа косвенно интегрирует нестационарный вектор угловой скорости, изменяя направление движения. Угловая скорость, обобщая изложенное, неподвижно не входит своими составляющими, что очевидно, в силы нормальных реакций связей, так же как и кожух. Динамическое уравнение Эйлера, в силу третьего закона Ньютона, вращательно связывает ньютонометр, не забывая о том, что интенсивность диссипативных сил, характеризующаяся величиной коэффициента D, должна лежать в определённых пределах.')
+Уравнение возмущенного движения поступательно характеризует подвижный объект. Прецессия гироскопа косвенно интегрирует нестационарный вектор угловой скорости, изменяя направление движения. Угловая скорость, обобщая изложенное, неподвижно не входит своими составляющими, что очевидно, в силы нормальных реакций связей, так же как и кожух. Динамическое уравнение Эйлера, в силу третьего закона Ньютона, вращательно связывает ньютонометр, не забывая о том, что интенсивность диссипативных сил, характеризующаяся величиной коэффициента D, должна лежать в определённых пределах.'),
 		);
 
 		return [
-			'db'    => [$indexables],
+			'db' => [$indexables],
 		];
 	}
 }
