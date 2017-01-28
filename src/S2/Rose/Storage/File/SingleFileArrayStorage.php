@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -133,5 +133,6 @@ class SingleFileArrayStorage extends ArrayStorage
 		$this->indexMultiKeywords = null;
 
 		file_put_contents($this->filename, '      //'.serialize($this->toc)."\n", FILE_APPEND);
+		$this->toc = null;
 	}
 }

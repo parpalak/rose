@@ -78,7 +78,7 @@ class ResultSetTest extends Unit
 
 	/**
 	 * @expectedException \S2\Rose\Exception\ImmutableException
-	 * @expectedExceptionMessage One cannot set relevance ratios after sorting the result.
+	 * @expectedExceptionMessage One cannot set relevance ratios after sorting the result set.
 	 */
 	public function testNoSetRelevanceAfterSorting()
 	{

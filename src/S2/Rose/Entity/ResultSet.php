@@ -159,11 +159,11 @@ class ResultSet
 	public function setRelevanceRatio($externalId, $ratio)
 	{
 		if (!$this->isFrozen) {
-			throw new ImmutableException('One cannot provide external relevance ratios before freezing the result.');
+			throw new ImmutableException('One cannot provide external relevance ratios before freezing the result set.');
 		}
 
 		if ($this->sortedRelevance !== null) {
-			throw new ImmutableException('One cannot set relevance ratios after sorting the result.');
+			throw new ImmutableException('One cannot set relevance ratios after sorting the result set.');
 		}
 
 		if (!isset($this->data[$externalId])) {
@@ -211,6 +211,21 @@ class ResultSet
 		}
 
 		return $this->sortedRelevance;
+	}
+
+	/**
+	 * @param string $externalId
+	 */
+	public function removeByExternalId($externalId)
+	{
+		if ($this->sortedRelevance !== null) {
+			throw new ImmutableException('One cannot remove results after sorting the result set.');
+		}
+
+		unset($this->data[$externalId]);
+		unset($this->externalRelevanceRatios[$externalId]);
+		unset($this->items[$externalId]);
+		unset($this->positions[$externalId]);
 	}
 
 	/**

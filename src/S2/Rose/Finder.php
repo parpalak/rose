@@ -12,6 +12,7 @@ use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Exception\UnknownKeywordTypeException;
 use S2\Rose\Stemmer\StemmerInterface;
+use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\StorageReadInterface;
 
 /**
@@ -218,30 +219,59 @@ class Finder
 	 */
 	public function find(Query $query, $isDebug = false)
 	{
-		$result = new ResultSet($query->getLimit(), $query->getOffset(), $isDebug);
+		$resultSet = new ResultSet($query->getLimit(), $query->getOffset(), $isDebug);
 
 		$rawWords     = $query->valueToArray();
 		$cleanedQuery = implode(' ', $rawWords);
-		$result->addProfilePoint('Input cleanup');
+		$resultSet->addProfilePoint('Input cleanup');
 
 		if (count($rawWords) > 1) {
-			$this->findSpacedKeywords($cleanedQuery, $result);
+			$this->findSpacedKeywords($cleanedQuery, $resultSet);
 		}
-		$result->addProfilePoint('Keywords with space');
+		$resultSet->addProfilePoint('Keywords with space');
 
-		$this->findSimpleKeywords($rawWords, $result);
-		$result->addProfilePoint('Simple keywords');
+		$this->findSimpleKeywords($rawWords, $resultSet);
+		$resultSet->addProfilePoint('Simple keywords');
 
-		$this->findFulltext($rawWords, $result);
-		$result->addProfilePoint('Fulltext search');
+		$this->findFulltext($rawWords, $resultSet);
+		$resultSet->addProfilePoint('Fulltext search');
 
-		$result->freeze();
+		$resultSet->freeze();
 
-		foreach ($result->getFoundExternalIds() as $externalId) {
-			$result->attachToc($externalId, $this->storage->getTocByExternalId($externalId));
+		$emptyExternalIds      = array();
+		$hasMissingExternalIds = false;
+		foreach ($resultSet->getFoundExternalIds() as $externalId) {
+			$tocEntry = $this->storage->getTocByExternalId($externalId);
+			if ($tocEntry !== null) {
+				$resultSet->attachToc($externalId, $tocEntry);
+			}
+			else {
+				$emptyExternalIds[]    = $externalId;
+				$hasMissingExternalIds = false;
+			}
 		}
 
-		return $result;
+		if ($hasMissingExternalIds) {
+			// Seems like there are some new indexed items
+			// missing in the storage cache. Let's clear it.
+			if ($this->storage instanceof CacheableStorageInterface) {
+				$this->storage->clearTocCache();
+			}
+
+			foreach ($resultSet->getFoundExternalIds() as $externalId) {
+				$tocEntry = $this->storage->getTocByExternalId($externalId);
+				if ($tocEntry !== null) {
+					$resultSet->attachToc($externalId, $tocEntry);
+				}
+				else {
+					// We found a result just before it was deleted.
+					// Remove it from the result set.
+					$resultSet->removeByExternalId($externalId);
+				}
+			}
+		}
+
+		return $resultSet;
 	}
 }
 

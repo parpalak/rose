@@ -163,6 +163,52 @@ class IntegrationTest extends Unit
 
 	}
 
+	/**
+	 * @dataProvider indexableProvider
+	 *
+	 * @param Indexable[]           $indexables
+	 * @param StorageReadInterface  $readStorage
+	 * @param StorageWriteInterface $writeStorage
+	 */
+	public function testParallelIndexingAndSearching(
+		array $indexables,
+		StorageReadInterface $readStorage,
+		StorageWriteInterface $writeStorage
+	) {
+		$stemmer = new PorterStemmerRussian();
+		$indexer = new Indexer($writeStorage, $stemmer);
+
+		// We're working on an empty storage
+		if ($writeStorage instanceof PdoStorage) {
+			$writeStorage->erase();
+		}
+
+		$indexer->index($indexables[0]);
+		if ($writeStorage instanceof SingleFileArrayStorage) {
+			$writeStorage->cleanup();
+			$writeStorage->save();
+		}
+
+		// Reinit storage
+		if ($readStorage instanceof SingleFileArrayStorage) {
+			$readStorage->load();
+		}
+
+		$finder = new Finder($readStorage, $stemmer);
+		$finder->find(new Query('page'));  // a word in $indexables[0]
+
+		if ($writeStorage instanceof SingleFileArrayStorage) {
+			$writeStorage->load();
+		}
+		$indexer->index($indexables[1]);
+		if ($writeStorage instanceof SingleFileArrayStorage) {
+			$writeStorage->cleanup();
+			$writeStorage->save();
+		}
+
+		$finder->find(new Query('page')); // a word in $indexables[1]
+	}
+
 	public function indexableProvider()
 	{
 		$indexables = [

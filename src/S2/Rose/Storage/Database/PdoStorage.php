@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,6 +8,7 @@ namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
@@ -16,7 +17,11 @@ use S2\Rose\Storage\TransactionalStorageInterface;
 /**
  * Class PdoStorage
  */
-class PdoStorage implements StorageWriteInterface, StorageReadInterface, TransactionalStorageInterface
+class PdoStorage implements
+	StorageWriteInterface,
+	StorageReadInterface,
+	TransactionalStorageInterface,
+	CacheableStorageInterface
 {
 	const TOC                    = 'toc';
 	const WORD                   = 'word';
@@ -373,7 +378,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 				if ($e->errorInfo[1] == 1062) {
 					// Duplicate entry for external_id key.
 					// Other process has already inserted the TOC entry. Refresh the cache.
-					$this->tocCache = null;
+					$this->clearTocCache();
 					$tocId = $this->getInternalIdFromExternalId($externalId);
 				}
 				elseif ($e->getCode() === '42S02') {
@@ -650,5 +655,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
 		$internalId = $statement->fetch(\PDO::FETCH_COLUMN);
 
 		return $internalId;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function clearTocCache()
+	{
+		$this->tocCache = null;
 	}
 }
