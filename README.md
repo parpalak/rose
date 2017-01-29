@@ -1,5 +1,5 @@
 # Rose
-This is a simple search engine with Russian morphology for content sites. It indexes your content and provides a full-text search.
+This is a simple search engine for content sites with partial Russian morphology suppoort. It indexes your content and provides a full-text search.
 
 ## Requirements
 
@@ -12,11 +12,11 @@ This is a simple search engine with Russian morphology for content sites. It ind
 composer require s2/rose
 ```
 
-If you do not use composer, download an archive, unpack it somewhere and ensure including php-files from src/ directory based on a PSR-0/4 scheme. Though you really should use composer.
+If you do not use composer, download the archive, unpack it somewhere and ensure including php-files from src/ directory based on a PSR-0/4 scheme. Though you really should use composer.
 
 ## Usage
-### Preparing storage
-The index can be stored in a database or in a file. Storage is an abstraction layer that hides implementation details.
+### Preparing Storage
+The index can be stored in a database or in a file. The storage is an abstraction layer that hides implementation details.
 In most cases you gonna need a database storage `PdoStorage`.
 
 Both indexing and searching require the storage.
@@ -54,11 +54,14 @@ Indexer accepts your data in a special format. The data must be wrapped in the `
 ```php
 use S2\Rose\Entity\Indexable;
 
+// required params
 $indexable = new Indexable(
 	'id_1',            // External ID - an identifier in your system 
 	'Test page title', // Title 
 	'This is the first page to be indexed. I have to make up a content.'
 );
+
+// optional params
 $indexable
 	->setKeywords('singlekeyword, multiple keywords')       // The same as Meta Keywords
 	->setDescription('Description can be used in snippets') // The same as Meta Description
@@ -79,7 +82,7 @@ $indexer->index($indexable);
 ```
 
 The constructor of `Indexable` requires 3 string arguments:
-- external ID - an arbitrary ID that is sufficient for your system to identify the page;
+- external ID - an arbitrary ID that is sufficient for your code to identify the page;
 - page title;
 - page content.
 
@@ -140,9 +143,18 @@ foreach ($resultSet->getItems() as $externalId => $item) {
 }
 ```
 
-### Snippets
+### Highlighting and Snippets
 
-Snippets are small text fragments containing found words displaying in a search result. `SnippetBuilder` processes the source and selects best matching sentences. It should be done just before `$resultSet->getItems()`:
+It's a common practice to highlight the found words in the search results. You can obtain the highlighted title:
+
+```php
+$resultSet = $finder->find(new Query('title'));
+$resultSet->getItems()['id_1']->getHighlightedTitle($stemmer); // 'Test page <i>title</i>'
+```
+
+This method requires the stemmer since it takes into account the morphology and highlights all the word forms. By default words are highlighted with italics. You can change the highlight template by calling `$finder->setHighlightTemplate('<b>%s</b>')`.
+
+Snippets are small text fragments containing found words displaying in the search result. `SnippetBuilder` processes the source and selects best matching sentences. It should be done just before `$resultSet->getItems()`:
 
 ```php
 use S2\Rose\SnippetBuilder;
@@ -164,6 +176,6 @@ $snippetBuilder->attachSnippets($resultSet, function (array $ids) {
 $resultSet->getItems()['id_1']->getSnippet(); // 'I have to make up a <i>content</i>.'
 ```
 
-`SnippetBuilder` highlights the found words with italics.
+Words in snippets are highlighted the same way as in titles.
 
-Building snippets is quite a heavy operation. Use it together with pagination.
+Building snippets is quite a heavy operation. Use it with pagination to reduce the snippet generation time.

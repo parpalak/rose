@@ -78,6 +78,16 @@ class ResultSet
 	protected $positions = array();
 
 	/**
+	 * @var string[]
+	 */
+	protected $foundWords = array();
+
+	/**
+	 * @var string
+	 */
+	protected $highlightTemplate = '<i>%s</i>';
+
+	/**
 	 * Result constructor.
 	 *
 	 * @param int  $limit
@@ -117,6 +127,26 @@ class ResultSet
 	}
 
 	/**
+	 * @param string $highlightTemplate
+	 *
+	 * @return $this
+	 */
+	public function setHighlightTemplate($highlightTemplate)
+	{
+		$this->highlightTemplate = $highlightTemplate;
+
+		return $this;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getHighlightTemplate()
+	{
+		return $this->highlightTemplate;
+	}
+
+	/**
 	 * @param string $word
 	 * @param string $externalId
 	 * @param float  $weight
@@ -129,7 +159,7 @@ class ResultSet
 		}
 
 		if (!isset ($this->data[$externalId][$word])) {
-			$this->data[$externalId][$word] = $weight;
+			$this->data[$externalId][$word]      = $weight;
 			$this->positions[$externalId][$word] = $positions;
 		}
 		else {
@@ -262,7 +292,8 @@ class ResultSet
 			$tocEntry->getTitle(),
 			$tocEntry->getDescription(),
 			$tocEntry->getDate(),
-			$tocEntry->getUrl()
+			$tocEntry->getUrl(),
+			$this->highlightTemplate
 		);
 	}
 
@@ -285,9 +316,16 @@ class ResultSet
 	{
 		$relevanceArray = $this->getSortedRelevanceByExternalId();
 
+		$foundWords = $this->getFoundWordPositionsByExternalId();
+
 		$result = array();
 		foreach ($relevanceArray as $externalId => $relevance) {
-			$result[$externalId] = $this->items[$externalId]->setRelevance($relevance);
+			$resultItem = $this->items[$externalId];
+			$resultItem
+				->setRelevance($relevance)
+				->setFoundWords(array_keys($foundWords[$externalId]))
+			;
+			$result[$externalId] = $resultItem;
 		}
 
 		return $result;

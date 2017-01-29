@@ -125,6 +125,9 @@ class IntegrationTest extends Unit
 		$this->assertEquals('id_1', array_keys($resultItems)[0], 'Sorting by relevance is not working');
 		$this->assertEquals(100, $resultItems['id_1']->getRelevance());
 
+		$resultSet2 = $finder->find(new Query('title'));
+		$this->assertEquals('Test page <i>title</i>', $resultSet2->getItems()['id_1']->getHighlightedTitle($stemmer));
+
 		// Query 3
 		$resultSet3 = $finder->find(new Query('сущность Plus'));
 		$snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);
@@ -143,23 +146,29 @@ class IntegrationTest extends Unit
 			$resultSet4->getItems()['id_3']->getSnippet()
 		);
 
-		$resultSet4 = $finder->find(new Query('красный'));
-		$this->assertCount(1, $resultSet4->getItems());
+		$finder->setHighlightTemplate('<b>%s</b>');
+		$resultSet4   = $finder->find(new Query('красный заголовку'));
+		$resultItems4 = $resultSet4->getItems();
+		$this->assertCount(1, $resultItems4);
 
 		$snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Например, <i>красно</i>-черный, эпл-вотчем, и другие интересные комбинации.',
-			$resultSet4->getItems()['id_3']->getSnippet()
+			'Например, <b>красно</b>-черный, эпл-вотчем, и другие интересные комбинации.',
+			$resultItems4['id_3']->getSnippet()
+		);
+		$this->assertEquals(
+			'Русский текст. <b>Красным</b> <b>заголовком</b>',
+			$resultItems4['id_3']->getHighlightedTitle($stemmer)
 		);
 
 		// Query 5
 		$resultSet5 = $finder->find(new Query('русский'));
 		$this->assertCount(1, $resultSet5->getItems());
-		$this->assertEquals(21, $resultSet5->getItems()['id_3']->getRelevance());
+		$this->assertEquals(20, $resultSet5->getItems()['id_3']->getRelevance());
 
 		$resultSet5 = $finder->find(new Query('русскому'));
 		$this->assertCount(1, $resultSet5->getItems());
-		$this->assertEquals(21, $resultSet5->getItems()['id_3']->getRelevance());
+		$this->assertEquals(20, $resultSet5->getItems()['id_3']->getRelevance());
 
 	}
 
@@ -224,7 +233,7 @@ class IntegrationTest extends Unit
 				->setDate(new \DateTime('2016-08-20 00:00:00'))
 				->setUrl('any string')
 			,
-			(new Indexable('id_3', 'Русский текст', '<p>Для проверки работы нужно написать побольше слов. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации.</p>'))
+			(new Indexable('id_3', 'Русский текст. Красным заголовком', '<p>Для проверки работы нужно написать побольше слов. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации.</p>'))
 				->setKeywords('ключевые слова')
 				->setDescription('')
 				->setDate(new \DateTime('2016-08-22 00:00:00'))

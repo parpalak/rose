@@ -116,7 +116,7 @@ class Indexer
 		// Fulltext index
 		// Remove russian ё from the fulltext index
 		$words = self::arrayFromStr(str_replace('ё', 'е',
-			$content . ' ' . $title . ' ' . str_replace(', ', ' ', $keywords)
+			$content . ' ' . str_replace(', ', ' ', $keywords)
 		));
 
 		$subwords = array();

@@ -34,6 +34,11 @@ class Finder
 	protected $stemmer;
 
 	/**
+	 * @var string
+	 */
+	protected $highlightTemplate;
+
+	/**
 	 * Finder constructor.
 	 *
 	 * @param StorageReadInterface $storage
@@ -43,6 +48,18 @@ class Finder
 	{
 		$this->storage = $storage;
 		$this->stemmer = $stemmer;
+	}
+
+	/**
+	 * @param string $highlightTemplate
+	 *
+	 * @return $this
+	 */
+	public function setHighlightTemplate($highlightTemplate)
+	{
+		$this->highlightTemplate = $highlightTemplate;
+
+		return $this;
 	}
 
 	/**
@@ -192,8 +209,7 @@ class Finder
 			$wordsWithStems[] = $stem;
 		}
 
-		foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems) as $keyword => $data) {
-			$word = isset($map[$keyword]) ? $map[$keyword] : $keyword;
+		foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems) as $word => $data) {
 			foreach ($data as $externalId => $type) {
 				$result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
 			}
@@ -220,6 +236,9 @@ class Finder
 	public function find(Query $query, $isDebug = false)
 	{
 		$resultSet = new ResultSet($query->getLimit(), $query->getOffset(), $isDebug);
+		if ($this->highlightTemplate !== null) {
+			$resultSet->setHighlightTemplate($this->highlightTemplate);
+		}
 
 		$rawWords     = $query->valueToArray();
 		$cleanedQuery = implode(' ', $rawWords);
@@ -274,4 +293,3 @@ class Finder
 		return $resultSet;
 	}
 }
-

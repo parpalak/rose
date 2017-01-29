@@ -62,6 +62,8 @@ class SnippetLine
 	 * @param string $highlightTemplate
 	 *
 	 * @return string
+	 *
+	 * @throws RuntimeException
 	 */
 	public function getHighlighted($highlightTemplate)
 	{

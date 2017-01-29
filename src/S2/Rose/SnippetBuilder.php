@@ -19,11 +19,6 @@ class SnippetBuilder
 	const LINE_SEPARATOR = "\r";
 
 	/**
-	 * @var string
-	 */
-	protected $highlightTemplate;
-
-	/**
 	 * @var StemmerInterface
 	 */
 	protected $stemmer;
@@ -36,14 +31,6 @@ class SnippetBuilder
 	public function __construct(StemmerInterface $stemmer)
 	{
 		$this->stemmer = $stemmer;
-	}
-
-	/**
-	 * @param string $highlightTemplate
-	 */
-	public function setHighlightTemplate($highlightTemplate)
-	{
-		$this->highlightTemplate = $highlightTemplate;
 	}
 
 	/**
@@ -68,7 +55,11 @@ class SnippetBuilder
 		$foundWords = $result->getFoundWordPositionsByExternalId();
 
 		foreach ($contentArray as $externalId => $content) {
-			$snippet = $this->buildSnippet($foundWords[$externalId], $content);
+			$snippet = $this->buildSnippet(
+				$foundWords[$externalId],
+				$content,
+				$result->getHighlightTemplate()
+			);
 			$result->attachSnippet($externalId, $snippet);
 		}
 
@@ -118,33 +109,35 @@ class SnippetBuilder
 	/**
 	 * @param array  $foundPositionsByWords
 	 * @param string $content
+	 * @param string $highlightTemplate
 	 *
 	 * @return Snippet
 	 */
-	public function buildSnippet($foundPositionsByWords, $content)
+	public function buildSnippet($foundPositionsByWords, $content, $highlightTemplate)
 	{
 		// Stems of the words found in the $id chapter
-		$stems     = array();
-		$fullWords = array();
+		$stems        = array();
+		$fullWords    = array();
+		$foundWordNum = 0;
 		foreach ($foundPositionsByWords as $word => $positions) {
+			if (empty($positions)) {
+				//  Not a fulltext search result (e.g. title from single keywords)
+				continue;
+			}
 			$stemmedWord             = $this->stemmer->stemWord($word);
 			$stems[]                 = $stemmedWord;
 			$fullWords[$stemmedWord] = $word;
+			$foundWordNum++;
 		}
 
 		// Breaking the text into lines
 		$lines = explode(self::LINE_SEPARATOR, $content);
 
-		$textStart    = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
-		$foundWordNum = count($foundPositionsByWords);
-		$snippet      = new Snippet($textStart, $foundWordNum);
+		$textStart = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
+		$snippet   = new Snippet($textStart, $foundWordNum, $highlightTemplate);
 
 		if ($foundWordNum == 0) {
 			return $snippet;
-		}
-
-		if ($this->highlightTemplate) {
-			$snippet->setHighlightTemplate($this->highlightTemplate);
 		}
 
 		// Check the text for the query words

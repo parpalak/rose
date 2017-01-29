@@ -30,7 +30,7 @@ class SnippetTest extends Unit
 			2
 		);
 
-		$snippet = new Snippet('introduction', 2);
+		$snippet = new Snippet('introduction', 2, '<i>%s</i>');
 		$snippet
 			->attachSnippetLine(0, $snippetLine1)
 			->attachSnippetLine(1, $snippetLine2)
@@ -57,7 +57,7 @@ class SnippetTest extends Unit
 			],
 		];
 
-		$snippet = new Snippet('introduction', 2);
+		$snippet = new Snippet('introduction', 2, '<i>%s</i>');
 
 		foreach ($data as $row) {
 			$snippet->attachSnippetLine($row[0], new SnippetLine($row[1], $row[2], count($row[2])));

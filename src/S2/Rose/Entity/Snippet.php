@@ -36,18 +36,20 @@ class Snippet
 	/**
 	 * @var string
 	 */
-	protected $highlightTemplate = '<i>%s</i>';
+	protected $highlightTemplate;
 
 	/**
 	 * Snippet constructor.
 	 *
 	 * @param string $textIntroduction
 	 * @param int    $foundWordNum
+	 * @param string $highlightTemplate
 	 */
-	public function __construct($textIntroduction, $foundWordNum)
+	public function __construct($textIntroduction, $foundWordNum, $highlightTemplate)
 	{
-		$this->textIntroduction = $textIntroduction;
-		$this->foundWordCount   = $foundWordNum;
+		$this->textIntroduction  = $textIntroduction;
+		$this->foundWordCount    = $foundWordNum;
+		$this->highlightTemplate = $highlightTemplate;
 	}
 
 	/**
@@ -78,18 +80,6 @@ class Snippet
 	public function getTextIntroduction()
 	{
 		return $this->textIntroduction;
-	}
-
-	/**
-	 * @param string $highlightTemplate
-	 *
-	 * @return $this
-	 */
-	public function setHighlightTemplate($highlightTemplate)
-	{
-		$this->highlightTemplate = $highlightTemplate;
-
-		return $this;
 	}
 
 	/**

@@ -115,7 +115,7 @@ class ResultSetTest extends Unit
 	public function testNotFrozenAttachSnippet()
 	{
 		$resultSet = new ResultSet();
-		$resultSet->attachSnippet('not found', new Snippet('', '', 1));
+		$resultSet->attachSnippet('not found', new Snippet('', '', '<i>%s</i>'));
 	}
 
 	/**

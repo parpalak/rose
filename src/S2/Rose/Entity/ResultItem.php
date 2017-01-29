@@ -6,6 +6,9 @@
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Stemmer\StemmerInterface;
+
 /**
  * Class ResultItem
  */
@@ -42,21 +45,36 @@ class ResultItem
 	protected $snippet;
 
 	/**
+	 * @var string
+	 */
+	protected $highlightTemplate;
+
+	/**
+	 * @var string[]
+	 */
+	protected $foundWords = array();
+
+	/**
 	 * ResultItem constructor.
 	 *
 	 * @param string    $title
 	 * @param string    $description
 	 * @param \DateTime $date
 	 * @param string    $url
-	 * @param float     $relevance
+	 * @param string    $highlightTemplate
 	 */
-	public function __construct($title, $description, \DateTime $date = null, $url, $relevance = null)
-	{
-		$this->title       = $title;
-		$this->description = $description;
-		$this->date        = $date;
-		$this->url         = $url;
-		$this->relevance   = $relevance;
+	public function __construct(
+		$title,
+		$description,
+		\DateTime $date = null,
+		$url,
+		$highlightTemplate
+	) {
+		$this->title             = $title;
+		$this->description       = $description;
+		$this->date              = $date;
+		$this->url               = $url;
+		$this->highlightTemplate = $highlightTemplate;
 	}
 
 	/**
@@ -138,5 +156,49 @@ class ResultItem
 		}
 
 		return $this->description ?: $this->snippet->getTextIntroduction();
+	}
+
+	/**
+	 * @param string[] $words
+	 *
+	 * @return $this
+	 */
+	public function setFoundWords(array $words)
+	{
+		$this->foundWords = $words;
+
+		return $this;
+	}
+
+	/**
+	 * @param StemmerInterface $stemmer
+	 *
+	 * @return string
+	 */
+	public function getHighlightedTitle(StemmerInterface $stemmer)
+	{
+		$template = $this->highlightTemplate;
+
+		if (strpos($template, '%s') === false) {
+			throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
+		}
+
+		$replacedLine = preg_replace_callback(
+			'#(?<=[^a-zа-я]|^)(' . implode('|', $this->foundWords) . ')[a-zа-я]*#sui',
+			function ($matches) use ($template, $stemmer) {
+				$foundWord = $matches[0];
+				$foundStem = $matches[1];
+				$stem = $stemmer->stemWord($foundWord);
+
+				if ($stem != mb_strtolower($foundStem)) {
+					return $foundWord;
+				}
+
+				return sprintf($template, $foundWord);
+			},
+			$this->title
+		);
+
+		return $replacedLine;
 	}
 }
