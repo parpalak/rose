@@ -8,6 +8,7 @@ namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Finder;
 use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\StorageReadInterface;
@@ -164,7 +165,16 @@ class PdoStorage implements
 	public function getSingleKeywordIndexByWords(array $words)
 	{
 		$sql = '
-			SELECT k.keyword, t.external_id, k.type
+			SELECT
+				k.keyword,
+				t.external_id,
+				k.type,
+				(
+					SELECT COUNT(DISTINCT f.toc_id)
+					FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' AS f
+					JOIN ' . $this->prefix . $this->options[self::WORD] . ' AS w ON w.id = f.word_id
+					WHERE k.keyword = w.name
+				) AS usage_num
 			FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' AS k
 			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = k.toc_id
 			WHERE k.keyword IN (' . implode(',', array_fill(0, count($words), '?')) . ')
@@ -183,8 +193,13 @@ class PdoStorage implements
 
 		$data = $st->fetchAll(\PDO::FETCH_ASSOC);
 
-		$result = array();
+		$threshold = Finder::fulltextRateExcludeNum($this->getTocSize());
+		$result    = array();
 		foreach ($data as $row) {
+			if ($row['type'] == Finder::TYPE_TITLE && $row['usage_num'] > $threshold) {
+				continue;
+			}
+
 			// TODO Making items unique seems to be a hack for caller. Rewrite indexing?
 			$result[$row['keyword']][$row['external_id']] = $row['type'];
 		}

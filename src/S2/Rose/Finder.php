@@ -165,11 +165,13 @@ class Finder
 		$wordWeight    = self::fulltextWordWeight(count($words));
 		$prevPositions = array();
 
+		$threshold = self::fulltextRateExcludeNum($this->storage->getTocSize());
+
 		foreach ($words as $word) {
 			$currPositions = array();
 			foreach (array_unique(array($word, $this->stemmer->stemWord($word))) as $searchWord) {
 				$fulltextIndexByWord = $this->storage->getFulltextByWord($searchWord);
-				if (count($fulltextIndexByWord) > self::fulltextRateExcludeNum($this->storage->getTocSize())) {
+				if (count($fulltextIndexByWord) > $threshold) {
 					continue;
 				}
 				$currPositions = array_merge($currPositions, $fulltextIndexByWord);
