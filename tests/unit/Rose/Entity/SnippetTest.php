@@ -68,4 +68,14 @@ class SnippetTest extends Unit
 			$snippet->toString()
 		);
 	}
+
+	public function testEmptySnippet()
+	{
+		$snippet = new Snippet('introduction', 0, '<i>%s</i>');
+		$snippet->toString();
+
+		$snippet = new Snippet('introduction', 0, '<i>%s</i>');
+		$snippet->attachSnippetLine(1, new SnippetLine('line1', [], 0));
+		$snippet->toString();
+	}
 }

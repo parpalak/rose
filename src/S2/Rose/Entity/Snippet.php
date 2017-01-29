@@ -156,6 +156,10 @@ class Snippet
 	 */
 	private function calcLinesRelevance(array $snippetLines)
 	{
+		if (!($this->foundWordCount > 0)) {
+			return 0;
+		}
+
 		$foundWords = array();
 		foreach ($snippetLines as $position => $snippetLine) {
 			/** @var SnippetLine $snippetLine */
