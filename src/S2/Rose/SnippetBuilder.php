@@ -24,6 +24,11 @@ class SnippetBuilder
 	protected $stemmer;
 
 	/**
+	 * @var string
+	 */
+	protected $snippetLineSeparator;
+
+	/**
 	 * SnippetBuilder constructor.
 	 *
 	 * @param StemmerInterface     $stemmer
@@ -31,6 +36,18 @@ class SnippetBuilder
 	public function __construct(StemmerInterface $stemmer)
 	{
 		$this->stemmer = $stemmer;
+	}
+
+	/**
+	 * @param string $snippetLineSeparator
+	 *
+	 * @return SnippetBuilder
+	 */
+	public function setSnippetLineSeparator($snippetLineSeparator)
+	{
+		$this->snippetLineSeparator = $snippetLineSeparator;
+
+		return $this;
 	}
 
 	/**
@@ -135,6 +152,9 @@ class SnippetBuilder
 
 		$textStart = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
 		$snippet   = new Snippet($textStart, $foundWordNum, $highlightTemplate);
+		if ($this->snippetLineSeparator !== null) {
+			$snippet->setLineSeparator($this->snippetLineSeparator);
+		}
 
 		if ($foundWordNum == 0) {
 			return $snippet;

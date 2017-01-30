@@ -112,6 +112,23 @@ class SnippetBuilderTest extends Unit
 			$resultSet->getItems()['id_3']->getSnippet()
 		);
 
+		// Check line separators
+		$resultSet = $this->finder->find(new Query('если'));
+		$this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
+		$this->assertEquals(
+			'В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр... Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа. <i>Если</i> пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
+			$resultSet->getItems()['id_3']->getSnippet()
+		);
+
+		$resultSet = $this->finder->find(new Query('если'));
+		$this->snippetBuilder->setSnippetLineSeparator(' &middot; ');
+		$this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
+		$this->assertEquals(
+			'В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр. &middot; Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа. <i>Если</i> пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
+			$resultSet->getItems()['id_3']->getSnippet()
+		);
+
+		// Highlighting 'ё'
 		$resultSet = $this->finder->find(new Query('твердыми'));
 		$this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 

@@ -14,6 +14,11 @@ class Snippet
 	const SNIPPET_LINE_COUNT = 3;
 
 	/**
+	 * @var string
+	 */
+	protected $lineSeparator = '... ';
+
+	/**
 	 * @var SnippetLine[]
 	 */
 	protected $snippetLines = array();
@@ -50,6 +55,18 @@ class Snippet
 		$this->textIntroduction  = $textIntroduction;
 		$this->foundWordCount    = $foundWordNum;
 		$this->highlightTemplate = $highlightTemplate;
+	}
+
+	/**
+	 * @param string $lineSeparator
+	 *
+	 * @return $this
+	 */
+	public function setLineSeparator($lineSeparator)
+	{
+		$this->lineSeparator = $lineSeparator;
+
+		return $this;
 	}
 
 	/**
@@ -139,12 +156,14 @@ class Snippet
 				$result = $lineStr;
 			}
 			else {
-				$result .= ($previousPosition + 1 == $position ? ' ' : '... ') . $lineStr;
+				$result .= ($previousPosition + 1 == $position ? ' ' : $this->lineSeparator) . $lineStr;
 			}
 			$previousPosition = $position;
 		}
 
-		$result = str_replace('.... ', '... ', $result);
+		if ($this->lineSeparator == '... ') {
+			$result = str_replace('.... ', '... ', $result);
+		}
 
 		return $result;
 	}

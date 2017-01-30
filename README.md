@@ -160,6 +160,7 @@ Snippets are small text fragments containing found words displaying in the searc
 use S2\Rose\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($stemmer);
+$this->snippetBuilder->setSnippetLineSeparator(' &middot; '); // Set snippet line separator. Default is '... '.
 $snippetBuilder->attachSnippets($resultSet, function (array $ids) {
 	$result = [];
 	foreach ($ids as $id) {
