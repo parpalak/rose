@@ -76,8 +76,8 @@ class SnippetBuilder
 	public function cleanupContent(array $contentArray)
 	{
 		// Text cleanup
-		$replaceFrom = array(self::LINE_SEPARATOR, 'ё', '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;');
-		$replaceTo   = array('', 'е', ' ', '—', '–', '«', '»');
+		$replaceFrom = array(self::LINE_SEPARATOR, '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;');
+		$replaceTo   = array('', ' ', '—', '–', '«', '»');
 		foreach (array(
 			'<br>',
 			'<br />',
@@ -140,10 +140,13 @@ class SnippetBuilder
 			return $snippet;
 		}
 
+		$joinedStems = implode('|', $stems);
+		$joinedStems = str_replace('е', '[её]', $joinedStems);
+
 		// Check the text for the query words
 		// TODO: Make sure the modifier S works correct on cyrillic
 		preg_match_all(
-			'#(?<=[^a-zа-я]|^)(' . implode('|', $stems) . ')[a-zа-я]*#Ssui',
+			'#(?<=[^a-zа-я]|^)(' . $joinedStems . ')[a-zа-я]*#Ssui',
 			$content,
 			$matches,
 			PREG_OFFSET_CAPTURE
@@ -156,7 +159,7 @@ class SnippetBuilder
 		foreach ($matches[0] as $i => $wordInfo) {
 			$word           = $wordInfo[0];
 			$stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
-			$stem           = mb_strtolower($matches[1][$i][0]);
+			$stem           = str_replace('ё', 'е', mb_strtolower($matches[1][$i][0]));
 			$stemmedWord    = $this->stemmer->stemWord($word);
 
 			// Ignore entry if the word stem differs from needed ones
