@@ -171,6 +171,8 @@ class ResultItem
 	}
 
 	/**
+	 * TODO Refactor the highlight logic to a separate class.
+	 *
 	 * @param StemmerInterface $stemmer
 	 *
 	 * @return string
@@ -183,18 +185,21 @@ class ResultItem
 			throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
 		}
 
-		$replacedLine = preg_replace_callback(
-			'#(?<=[^a-zа-я]|^)(' . implode('|', $this->foundWords) . ')[a-zа-я]*#sui',
-			function ($matches) use ($template, $stemmer) {
-				$foundWord = $matches[0];
-				$foundStem = $matches[1];
-				$stem = $stemmer->stemWord($foundWord);
+		$joinedStems = implode('|', $this->foundWords);
+		$joinedStems = str_replace('е', '[её]', $joinedStems);
 
-				if ($stem != mb_strtolower($foundStem)) {
-					return $foundWord;
+		$replacedLine = preg_replace_callback(
+			'#(?<=[^a-zа-я]|^)(' . $joinedStems . ')[a-zа-я]*#Ssui',
+			function ($matches) use ($template, $stemmer) {
+				$word        = $matches[0];
+				$stem        = str_replace('ё', 'е', mb_strtolower($matches[1]));
+				$stemmedWord = $stemmer->stemWord($word);
+
+				if ($stem != $stemmedWord) {
+					return $word;
 				}
 
-				return sprintf($template, $foundWord);
+				return sprintf($template, $word);
 			},
 			$this->title
 		);
