@@ -9,6 +9,7 @@ namespace S2\Rose;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
+use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Stemmer\StemmerInterface;
 
 /**
@@ -56,12 +57,21 @@ class SnippetBuilder
 	 *
 	 * @return $this
 	 */
-	public function attachSnippets(ResultSet $result, callable $callback)
+	public function attachSnippets(ResultSet $result, $callback)
 	{
+		if (!is_callable($callback)) {
+			throw new InvalidArgumentException('Argument "callback" must be a callable');
+		}
+
 		$externalIds = $result->getSortedExternalIds();
 
-		/** @var array $contentArray */
 		$contentArray = $callback($externalIds);
+		if (!is_array($contentArray)) {
+			throw new InvalidArgumentException(sprintf(
+				'Snippet callback must return an array. "%s" given.',
+				gettype($contentArray)
+			));
+		}
 
 		$result->addProfilePoint('Snippets: obtaining');
 
