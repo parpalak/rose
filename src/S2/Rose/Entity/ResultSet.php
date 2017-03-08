@@ -88,6 +88,11 @@ class ResultSet
 	protected $highlightTemplate = '<i>%s</i>';
 
 	/**
+	 * @var ResultTrace
+	 */
+	protected $trace;
+
+	/**
 	 * Result constructor.
 	 *
 	 * @param int  $limit
@@ -102,6 +107,7 @@ class ResultSet
 		if ($isDebug) {
 			$this->startedAt = microtime(true);
 		}
+		$this->trace = new ResultTrace();
 	}
 
 	/**
@@ -166,11 +172,18 @@ class ResultSet
 			$this->data[$externalId][$word] += $weight;
 			$this->positions[$externalId][$word] = array_merge($this->positions[$externalId][$word], $positions);
 		}
+
+		if (empty($positions)) {
+			$this->trace->addKeywordWeight($word, $externalId, $weight);
+		}
+		else {
+			$this->trace->addWordWeight($word, $externalId, $weight, $positions);
+		}
 	}
 
 	/**
 	 * @param string $word
-	 * @param int    $externalId
+	 * @param string $externalId
 	 * @param float  $weight
 	 */
 	public function addNeighbourWeight($word, $externalId, $weight)
@@ -180,6 +193,8 @@ class ResultSet
 		}
 
 		$this->data[$externalId]['*n_' . $word] = $weight;
+
+		$this->trace->addNeighbourWeight($word, $externalId, $weight);
 	}
 
 	/**
@@ -349,5 +364,35 @@ class ResultSet
 	public function getSortedExternalIds()
 	{
 		return array_keys($this->getSortedRelevanceByExternalId());
+	}
+
+	public function getTrace()
+	{
+		if (!$this->isFrozen) {
+			throw new ImmutableException('One cannot obtain a trace before freezing the result set.');
+		}
+
+		$traceArray     = $this->trace->toArray();
+		$relevanceArray = $this->getSortedRelevanceByExternalId();
+
+		$result = array();
+		foreach ($relevanceArray as $externalId => $relevance) {
+			if (!isset($this->items[$externalId])) {
+				throw UnknownIdException::createResultMissingExternalId($externalId);
+			}
+
+			$result[$externalId] = array(
+				'title'     => $this->items[$externalId]->getTitle(),
+				'relevance' => $relevance,
+			);
+
+			if (isset($this->externalRelevanceRatios[$externalId])) {
+				$result[$externalId]['externalRelevanceRatio'] = $this->externalRelevanceRatios[$externalId];
+			}
+
+			$result[$externalId]['trace'] = $traceArray[$externalId];
+		}
+
+		return $result;
 	}
 }
