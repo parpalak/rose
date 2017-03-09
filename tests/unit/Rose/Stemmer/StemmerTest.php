@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -10,6 +10,11 @@ use Codeception\Test\Unit;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Stemmer\StemmerInterface;
 
+/**
+ * Class StemmerTest
+ *
+ * @group stem
+ */
 class StemmerTest extends Unit
 {
     /**
@@ -29,5 +34,7 @@ class StemmerTest extends Unit
     public function testStem()
     {
         $this->assertEquals('ухмыля', $this->stemmer->stemWord('ухмыляться'));
+        $this->assertEquals('рраф', $this->stemmer->stemWord('Ррафа'));
+        $this->assertEquals('учител', $this->stemmer->stemWord('учитель'));
     }
 }
