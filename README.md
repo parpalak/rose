@@ -1,5 +1,5 @@
 # Rose
-This is a simple search engine for content sites with partial Russian morphology suppoort. It indexes your content and provides a full-text search.
+This is a simple search engine for content sites with partial Russian morphology support. It indexes your content and provides a full-text search.
 
 ## Requirements
 
@@ -152,7 +152,7 @@ $resultSet = $finder->find(new Query('title'));
 $resultSet->getItems()['id_1']->getHighlightedTitle($stemmer); // 'Test page <i>title</i>'
 ```
 
-This method requires the stemmer since it takes into account the morphology and highlights all the word forms. By default words are highlighted with italics. You can change the highlight template by calling `$finder->setHighlightTemplate('<b>%s</b>')`.
+This method requires the stemmer since it takes into account the morphology and highlights all the word forms. By default, words are highlighted with italics. You can change the highlight template by calling `$finder->setHighlightTemplate('<b>%s</b>')`.
 
 Snippets are small text fragments containing found words displaying in the search result. `SnippetBuilder` processes the source and selects best matching sentences. It should be done just before `$resultSet->getItems()`:
 
