@@ -268,7 +268,7 @@ class Finder
 			}
 			else {
 				$emptyExternalIds[]    = $externalId;
-				$hasMissingExternalIds = false;
+				$hasMissingExternalIds = true;
 			}
 		}
 
