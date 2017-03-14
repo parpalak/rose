@@ -209,18 +209,40 @@ class IntegrationTest extends Unit
 		}
 
 		$finder = new Finder($readStorage, $stemmer);
-		$finder->find(new Query('page'));  // a word in $indexables[0]
+		$resultSet = $finder->find(new Query('page'));  // a word in $indexables[0]
+		$this->assertCount(1, $resultSet->getItems());
 
 		if ($writeStorage instanceof SingleFileArrayStorage) {
+			// Wrap for updating the index
 			$writeStorage->load();
 		}
 		$indexer->index($indexables[1]);
 		if ($writeStorage instanceof SingleFileArrayStorage) {
+			// Wrap for updating the index
 			$writeStorage->cleanup();
 			$writeStorage->save();
 		}
 
-		$finder->find(new Query('page')); // a word in $indexables[1]
+		$resultSet = $finder->find(new Query('page')); // a word in $indexables[1]
+		if (!($readStorage instanceof SingleFileArrayStorage)) {
+			$this->assertCount(2, $resultSet->getItems());
+		}
+
+		if ($writeStorage instanceof SingleFileArrayStorage) {
+			// Wrap for updating the index
+			$writeStorage->load();
+		}
+		$indexer->removeById($indexables[1]->getId());
+		if ($writeStorage instanceof SingleFileArrayStorage) {
+			// Wrap for updating the index
+			$writeStorage->cleanup();
+			$writeStorage->save();
+		}
+
+		$resultSet = $finder->find(new Query('page'));
+		if (!($readStorage instanceof SingleFileArrayStorage)) {
+			$this->assertCount(1, $resultSet->getItems());
+		}
 	}
 
 	public function testIgnoreFrequentWords()
