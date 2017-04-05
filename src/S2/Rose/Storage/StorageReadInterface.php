@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -14,14 +14,14 @@ use S2\Rose\Entity\TocEntry;
 interface StorageReadInterface
 {
 	/**
-	 * @param $word
+	 * @param string[] $words
 	 *
-	 * @return mixed
+	 * @return FulltextIndexContent
 	 */
-	public function getFulltextByWord($word);
+	public function fulltextResultByWords(array $words);
 
 	/**
-	 * @param $word
+	 * @param string $word
 	 *
 	 * @return bool
 	 */
@@ -54,9 +54,9 @@ interface StorageReadInterface
 	public function getTocSize();
 
 	/**
-	 * @param $string
+	 * @param string $title
 	 *
 	 * @return TocEntry[]
 	 */
-	public function findTocByTitle($string);
+	public function findTocByTitle($title);
 }

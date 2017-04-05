@@ -12,6 +12,7 @@ use S2\Rose\Entity\Query;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Finder;
 use S2\Rose\Stemmer\PorterStemmerRussian;
+use S2\Rose\Storage\FulltextIndexContent;
 use S2\Rose\Storage\StorageReadInterface;
 
 /**
@@ -23,46 +24,65 @@ class FinderTest extends Unit
 {
 	public function testIgnoreFrequentWordsInFulltext()
 	{
-		$storage = Stub::makeEmpty(StorageReadInterface::class, [
+		$storage = Stub::makeEmpty(StorageReadInterface::class, array(
 			'getMultipleKeywordIndexByString' => function ($word) {
 				return [];
 			},
 			'getTocSize' => function () {
 				return 30;
 			},
-			'getFulltextByWord' => function ($word) {
-				if ($word == 'find') {
-					return ['id_3' => [1], 'id_2' => [10, 20]];
+			'fulltextResultByWords' => function (array $words) {
+				$result = new FulltextIndexContent();
+				foreach ($words as $k => $word) {
+					if ($word == 'find') {
+						$result->add($word, 'id_3', 1);
+						$result->add($word, 'id_2', 10);
+						$result->add($word, 'id_2', 20);
+					}
+					if ($word == 'and') {
+						$result->add($word, 'id_1', 4);
+						$result->add($word, 'id_1', 8);
+
+						$result->add($word, 'id_2', 7);
+						$result->add($word, 'id_2', 11);
+						$result->add($word, 'id_2', 34);
+
+						$result->add($word, 'id_3', 28);
+						$result->add($word, 'id_3', 65);
+
+						$result->add($word, 'id_4', 45);
+						$result->add($word, 'id_4', 9);
+
+						$result->add($word, 'id_5', 1);
+						$result->add($word, 'id_6', 1);
+						$result->add($word, 'id_7', 1);
+						$result->add($word, 'id_8', 1);
+						$result->add($word, 'id_9', 1);
+						$result->add($word, 'id_10', 1);
+						$result->add($word, 'id_11', 1);
+						$result->add($word, 'id_12', 1);
+						$result->add($word, 'id_13', 1);
+						$result->add($word, 'id_14', 1);
+						$result->add($word, 'id_15', 1);
+						$result->add($word, 'id_16', 1);
+						$result->add($word, 'id_17', 1);
+						$result->add($word, 'id_18', 1);
+						$result->add($word, 'id_19', 1);
+						$result->add($word, 'id_20', 1);
+						$result->add($word, 'id_21', 1);
+					}
+					if ($word == 'replace') {
+						$result->add($word, 'id_2', 12);
+					}
+
+					unset($words[$k]);
 				}
-				if ($word == 'and') {
-					return [
-						'id_1' => [4, 8],
-						'id_2' => [7, 11, 34],
-						'id_3' => [28, 65],
-						'id_4' => [45, 9],
-						'id_5' => [1],
-						'id_6' => [1],
-						'id_7' => [1],
-						'id_8' => [1],
-						'id_9' => [1],
-						'id_10' => [1],
-						'id_11' => [1],
-						'id_12' => [1],
-						'id_13' => [1],
-						'id_14' => [1],
-						'id_15' => [1],
-						'id_16' => [1],
-						'id_17' => [1],
-						'id_18' => [1],
-						'id_19' => [1],
-						'id_20' => [1],
-						'id_21' => [1],
-					];
+
+				if (!empty($words)) {
+					throw new \RuntimeException(sprintf('Unknown words "%s" in StorageReadInterface stub.', implode(',', $words)));
 				}
-				if ($word == 'replace') {
-					return ['id_2' => [12]];
-				}
-				throw new \RuntimeException(sprintf('Unknown word "%s" in StorageReadInterface stub.', $word));
+
+				return $result;
 			},
 			'getSingleKeywordIndexByWords' => function ($words) {
 				$result = [];
@@ -85,19 +105,21 @@ class FinderTest extends Unit
 			'getTocByExternalId' => function ($id) {
 				return new TocEntry('Title ' . $id, '', null, 'url_' . $id, 'hash_' . $id);
 			}
-		]);
+		));
 
 		$stemmer = new PorterStemmerRussian();
 		$finder  = new Finder($storage, $stemmer);
 		$resultSet = $finder->find(new Query('find and replace'));
 
 		$items = $resultSet->getItems();
-		$this->assertCount(3, $items);
+		$this->assertCount(21, $items);
 
 		$weights = $resultSet->getFoundWordPositionsByExternalId();
-		$this->assertCount(3, $weights);
-		$this->assertEquals(['find' => [], 'replace' => []], $weights['id_1']);
-		$this->assertEquals(['find' => [10, 20], 'replace' => [12]], $weights['id_2']);
-		$this->assertEquals(['find' => [1]], $weights['id_3']);
+		$this->assertCount(21, $weights);
+		$this->assertEquals([], $weights['id_1']['find']);
+		$this->assertEquals([], $weights['id_1']['replace']);
+		$this->assertEquals([10, 20], $weights['id_2']['find']);
+		$this->assertEquals([12], $weights['id_2']['replace']);
+		$this->assertEquals([1], $weights['id_3']['find']);
 	}
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -52,11 +52,13 @@ class SingleFileArrayStorageTest extends Unit
 
 		$storage->addToFulltext([1 => 'hello', 2 => 'world'], 'test_id_1');
 
-		$info = $storage->getFulltextByWord('hello');
+		$fulltextResult = $storage->fulltextResultByWords(['hello']);
+		$info = $fulltextResult->toArray()['hello'];
 		$this->assertArrayHasKey('test_id_1', $info);
 		$this->assertEquals([1], $info['test_id_1']);
 
-		$info = $storage->getFulltextByWord('world');
+		$fulltextResult = $storage->fulltextResultByWords(['world']);
+		$info = $fulltextResult->toArray()['world'];
 		$this->assertArrayHasKey('test_id_1', $info);
 		$this->assertEquals([2], $info['test_id_1']);
 
@@ -74,7 +76,8 @@ class SingleFileArrayStorageTest extends Unit
 
 		$storage->addToFulltext([10 => 'hello', 20 => 'world'], 'test_id_2');
 
-		$info = $storage->getFulltextByWord('world');
+		$fulltextResult = $storage->fulltextResultByWords(['world']);
+		$info = $fulltextResult->toArray()['world'];
 		$this->assertArrayHasKey('test_id_1', $info);
 		$this->assertEquals([2], $info['test_id_1']);
 		$this->assertArrayHasKey('test_id_2', $info);

@@ -78,11 +78,6 @@ class ResultSet
 	protected $positions = array();
 
 	/**
-	 * @var string[]
-	 */
-	protected $foundWords = array();
-
-	/**
 	 * @var string
 	 */
 	protected $highlightTemplate = '<i>%s</i>';
@@ -366,6 +361,9 @@ class ResultSet
 		return array_keys($this->getSortedRelevanceByExternalId());
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getTrace()
 	{
 		if (!$this->isFrozen) {
