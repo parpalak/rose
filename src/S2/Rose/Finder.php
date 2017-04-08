@@ -65,26 +65,6 @@ class Finder
 	}
 
 	/**
-	 * @param number[] $a1
-	 * @param number[] $a2
-	 *
-	 * @return number
-	 */
-	protected static function compareArrays(array $a1, array $a2)
-	{
-		$result = 100000000;
-		foreach ($a1 as $x) {
-			foreach ($a2 as $y) {
-				if (abs($x - $y) < $result) {
-					$result = abs($x - $y);
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
 	 * @param int $type
 	 *
 	 * @return int
@@ -115,18 +95,6 @@ class Finder
 	}
 
 	/**
-	 * Additional weight for close words in an indexed item.
-	 *
-	 * @param int $wordDistance
-	 *
-	 * @return float
-	 */
-	protected static function neighbourWeight($wordDistance)
-	{
-		return max(23 - $wordDistance, 13);
-	}
-
-	/**
 	 * @param array     $words
 	 * @param ResultSet $resultSet
 	 */
@@ -141,33 +109,6 @@ class Finder
 		);
 
 		$fulltextResult->fillResultSet($resultSet);
-
-
-		//foreach ($words as $word) {
-		//	$currPositions = array();
-		//	foreach (array_unique(array($word, $this->stemmer->stemWord($word))) as $searchWord) {
-		//		$fulltextIndexByWord = $this->storage->fillFulltextResultForWords($searchWord);
-		//		if (count($fulltextIndexByWord) > $threshold) {
-		//			continue;
-		//		}
-		//		$currPositions = array_merge($currPositions, $fulltextIndexByWord);
-		//
-		//		foreach ($fulltextIndexByWord as $externalId => $positions) {
-		//			$curWeight = $wordWeight * self::repeatWeightRatio(count($positions));
-		//			$resultSet->addWordWeight($word, $externalId, $curWeight, $positions);
-		//		}
-		//	}
-		//
-		//	foreach ($currPositions as $externalId => $positions) {
-		//		if (isset($prevPositions[$externalId])) {
-		//			$minWordDistance = self::compareArrays($positions, $prevPositions[$externalId]);
-		//			$weight          = self::neighbourWeight($minWordDistance) * $wordWeight;
-		//			$resultSet->addNeighbourWeight($word, $externalId, $weight);
-		//		}
-		//	}
-		//
-		//	$prevPositions = $currPositions;
-		//}
 	}
 
 	/**

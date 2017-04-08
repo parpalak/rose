@@ -60,7 +60,7 @@ class FulltextResult
 	}
 
 	/**
-	 * Weight ratio for repeating words in an indexed item.
+	 * Weight ratio for repeating words in the indexed item.
 	 *
 	 * @param int $repeatNum
 	 *
@@ -69,6 +69,19 @@ class FulltextResult
 	protected static function repeatWeightRatio($repeatNum)
 	{
 		return min(0.5 * ($repeatNum - 1) + 1, 4);
+	}
+
+	/**
+	 * Weight ratio for a pair of words. Accepts the difference of distances
+	 * in the indexed item and the search query.
+	 *
+	 * @param float $distance
+	 *
+	 * @return float
+	 */
+	protected static function neighbourWeight($distance)
+	{
+		return 10.0 / (1 + pow($distance / 5.0, 2));
 	}
 
 	/**
@@ -96,6 +109,16 @@ class FulltextResult
 			foreach ($items as $externalId => $positions) {
 				$weight = self::fulltextWeight($reductionRatio, $queryWordCount, count($positions));
 				$resultSet->addWordWeight($word, $externalId, $weight, $positions);
+			}
+		}
+
+		$referenceContainer = $this->query->toWordPositionContainer();
+		foreach ($this->fulltextIndexContent->toWordPositionContainerArray() as $externalId => $wordPositionContainer) {
+			$pairsDistance = $wordPositionContainer->compareWith($referenceContainer);
+			foreach ($pairsDistance as $pairDistance) {
+				list($word1, $word2, $distance) = $pairDistance;
+				$weight = self::neighbourWeight($distance);
+				$resultSet->addNeighbourWeight($word1, $word2, $externalId, $weight, $distance);
 			}
 		}
 	}

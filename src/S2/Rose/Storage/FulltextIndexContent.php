@@ -6,6 +6,8 @@
 
 namespace S2\Rose\Storage;
 
+use S2\Rose\Entity\WordPositionContainer;
+
 /**
  * Class FulltextResultMock
  */
@@ -14,7 +16,12 @@ class FulltextIndexContent
 	/**
 	 * @var array
 	 */
-	protected $data = array();
+	protected $dataByWord = array();
+
+	/**
+	 * @var array
+	 */
+	protected $dataByExternalId = array();
 
 	/**
 	 * @param string $word
@@ -23,7 +30,8 @@ class FulltextIndexContent
 	 */
 	public function add($word, $externalId, $position)
 	{
-		$this->data[$word][$externalId][] = $position;
+		$this->dataByWord[$word][$externalId][]       = $position;
+		$this->dataByExternalId[$externalId][$word][] = $position;
 	}
 
 	/**
@@ -31,6 +39,20 @@ class FulltextIndexContent
 	 */
 	public function toArray()
 	{
-		return $this->data;
+		return $this->dataByWord;
 	}
+
+	/**
+	 * @return array|WordPositionContainer[]
+	 */
+	public function toWordPositionContainerArray()
+	{
+		$result = array();
+		foreach ($this->dataByExternalId as $externalId => $data) {
+			$result[$externalId] = new WordPositionContainer($data);
+		}
+
+		return $result;
+	}
+
 }

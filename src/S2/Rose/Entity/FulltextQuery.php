@@ -63,4 +63,22 @@ class FulltextQuery
 	{
 		return array_merge($this->words, $this->additionalStems);
 	}
+
+	/**
+	 * @return WordPositionContainer
+	 */
+	public function toWordPositionContainer()
+	{
+		$container = new WordPositionContainer();
+
+		foreach ($this->words as $position => $word) {
+			$container->addWordAt($word, $position);
+		}
+
+		foreach ($this->additionalStems as $position => $stem) {
+			$container->addWordAt($stem, $position);
+		}
+
+		return $container;
+	}
 }
