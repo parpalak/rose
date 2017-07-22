@@ -39,7 +39,7 @@ class PorterStemmerRussian implements StemmerInterface
 		'там'     => '',
 		'тут'     => '',
 		'туда'    => '',
-		'сюдв'    => '',
+		'сюда'    => '',
 		'оттуда'  => '',
 		'отсюда'  => '',
 		'здесь'   => '',
