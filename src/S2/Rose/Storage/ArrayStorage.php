@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -53,9 +53,19 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getFulltextByWord($word)
+	public function fulltextResultByWords(array $words)
 	{
-		return $this->makeKeysExternalIds($this->fulltextProxy->getByWord($word));
+		$result = new FulltextIndexContent();
+		foreach ($words as $word) {
+			$data = $this->makeKeysExternalIds($this->fulltextProxy->getByWord($word));
+			foreach ($data as $externalId => $positions) {
+				foreach ($positions as $position) {
+					$result->add($word, $externalId, $position);
+				}
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -261,11 +271,11 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	/**
 	 * {@inheritdoc}
 	 */
-	public function findTocByTitle($string)
+	public function findTocByTitle($title)
 	{
 		$result = array();
 		foreach ($this->toc as $externalId => $entry) {
-			if (strpos(mb_strtolower($entry->getTitle()), mb_strtolower($string)) !== false) {
+			if (strpos(mb_strtolower($entry->getTitle()), mb_strtolower($title)) !== false) {
 				$result[$externalId] = $entry;
 			}
 		}

@@ -38,13 +38,15 @@ class ResultTrace
 	}
 
 	/**
-	 * @param string $word
+	 * @param string $word1
+	 * @param string $word2
 	 * @param string $externalId
 	 * @param float  $weight
+	 * @param int    $distance
 	 */
-	public function addNeighbourWeight($word, $externalId, $weight)
+	public function addNeighbourWeight($word1, $word2, $externalId, $weight, $distance)
 	{
-		$this->data[$externalId]['fulltext ' . $word][] = sprintf('%s: match is close to the previous fulltext match', $weight);
+		$this->data[$externalId]['fulltext ' . $word1 . ' - ' . $word2][] = sprintf('%s: matches are close (shift = %s)', $weight, $distance);
 	}
 
 	/**

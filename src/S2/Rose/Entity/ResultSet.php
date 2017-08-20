@@ -78,11 +78,6 @@ class ResultSet
 	protected $positions = array();
 
 	/**
-	 * @var string[]
-	 */
-	protected $foundWords = array();
-
-	/**
 	 * @var string
 	 */
 	protected $highlightTemplate = '<i>%s</i>';
@@ -169,7 +164,7 @@ class ResultSet
 			$this->positions[$externalId][$word] = $positions;
 		}
 		else {
-			$this->data[$externalId][$word] += $weight;
+			$this->data[$externalId][$word]      += $weight;
 			$this->positions[$externalId][$word] = array_merge($this->positions[$externalId][$word], $positions);
 		}
 
@@ -182,19 +177,21 @@ class ResultSet
 	}
 
 	/**
-	 * @param string $word
+	 * @param string $word1
+	 * @param string $word2
 	 * @param string $externalId
 	 * @param float  $weight
+	 * @param int    $distance
 	 */
-	public function addNeighbourWeight($word, $externalId, $weight)
+	public function addNeighbourWeight($word1, $word2, $externalId, $weight, $distance)
 	{
 		if ($this->isFrozen) {
 			throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
 		}
 
-		$this->data[$externalId]['*n_' . $word] = $weight;
+		$this->data[$externalId]['*n_' . $word1 . '_' . $word2] = $weight;
 
-		$this->trace->addNeighbourWeight($word, $externalId, $weight);
+		$this->trace->addNeighbourWeight($word1, $word2, $externalId, $weight, $distance);
 	}
 
 	/**
@@ -366,6 +363,9 @@ class ResultSet
 		return array_keys($this->getSortedRelevanceByExternalId());
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getTrace()
 	{
 		if (!$this->isFrozen) {

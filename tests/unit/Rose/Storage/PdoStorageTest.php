@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2017 Roman Parpalak
  * @license   MIT
  */
 
@@ -51,11 +51,11 @@ class PdoStorageTest extends Unit
 		$storage->addToFulltext([1 => 'word2', 10 => 'word2'], 'id_2');
 
 		// Searching
-		$data1 = $storage->getFulltextByWord('word1');
-		$this->assertEquals(['id_1' => [1]], $data1);
+		$fulltextResult = $storage->fulltextResultByWords(['word1']);
+		$this->assertEquals(['id_1' => [1]], $fulltextResult->toArray()['word1']);
 
-		$data2 = $storage->getFulltextByWord('word2');
-		$this->assertEquals(['id_1' => [2], 'id_2' => [1, 10]], $data2);
+		$fulltextResult = $storage->fulltextResultByWords(['word2']);
+		$this->assertEquals(['id_1' => [2], 'id_2' => [1, 10]], $fulltextResult->toArray()['word2']);
 
 		$entry = $storage->getTocByExternalId('id_2');
 		$this->assertEquals($tocEntry2->getHash(), $entry->getHash());
@@ -77,8 +77,8 @@ class PdoStorageTest extends Unit
 		$entry = $storage->getTocByExternalId('id_2');
 		$this->assertNull($entry);
 
-		$data2 = $storage->getFulltextByWord('word2');
-		$this->assertEquals(['id_1' => [2]], $data2);
+		$fulltextResult = $storage->fulltextResultByWords(['word2']);
+		$this->assertEquals(['id_1' => [2]], $fulltextResult->toArray()['word2']);
 
 		// Reinit and...
 		$storage = new PdoStorage($this->pdo, 'test_');
@@ -87,8 +87,8 @@ class PdoStorageTest extends Unit
 		$entry = $storage->getTocByExternalId('id_2');
 		$this->assertNull($entry);
 
-		$data2 = $storage->getFulltextByWord('word2');
-		$this->assertEquals(['id_1' => [2]], $data2);
+		$fulltextResult = $storage->fulltextResultByWords(['word2']);
+		$this->assertEquals(['id_1' => [2]], $fulltextResult->toArray()['word2']);
 
 		// Remove id_1
 		$entry = $storage->getTocByExternalId('id_1');
@@ -266,10 +266,10 @@ class PdoStorageTest extends Unit
 	/**
 	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
-	public function testNonExistentDbGetFulltextByWord()
+	public function testNonExistentDbFillFulltextResultForWords()
 	{
 		$storage = new PdoStorage($this->pdo, 'non_existent_');
-		$storage->getFulltextByWord('word');
+		$storage->fulltextResultByWords(['word']);
 	}
 
 	/**

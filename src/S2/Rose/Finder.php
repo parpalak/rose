@@ -8,6 +8,8 @@
 
 namespace S2\Rose;
 
+use S2\Rose\Entity\FulltextQuery;
+use S2\Rose\Entity\FulltextResult;
 use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Exception\UnknownKeywordTypeException;
@@ -63,26 +65,6 @@ class Finder
 	}
 
 	/**
-	 * @param number[] $a1
-	 * @param number[] $a2
-	 *
-	 * @return number
-	 */
-	protected static function compareArrays(array $a1, array $a2)
-	{
-		$result = 100000000;
-		foreach ($a1 as $x) {
-			foreach ($a2 as $y) {
-				if (abs($x - $y) < $result) {
-					$result = abs($x - $y);
-				}
-			}
-		}
-
-		return $result;
-	}
-
-	/**
 	 * @param int $type
 	 *
 	 * @return int
@@ -101,26 +83,6 @@ class Finder
 	}
 
 	/**
-	 * Weight for a found fulltext word depending on a number of words in the search query.
-	 *
-	 * @param $wordNum
-	 *
-	 * @return float
-	 */
-	protected static function fulltextWordWeight($wordNum)
-	{
-		if ($wordNum < 4) {
-			return 1;
-		}
-
-		if ($wordNum == 4) {
-			return 7;
-		}
-
-		return 10;
-	}
-
-	/**
 	 * Ignore frequent words encountering in indexed items.
 	 *
 	 * @param $tocSize
@@ -133,65 +95,20 @@ class Finder
 	}
 
 	/**
-	 * Additional weight for close words in an indexed item.
-	 *
-	 * @param int $wordDistance
-	 *
-	 * @return float
+	 * @param array     $words
+	 * @param ResultSet $resultSet
 	 */
-	protected static function neighbourWeight($wordDistance)
+	protected function findFulltext(array $words, ResultSet $resultSet)
 	{
-		return max(23 - $wordDistance, 13);
-	}
+		$fulltextQuery        = new FulltextQuery($words, $this->stemmer);
+		$fulltextIndexContent = $this->storage->fulltextResultByWords($fulltextQuery->getWordsWithStems());
+		$fulltextResult       = new FulltextResult(
+			$fulltextQuery,
+			$fulltextIndexContent,
+			$this->storage->getTocSize()
+		);
 
-	/**
-	 * Weight ratio for repeating words in an indexed item.
-	 *
-	 * @param int $repeatNum
-	 *
-	 * @return float
-	 */
-	protected static function repeatWeightRatio($repeatNum)
-	{
-		return min(0.5 * ($repeatNum - 1) + 1, 4);
-	}
-
-	/**
-	 * @param string[]  $words
-	 * @param ResultSet $result
-	 */
-	protected function findFulltext(array $words, ResultSet $result)
-	{
-		$wordWeight    = self::fulltextWordWeight(count($words));
-		$prevPositions = array();
-
-		$threshold = self::fulltextRateExcludeNum($this->storage->getTocSize());
-
-		foreach ($words as $word) {
-			$currPositions = array();
-			foreach (array_unique(array($word, $this->stemmer->stemWord($word))) as $searchWord) {
-				$fulltextIndexByWord = $this->storage->getFulltextByWord($searchWord);
-				if (count($fulltextIndexByWord) > $threshold) {
-					continue;
-				}
-				$currPositions = array_merge($currPositions, $fulltextIndexByWord);
-
-				foreach ($fulltextIndexByWord as $externalId => $positions) {
-					$curWeight = $wordWeight * self::repeatWeightRatio(count($positions));
-					$result->addWordWeight($word, $externalId, $curWeight, $positions);
-				}
-			}
-
-			foreach ($currPositions as $externalId => $positions) {
-				if (isset($prevPositions[$externalId])) {
-					$minWordDistance = self::compareArrays($positions, $prevPositions[$externalId]);
-					$weight          = self::neighbourWeight($minWordDistance) * $wordWeight;
-					$result->addNeighbourWeight($word, $externalId, $weight);
-				}
-			}
-
-			$prevPositions = $currPositions;
-		}
+		$fulltextResult->fillResultSet($resultSet);
 	}
 
 	/**

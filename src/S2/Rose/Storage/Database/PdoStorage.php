@@ -11,6 +11,7 @@ use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Finder;
 use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
+use S2\Rose\Storage\FulltextIndexContent;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 use S2\Rose\Storage\TransactionalStorageInterface;
@@ -135,19 +136,24 @@ class PdoStorage implements
 	/**
 	 * {@inheritdoc}
 	 */
-	public function getFulltextByWord($word)
+	public function fulltextResultByWords(array $words)
 	{
+		$result = new FulltextIndexContent();
+		if (empty($words)) {
+			return $result;
+		}
+
 		$sql = '
-			SELECT t.external_id, f.position
+			SELECT w.name AS word, t.external_id, f.position
 			FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' AS f
 			JOIN ' . $this->prefix . $this->options[self::WORD] . ' AS w ON w.id = f.word_id
 			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = f.toc_id
-			WHERE w.name = ?
+			WHERE w.name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 		';
 
 		try {
 			$statement = $this->pdo->prepare($sql);
-			$statement->execute(array($word));
+			$statement->execute($words);
 		}
 		catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -155,8 +161,13 @@ class PdoStorage implements
 			}
 			throw $e;
 		}
+		$data = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
-		return $statement->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_GROUP);
+		foreach ($data as $row) {
+			$result->add($row['word'], $row['external_id'], $row['position']);
+		}
+
+		return $result;
 	}
 
 	/**
@@ -252,9 +263,9 @@ class PdoStorage implements
 	/**
 	 * {@inheritdoc}
 	 */
-	public function findTocByTitle($string)
+	public function findTocByTitle($title)
 	{
-		return $this->getTocEntries(array('title' => $string));
+		return $this->getTocEntries(array('title' => $title));
 	}
 
 	/**
