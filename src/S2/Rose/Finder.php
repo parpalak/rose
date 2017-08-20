@@ -248,14 +248,16 @@ class Finder
 
 		if (count($rawWords) > 1) {
 			$this->findSpacedKeywords($cleanedQuery, $resultSet);
+			$resultSet->addProfilePoint('Keywords with space');
 		}
-		$resultSet->addProfilePoint('Keywords with space');
 
-		$this->findSimpleKeywords($rawWords, $resultSet);
-		$resultSet->addProfilePoint('Simple keywords');
+		if (count($rawWords) > 0) {
+			$this->findSimpleKeywords($rawWords, $resultSet);
+			$resultSet->addProfilePoint('Simple keywords');
 
-		$this->findFulltext($rawWords, $resultSet);
-		$resultSet->addProfilePoint('Fulltext search');
+			$this->findFulltext($rawWords, $resultSet);
+			$resultSet->addProfilePoint('Fulltext search');
+		}
 
 		$resultSet->freeze();
 

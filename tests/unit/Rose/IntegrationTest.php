@@ -175,6 +175,13 @@ class IntegrationTest extends Unit
 //		codecept_debug($resultSet6->getTrace());
 		$this->assertCount(1, $resultSet6->getItems());
 		$this->assertEquals(47, $resultSet6->getItems()['id_3']->getRelevance());
+
+		// Query 7: Test empty queries
+		$resultSet7 = $finder->find(new Query(''));
+		$this->assertCount(0, $resultSet7->getItems());
+
+		$resultSet7 = $finder->find(new Query('\'')); // ' must be cleared
+		$this->assertCount(0, $resultSet7->getItems());
 	}
 
 	/**
