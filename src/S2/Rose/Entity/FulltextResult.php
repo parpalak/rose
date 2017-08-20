@@ -68,7 +68,7 @@ class FulltextResult
 	 */
 	protected static function repeatWeightRatio($repeatNum)
 	{
-		return min(0.5 * ($repeatNum - 1) + 1, 4);
+		return min(0.5 * ($repeatNum - 1) + 1, 2);
 	}
 
 	/**
@@ -81,7 +81,7 @@ class FulltextResult
 	 */
 	protected static function neighbourWeight($distance)
 	{
-		return 10.0 / (1 + pow($distance / 5.0, 2));
+		return 20.0 / (1 + pow($distance / 5.0, 2));
 	}
 
 	/**
