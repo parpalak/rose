@@ -189,7 +189,7 @@ class ResultItem
 		$joinedStems = str_replace('е', '[её]', $joinedStems);
 
 		$replacedLine = preg_replace_callback(
-			'#(?<=[^a-zа-я]|^)(' . $joinedStems . ')[a-zа-я]*#Ssui',
+			'#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
 			function ($matches) use ($template, $stemmer) {
 				$word        = $matches[0];
 				$stem        = str_replace('ё', 'е', mb_strtolower($matches[1]));

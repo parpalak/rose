@@ -94,10 +94,10 @@ class Query
 		// Normalize
 		$content = str_replace(array('«', '»', '“', '”', '‘', '’'), '"', $content);
 		$content = str_replace(array('---', '--', '–', '−'), '—', $content);
-		$content = preg_replace('#,\s+,#u', ',,', $content);
-		$content = preg_replace('#[^\-а-яё0-9a-z\^\.,\(\)";?!…:—]+#iu', ' ', $content);
-		$content = preg_replace('#\n+#', ' ', $content);
-		$content = preg_replace('#\s+#u', ' ', $content);
+		$content = preg_replace('#,\\s+,#u', ',,', $content);
+		$content = preg_replace('#[^\\-\\p{L}0-9\\^\\.,\\(\\)";?!…:—]+#iu', ' ', $content);
+		$content = preg_replace('#\\n+#', ' ', $content);
+		$content = preg_replace('#\\s+#u', ' ', $content);
 		$content = mb_strtolower($content);
 
 		$content = preg_replace('#(,+)#u', '\\1 ', $content);

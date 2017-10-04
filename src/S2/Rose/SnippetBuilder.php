@@ -173,7 +173,7 @@ class SnippetBuilder
 		// Check the text for the query words
 		// TODO: Make sure the modifier S works correct on cyrillic
 		preg_match_all(
-			'#(?<=[^a-zа-я]|^)(' . $joinedStems . ')[a-zа-я]*#Ssui',
+			'#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
 			$content,
 			$matches,
 			PREG_OFFSET_CAPTURE

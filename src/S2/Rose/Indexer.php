@@ -59,7 +59,7 @@ class Indexer
 		$content = mb_strtolower($content);
 		$content = str_replace(array('&nbsp;', "\xc2\xa0"), ' ', $content);
 		$content = preg_replace('#&[^;]{1,20};#', '', $content);
-		$content = preg_replace('#[^\\-а-яё0-9a-z\\^_' . $allowedSymbols . ']+#u', ' ', $content);
+		$content = preg_replace('#[^\\-0-9\\p{L}\\^_' . $allowedSymbols . ']+#u', ' ', $content);
 
 		return $content;
 	}
