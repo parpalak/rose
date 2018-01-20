@@ -2,7 +2,7 @@
 /**
  * Creates search index
  *
- * @copyright 2010-2017 Roman Parpalak
+ * @copyright 2010-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -191,7 +191,7 @@ class Indexer
 				$this->storage->rollbackTransaction();
 			}
 			if (!($e instanceof RuntimeException)) {
-				throw new UnknownException('Unknown exception occured while indexing.', 0, $e);
+				throw new UnknownException('Unknown exception occurred while indexing.', 0, $e);
 			}
 			throw $e;
 		}

@@ -1,16 +1,18 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Finder;
 use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
+use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
@@ -78,59 +80,70 @@ class PdoStorage implements
 
 	/**
 	 * Drops and creates index tables.
+	 *
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\InvalidEnvironmentException
 	 */
 	public function erase()
 	{
 		$this->tocCache      = array();
 		$this->cachedWordIds = array();
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::TOC] . ';');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::TOC] . ' (
-			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-			external_id VARCHAR(255) NOT NULL,
-			title VARCHAR(255) NOT NULL DEFAULT "",
-			description TEXT NOT NULL,
-			added_at DATETIME NULL,
-			url TEXT NOT NULL,
-			hash VARCHAR(80) NOT NULL DEFAULT "",
-			PRIMARY KEY (`id`),
-			UNIQUE KEY (external_id)
-		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+		try {
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::TOC] . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::TOC] . ' (
+                id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                external_id VARCHAR(255) NOT NULL,
+                title VARCHAR(255) NOT NULL DEFAULT "",
+                description TEXT NOT NULL,
+                added_at DATETIME NULL,
+                url TEXT NOT NULL,
+                hash VARCHAR(80) NOT NULL DEFAULT "",
+                PRIMARY KEY (`id`),
+                UNIQUE KEY (external_id)
+            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ';');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (
-			word_id INT(11) UNSIGNED NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			position INT(11) UNSIGNED NOT NULL,
-			PRIMARY KEY (word_id, toc_id, position),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (
+                word_id INT(11) UNSIGNED NOT NULL,
+                toc_id INT(11) UNSIGNED NOT NULL,
+                position INT(11) UNSIGNED NOT NULL,
+                PRIMARY KEY (word_id, toc_id, position),
+                KEY (toc_id)
+            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::WORD] . ';');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::WORD] . ' (
-			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-			name VARCHAR(255) NOT NULL DEFAULT "",
-			PRIMARY KEY (`id`),
-			KEY (name)
-		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::WORD] . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::WORD] . ' (
+                id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                name VARCHAR(255) NOT NULL DEFAULT "",
+                PRIMARY KEY (`id`),
+                KEY (name)
+            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ';');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' (
-			keyword VARCHAR(255) NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			type INT(11) UNSIGNED NOT NULL,
-			KEY (keyword),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' (
+                keyword VARCHAR(255) NOT NULL,
+                toc_id INT(11) UNSIGNED NOT NULL,
+                type INT(11) UNSIGNED NOT NULL,
+                KEY (keyword),
+                KEY (toc_id)
+            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ';');
-		$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' (
-			keyword VARCHAR(255) NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			type INT(11) UNSIGNED NOT NULL,
-			KEY (keyword),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' (
+                keyword VARCHAR(255) NOT NULL,
+                toc_id INT(11) UNSIGNED NOT NULL,
+                type INT(11) UNSIGNED NOT NULL,
+                KEY (keyword),
+                KEY (toc_id)
+            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+
+		} catch (\PDOException $e) {
+			if ($e->getCode() === '42000') {
+				throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
+			}
+			throw new UnknownException('Unknown exception occurred while creating tables:' . $e->getMessage(), $e->getCode(), $e);
+		}
 	}
 
 	/**
