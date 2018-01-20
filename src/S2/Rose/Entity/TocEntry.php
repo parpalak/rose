@@ -136,6 +136,6 @@ class TocEntry
 	 */
 	public function getFormattedDate()
 	{
-		return $this->date !== null ? $this->date->format('c') : null;
+		return $this->date !== null ? $this->date->format('Y-m-d H:i:s') : null;
 	}
 }
