@@ -7,6 +7,7 @@
 namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Finder;
@@ -56,13 +57,7 @@ class PdoStorage implements
 	/**
 	 * @var array
 	 */
-	protected $options = array(
-		self::TOC                    => 'toc',
-		self::WORD                   => 'word',
-		self::FULLTEXT_INDEX         => 'fulltext_index',
-		self::KEYWORD_INDEX          => 'keyword_index',
-		self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
-	);
+	protected $options = array();
 
 	/**
 	 * PdoStorage constructor.
@@ -75,12 +70,19 @@ class PdoStorage implements
 	{
 		$this->pdo     = $pdo;
 		$this->prefix  = $prefix;
-		$this->options = array_merge($this->options, $options);
+		$this->options = array_merge(array(
+			self::TOC                    => 'toc',
+			self::WORD                   => 'word',
+			self::FULLTEXT_INDEX         => 'fulltext_index',
+			self::KEYWORD_INDEX          => 'keyword_index',
+			self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
+		), $options);
 	}
 
 	/**
 	 * Drops and creates index tables.
 	 *
+	 * @throws \S2\Rose\Exception\LogicException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\InvalidEnvironmentException
 	 */
@@ -90,8 +92,8 @@ class PdoStorage implements
 		$this->cachedWordIds = array();
 
 		try {
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::TOC] . ';');
-			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::TOC] . ' (
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
                 id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                 external_id VARCHAR(255) NOT NULL,
                 title VARCHAR(255) NOT NULL DEFAULT "",
@@ -103,8 +105,8 @@ class PdoStorage implements
                 UNIQUE KEY (external_id)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ';');
-			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
                 word_id INT(11) UNSIGNED NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
                 position INT(11) UNSIGNED NOT NULL,
@@ -112,16 +114,16 @@ class PdoStorage implements
                 KEY (toc_id)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::WORD] . ';');
-			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::WORD] . ' (
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
                 id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                 name VARCHAR(255) NOT NULL DEFAULT "",
                 PRIMARY KEY (`id`),
                 KEY (name)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ';');
-			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' (
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
                 keyword VARCHAR(255) NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
                 type INT(11) UNSIGNED NOT NULL,
@@ -129,8 +131,8 @@ class PdoStorage implements
                 KEY (toc_id)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ';');
-			$this->pdo->exec('CREATE TABLE ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' (
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
+			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
                 keyword VARCHAR(255) NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
                 type INT(11) UNSIGNED NOT NULL,
@@ -148,6 +150,9 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function fulltextResultByWords(array $words)
 	{
@@ -158,21 +163,20 @@ class PdoStorage implements
 
 		$sql = '
 			SELECT w.name AS word, t.external_id, f.position
-			FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' AS f
-			JOIN ' . $this->prefix . $this->options[self::WORD] . ' AS w ON w.id = f.word_id
-			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = f.toc_id
+			FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' AS f
+			JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
+			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id
 			WHERE w.name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 		';
 
 		try {
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute($words);
-		}
-		catch (\PDOException $e) {
+		} catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
 				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while fulltext searching:' . $e->getMessage(), $e->getCode(), $e);
 		}
 		$data = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -185,6 +189,9 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
 	public function getSingleKeywordIndexByWords(array $words)
 	{
@@ -195,24 +202,23 @@ class PdoStorage implements
 				k.type,
 				(
 					SELECT COUNT(DISTINCT f.toc_id)
-					FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' AS f
-					JOIN ' . $this->prefix . $this->options[self::WORD] . ' AS w ON w.id = f.word_id
+					FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' AS f
+					JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
 					WHERE k.keyword = w.name
 				) AS usage_num
-			FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' AS k
-			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = k.toc_id
+			FROM ' . $this->getTableName(self::KEYWORD_INDEX) . ' AS k
+			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = k.toc_id
 			WHERE k.keyword IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 		';
 
 		try {
 			$st = $this->pdo->prepare($sql);
 			$st->execute($words);
-		}
-		catch (\PDOException $e) {
+		} catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
 				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while single keywords searching:' . $e->getMessage(), $e->getCode(), $e);
 		}
 
 		$data = $st->fetchAll(\PDO::FETCH_ASSOC);
@@ -220,11 +226,11 @@ class PdoStorage implements
 		$threshold = Finder::fulltextRateExcludeNum($this->getTocSize());
 		$result    = array();
 		foreach ($data as $row) {
-			if ($row['type'] == Finder::TYPE_TITLE && $row['usage_num'] > $threshold) {
+			if ($row['type'] === Finder::TYPE_TITLE && $row['usage_num'] > $threshold) {
 				continue;
 			}
 
-			// TODO Making items unique seems to be a hack for caller. Rewrite indexing?
+			// TODO Making items unique seems to be a hack for caller. Rewrite indexing using INSERT IGNORE?
 			$result[$row['keyword']][$row['external_id']] = $row['type'];
 		}
 
@@ -233,25 +239,27 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function getMultipleKeywordIndexByString($string)
 	{
 		$sql = '
 			SELECT t.external_id, k.type
-			FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' AS k
-			JOIN ' . $this->prefix . $this->options[self::TOC] . ' AS t ON t.id = k.toc_id
+			FROM ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' AS k
+			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = k.toc_id
 			WHERE k.keyword LIKE ? ESCAPE \'=\'
 		';
 
 		try {
 			$statement = $this->pdo->prepare($sql);
 			$statement->execute(array('% ' . $this->escapeLike($string, '=') . ' %'));
-		}
-		catch (\PDOException $e) {
+		} catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
 				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while multiple keywords searching:' . $e->getMessage(), $e->getCode(), $e);
 		}
 
 		// TODO \PDO::FETCH_UNIQUE seems to be a hack for caller. Rewrite?
@@ -275,6 +283,9 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function findTocByTitle($title)
 	{
@@ -283,39 +294,43 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function removeFromIndex($externalId)
 	{
 		try {
 			$tocId = $this->getInternalIdFromExternalId($externalId);
-		}
-		catch (UnknownIdException $e) {
+		} catch (UnknownIdException $e) {
 			return;
 		}
 
 		try {
-			$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' WHERE toc_id = ?');
+			$st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' WHERE toc_id = ?');
 			$st->execute(array($tocId));
 
-			$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' WHERE toc_id = ?');
+			$st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::KEYWORD_INDEX) . ' WHERE toc_id = ?');
 			$st->execute(array($tocId));
 
-			$st = $this->pdo->prepare('DELETE FROM ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' WHERE toc_id = ?');
+			$st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' WHERE toc_id = ?');
 			$st->execute(array($tocId));
-		}
-		catch (\PDOException $e) {
-			if ($e->errorInfo[1] == 1412) {
+		} catch (\PDOException $e) {
+			if (1412 === (int)$e->errorInfo[1]) {
 				throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
 			}
 			if ($e->getCode() === '42S02') {
 				throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while removing from index:' . $e->getMessage(), $e->getCode(), $e);
 		}
 	}
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function addToFulltext(array $words, $externalId)
 	{
@@ -328,14 +343,17 @@ class PdoStorage implements
 
 		$data = array();
 		foreach ($words as $position => $word) {
-			$expr        = $wordIds[$word] . ',' . $internalId . ',' . ((int) $position);
+			$expr        = $wordIds[$word] . ',' . $internalId . ',' . ((int)$position);
 			$data[$expr] = $expr;
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::FULLTEXT_INDEX] . ' (word_id, toc_id, position) VALUES ( ' . implode('),(', $data) . ')';
+		$sql = 'INSERT INTO ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (word_id, toc_id, position) VALUES ( ' . implode('),(', $data) . ')';
 
-		$st = $this->pdo->prepare($sql);
-		$st->execute();
+		try {
+			$this->pdo->exec($sql);
+		} catch (\PDOException $e) {
+			throw new UnknownException('Unknown exception occurred while fulltext indexing:' . $e->getMessage(), $e->getCode(), $e);
+		}
 	}
 
 	/**
@@ -349,6 +367,8 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
 	public function addToSingleKeywordIndex($word, $externalId, $type)
 	{
@@ -356,17 +376,22 @@ class PdoStorage implements
 
 		$data = array();
 		foreach (array($word) as $keyword) {// Ready for bulk insert
-			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int) $type);
+			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int)$type);
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::KEYWORD_INDEX] . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
+		$sql = 'INSERT INTO ' . $this->getTableName(self::KEYWORD_INDEX) . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
 
-		$st = $this->pdo->prepare($sql);
-		$st->execute();
+		try {
+			$this->pdo->exec($sql);
+		} catch (\PDOException $e) {
+			throw new UnknownException('Unknown exception occurred while single keyword indexing:' . $e->getMessage(), $e->getCode(), $e);
+		}
 	}
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
 	public function addToMultipleKeywordIndex($string, $externalId, $type)
 	{
@@ -374,26 +399,29 @@ class PdoStorage implements
 
 		$data = array();
 		foreach (array($string) as $keyword) {// Ready for bulk insert
-			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int) $type);
+			$data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int)$type);
 		}
 
-		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::KEYWORD_MULTIPLE_INDEX] . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
+		$sql = 'INSERT INTO ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
 
-		$st = $this->pdo->prepare($sql);
-		$st->execute();
+		try {
+			$this->pdo->exec($sql);
+		} catch (\PDOException $e) {
+			throw new UnknownException('Unknown exception occurred while multiple keyword indexing:' . $e->getMessage(), $e->getCode(), $e);
+		}
 	}
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
 	public function addItemToToc(TocEntry $entry, $externalId)
 	{
 		try {
 			$tocId = $this->getInternalIdFromExternalId($externalId);
-		}
-		catch (UnknownIdException $e) {
+		} catch (UnknownIdException $e) {
 			try {
-				$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::TOC] .
+				$sql = 'INSERT INTO ' . $this->getTableName(self::TOC) .
 					' (external_id, title, description, added_at, url, hash) VALUES (?, ?, ?, ?, ?, ?)';
 
 				$statement = $this->pdo->prepare($sql);
@@ -412,24 +440,21 @@ class PdoStorage implements
 				$this->tocCache[$externalId] = $entry;
 
 				return;
-			}
-			catch (\PDOException $e) {
-				if ($e->errorInfo[1] == 1062) {
+			} catch (\PDOException $e) {
+				if (1062 === (int)$e->errorInfo[1]) {
 					// Duplicate entry for external_id key.
 					// Other process has already inserted the TOC entry. Refresh the cache.
 					$this->clearTocCache();
 					$tocId = $this->getInternalIdFromExternalId($externalId);
-				}
-				elseif ($e->getCode() === '42S02') {
+				} elseif ($e->getCode() === '42S02') {
 					throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
-				}
-				else {
-					throw $e;
+				} else {
+					throw new UnknownException('Unknown exception occurred while adding to TOC:' . $e->getMessage(), $e->getCode(), $e);
 				}
 			}
 		}
 
-		$sql = 'UPDATE ' . $this->prefix . $this->options[self::TOC] .
+		$sql = 'UPDATE ' . $this->getTableName(self::TOC) .
 			' SET title = ?, description = ?, added_at = ?, url = ?, hash = ? WHERE id = ?';
 
 		$statement = $this->pdo->prepare($sql);
@@ -448,6 +473,9 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function getTocByExternalId($externalId)
 	{
@@ -462,6 +490,9 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function getTocSize()
 	{
@@ -470,23 +501,25 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function removeFromToc($externalId)
 	{
 		$sql = '
-			DELETE FROM ' . $this->prefix . $this->options[self::TOC] . '
+			DELETE FROM ' . $this->getTableName(self::TOC) . '
 			WHERE external_id = ?
 		';
 
 		try {
-			$st  = $this->pdo->prepare($sql);
+			$st = $this->pdo->prepare($sql);
 			$st->execute(array($externalId));
-		}
-		catch (\PDOException $e) {
+		} catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
 				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while removing from TOC:' . $e->getMessage(), $e->getCode(), $e);
 		}
 		unset($this->tocCache[$externalId]);
 	}
@@ -519,6 +552,9 @@ class PdoStorage implements
 	 * @param string[] $words
 	 *
 	 * @return int[]
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
 	protected function getWordIds(array $words)
 	{
@@ -527,8 +563,7 @@ class PdoStorage implements
 		foreach ($words as $k => $word) {
 			if (isset($this->cachedWordIds[$word])) {
 				$knownWords[$word] = $this->cachedWordIds[$word];
-			}
-			else {
+			} else {
 				$unknownWords[$word] = 1;
 			}
 		}
@@ -552,14 +587,13 @@ class PdoStorage implements
 		// I've tried the unique index on the name field, but it slows down
 		// select queries.
 		// Now there are no duplicates due to "SELECT ... LOCK IN SHARE MODE".
-		$sql = 'INSERT INTO ' . $this->prefix . $this->options[self::WORD] . ' (name) VALUES ("' . implode(
+		$sql = 'INSERT INTO ' . $this->getTableName(self::WORD) . ' (name) VALUES ("' . implode(
 				'"),("',
 				array_map(function ($x) {
 					return addslashes($x);
 				}, array_keys($unknownWords))
 			) . '")';
-		$st  = $this->pdo->prepare($sql);
-		$st->execute();
+		$this->pdo->exec($sql);
 
 		$ids = $this->fetchIdsFromWords(array_keys($unknownWords));
 		foreach ($ids as $word => $id) {
@@ -572,13 +606,16 @@ class PdoStorage implements
 			return $knownWords;
 		}
 
-		throw new \LogicException('Inserted rows not found.');
+		throw new LogicException('Inserted rows not found.');
 	}
 
 	/**
 	 * @param string $externalId
 	 *
 	 * @return int
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	private function getInternalIdFromExternalId($externalId)
 	{
@@ -595,12 +632,15 @@ class PdoStorage implements
 	 * @param string[] $words
 	 *
 	 * @return array
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	private function fetchIdsFromWords(array $words)
 	{
 		$sql = '
 			SELECT name, id
-			FROM ' . $this->prefix . $this->options[self::WORD] . ' AS w
+			FROM ' . $this->getTableName(self::WORD) . ' AS w
 			WHERE name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 			LOCK IN SHARE MODE
 		';
@@ -608,12 +648,11 @@ class PdoStorage implements
 		try {
 			$st = $this->pdo->prepare($sql);
 			$st->execute(array_values($words));
-		}
-		catch (\PDOException $e) {
-			if ($e->errorInfo[1] == 1412) {
+		} catch (\PDOException $e) {
+			if (1412 === (int)$e->errorInfo[1]) {
 				throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while reading word dictionary:' . $e->getMessage(), $e->getCode(), $e);
 		}
 
 		return $st->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE) ?: array();
@@ -623,6 +662,9 @@ class PdoStorage implements
 	 * @param array $params
 	 *
 	 * @return array
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	private function getTocEntries(array $params = array())
 	{
@@ -630,25 +672,22 @@ class PdoStorage implements
 			if (isset($params['title'])) {
 				$sql = '
 					SELECT *
-					FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t
+					FROM ' . $this->getTableName(self::TOC) . ' AS t
 					WHERE t.title LIKE ? ESCAPE \'=\'
 				';
 
 				$st = $this->pdo->prepare($sql);
 				$st->execute(array('%' . $this->escapeLike($params['title'], '=') . '%'));
-			}
-			else {
-				$sql = 'SELECT * FROM ' . $this->prefix . $this->options[self::TOC] . ' AS t';
+			} else {
+				$sql = 'SELECT * FROM ' . $this->getTableName(self::TOC) . ' AS t';
 
-				$st = $this->pdo->prepare($sql);
-				$st->execute();
+				$st = $this->pdo->query($sql);
 			}
-		}
-		catch (\PDOException $e) {
+		} catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
 				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
 			}
-			throw $e;
+			throw new UnknownException('Unknown exception occurred while reading TOC:' . $e->getMessage(), $e->getCode(), $e);
 		}
 
 		$result = array();
@@ -670,6 +709,9 @@ class PdoStorage implements
 
 	/**
 	 * @return array
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	private function getTocCache()
 	{
@@ -684,10 +726,11 @@ class PdoStorage implements
 	 * @param string $externalId
 	 *
 	 * @return mixed
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
 	private function selectInternalId($externalId)
 	{
-		$sql = 'SELECT id FROM ' . $this->prefix . $this->options[self::TOC] . ' WHERE external_id = ?';
+		$sql = 'SELECT id FROM ' . $this->getTableName(self::TOC) . ' WHERE external_id = ?';
 
 		$statement = $this->pdo->prepare($sql);
 		$statement->execute(array($externalId));
@@ -702,5 +745,20 @@ class PdoStorage implements
 	public function clearTocCache()
 	{
 		$this->tocCache = null;
+	}
+
+	/**
+	 * @param string $key
+	 *
+	 * @return string
+	 * @throws \S2\Rose\Exception\LogicException
+	 */
+	private function getTableName($key)
+	{
+		if (!isset($this->options[$key])) {
+			throw new LogicException(sprintf('Unknown table "%s"', $key));
+		}
+
+		return $this->prefix . $this->options[$key];
 	}
 }
