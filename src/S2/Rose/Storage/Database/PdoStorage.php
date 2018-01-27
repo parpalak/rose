@@ -93,6 +93,11 @@ class PdoStorage implements
 
 		try {
 			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
+			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
+
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
                 id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                 external_id VARCHAR(255) NOT NULL,
@@ -105,7 +110,6 @@ class PdoStorage implements
                 UNIQUE KEY (external_id)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
                 word_id INT(11) UNSIGNED NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
@@ -114,7 +118,6 @@ class PdoStorage implements
                 KEY (toc_id)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
                 id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                 name VARCHAR(255) NOT NULL DEFAULT "",
@@ -122,7 +125,6 @@ class PdoStorage implements
                 KEY (name)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
                 keyword VARCHAR(255) NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
@@ -131,7 +133,6 @@ class PdoStorage implements
                 KEY (toc_id)
             ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
 
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
                 keyword VARCHAR(255) NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
