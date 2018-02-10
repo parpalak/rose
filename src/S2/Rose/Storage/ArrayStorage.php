@@ -117,19 +117,19 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 		}
 		unset($data);
 
-		foreach ($this->indexBaseKeywords as &$data) {
-			if (isset($data[$internalId])) {
-				unset($data[$internalId]);
+		foreach ($this->indexBaseKeywords as &$data2) {
+			if (isset($data2[$internalId])) {
+				unset($data2[$internalId]);
 			}
 		}
-		unset($data);
+		unset($data2);
 
-		foreach ($this->indexMultiKeywords as &$data) {
-			if (isset($data[$internalId])) {
-				unset($data[$internalId]);
+		foreach ($this->indexMultiKeywords as &$data3) {
+			if (isset($data3[$internalId])) {
+				unset($data3[$internalId]);
 			}
 		}
-		unset($data);
+		unset($data3);
 	}
 
 	/**
@@ -264,8 +264,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 		}
 
 		$internalId = $this->toc[$externalId]->getInternalId();
-		unset($this->externalIdMap[$internalId]);
-		unset($this->toc[$externalId]);
+		unset($this->externalIdMap[$internalId], $this->toc[$externalId]);
 	}
 
 	/**
@@ -275,7 +274,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	{
 		$result = array();
 		foreach ($this->toc as $externalId => $entry) {
-			if (strpos(mb_strtolower($entry->getTitle()), mb_strtolower($title)) !== false) {
+			if (mb_stripos($entry->getTitle(), $title) !== false) {
 				$result[$externalId] = $entry;
 			}
 		}

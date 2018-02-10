@@ -12,7 +12,7 @@ namespace S2\Rose\Storage;
 class ArrayFulltextStorage implements FulltextProxyInterface
 {
 	/**
-	 * @var array
+	 * @var array|string[][]
 	 */
 	protected $fulltextIndex = array();
 

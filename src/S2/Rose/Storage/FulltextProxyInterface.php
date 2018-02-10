@@ -33,7 +33,7 @@ interface FulltextProxyInterface
 	/**
 	 * @param int $threshold
 	 *
-	 * @return mixed
+	 * @return array|int[]
 	 */
 	public function getFrequentWords($threshold);
 
