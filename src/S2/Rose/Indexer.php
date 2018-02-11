@@ -89,8 +89,7 @@ class Indexer
 
 		if (strpos($word, ' ') !== false) {
 			$this->storage->addToMultipleKeywordIndex($word, $externalId, $type);
-		}
-		else {
+		} else {
 			$this->storage->addToSingleKeywordIndex($word, $externalId, $type);
 		}
 	}
@@ -104,8 +103,8 @@ class Indexer
 	protected function addToIndex($externalId, $title, $content, $keywords)
 	{
 		// Processing title
-		foreach (self::arrayFromStr($title) as $word) {
-			$this->addKeywordToIndex($this->stemmer->stemWord(trim($word)), $externalId, Finder::TYPE_TITLE);
+		foreach (self::arrayFromStr($title) as $titleWord) {
+			$this->addKeywordToIndex($this->stemmer->stemWord(trim($titleWord)), $externalId, Finder::TYPE_TITLE);
 		}
 
 		// Processing keywords
@@ -122,7 +121,7 @@ class Indexer
 		$subwords = array();
 
 		foreach ($words as $i => &$word) {
-			if ($word == '-' || $this->storage->isExcluded($word)) {
+			if ($word === '-' || $this->storage->isExcluded($word)) {
 				unset($words[$i]);
 				continue;
 			}
@@ -131,7 +130,7 @@ class Indexer
 			if (strlen($word) > 1 && false !== strpos($word, '-')) {
 				foreach (explode('-', $word) as $k => $subword) {
 					if ($subword) {
-						$subwords[(string) ($i + 0.1 * $k)] = $this->stemmer->stemWord($subword);
+						$subwords[(string)($i + 0.1 * $k)] = $this->stemmer->stemWord($subword);
 					}
 				}
 			}
@@ -149,16 +148,15 @@ class Indexer
 	 */
 	public function removeById($externalId)
 	{
-		$tocEntry = $this->storage->getTocByExternalId($externalId);
-
-		if ($tocEntry) {
-			$this->storage->removeFromIndex($externalId);
-			$this->storage->removeFromToc($externalId);
-		}
+		$this->storage->removeFromIndex($externalId);
+		$this->storage->removeFromToc($externalId);
 	}
 
 	/**
 	 * @param Indexable $indexable
+	 *
+	 * @throws \S2\Rose\Exception\RuntimeException
+	 * @throws \S2\Rose\Exception\UnknownException
 	 */
 	public function index(Indexable $indexable)
 	{
@@ -167,7 +165,7 @@ class Indexer
 				$this->storage->startTransaction();
 			}
 
-			$externalId  = $indexable->getId();
+			$externalId    = $indexable->getId();
 			$oldTocEntry = $this->storage->getTocByExternalId($externalId);
 
 			$this->storage->addItemToToc($indexable->toTocEntry(), $externalId);
@@ -185,8 +183,7 @@ class Indexer
 			if ($this->storage instanceof TransactionalStorageInterface) {
 				$this->storage->commitTransaction();
 			}
-		}
-		catch (\Exception $e) {
+		} catch (\Exception $e) {
 			if ($this->storage instanceof TransactionalStorageInterface) {
 				$this->storage->rollbackTransaction();
 			}

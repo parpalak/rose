@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -42,11 +42,11 @@ interface StorageReadInterface
 	public function getMultipleKeywordIndexByString($string);
 
 	/**
-	 * @param string $externalId
+	 * @param string[] $externalIds
 	 *
-	 * @return TocEntry
+	 * @return array|TocEntry[]
 	 */
-	public function getTocByExternalId($externalId);
+	public function getTocByExternalIds($externalIds);
 
 	/**
 	 * @return int

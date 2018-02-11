@@ -7,11 +7,11 @@
 namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Finder;
-use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
@@ -25,8 +25,7 @@ use S2\Rose\Storage\TransactionalStorageInterface;
 class PdoStorage implements
 	StorageWriteInterface,
 	StorageReadInterface,
-	TransactionalStorageInterface,
-	CacheableStorageInterface
+	TransactionalStorageInterface
 {
 	const TOC                    = 'toc';
 	const WORD                   = 'word';
@@ -52,7 +51,7 @@ class PdoStorage implements
 	/**
 	 * @var array
 	 */
-	protected $tocCache;
+	protected $idMapping = array();
 
 	/**
 	 * @var array
@@ -88,7 +87,6 @@ class PdoStorage implements
 	 */
 	public function erase()
 	{
-		$this->tocCache      = array();
 		$this->cachedWordIds = array();
 
 		try {
@@ -284,6 +282,7 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\InvalidArgumentException
 	 * @throws \S2\Rose\Exception\LogicException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
@@ -295,17 +294,19 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\InvalidArgumentException
 	 * @throws \S2\Rose\Exception\LogicException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
 	public function removeFromIndex($externalId)
 	{
-		try {
-			$tocId = $this->getInternalIdFromExternalId($externalId);
-		} catch (UnknownIdException $e) {
+		$tocEntries = $this->getTocByExternalIds([$externalId]);
+		if (count($tocEntries) === 0) {
 			return;
 		}
+
+		$tocId = $tocEntries[$externalId]->getInternalId();
 
 		try {
 			$st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' WHERE toc_id = ?');
@@ -329,6 +330,7 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\UnknownIdException
 	 * @throws \S2\Rose\Exception\LogicException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
@@ -368,6 +370,7 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\UnknownIdException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Exception\LogicException
 	 */
@@ -391,6 +394,7 @@ class PdoStorage implements
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\UnknownIdException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Exception\LogicException
 	 */
@@ -438,15 +442,19 @@ class PdoStorage implements
 				$internalId = $this->selectInternalId($externalId);
 				$entry->setInternalId($internalId);
 
-				$this->tocCache[$externalId] = $entry;
+				$this->idMapping[$externalId] = $internalId;
 
 				return;
 			} catch (\PDOException $e) {
 				if (1062 === (int)$e->errorInfo[1]) {
 					// Duplicate entry for external_id key.
-					// Other process has already inserted the TOC entry. Refresh the cache.
-					$this->clearTocCache();
-					$tocId = $this->getInternalIdFromExternalId($externalId);
+					// This is an old code used when TOC was cached inside this class.
+					// TODO Research and remove if this code is dead.
+					$tocEntries = $this->getTocByExternalIds([$externalId]);
+					if (count($tocEntries) === 0) {
+						throw new LogicException('Cannot insert a TOC entry and no previous TOC entries found.');
+					}
+					$tocId = $tocEntries[$externalId]->getInternalId();
 				} elseif ($e->getCode() === '42S02') {
 					throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
 				} else {
@@ -469,35 +477,56 @@ class PdoStorage implements
 		));
 		$entry->setInternalId($tocId);
 
-		$this->tocCache[$externalId] = $entry;
+		$this->idMapping[$externalId] = $tocId;
 	}
 
 	/**
 	 * {@inheritdoc}
+	 * @throws \S2\Rose\Exception\InvalidArgumentException
 	 * @throws \S2\Rose\Exception\LogicException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 */
+	public function getTocByExternalIds($externalIds)
+	{
+		return $this->getTocEntries(['ids' => $externalIds]);
+	}
+
+	/**
+	 * {@inheritdoc}
+	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @throws \S2\Rose\Exception\UnknownException
+	 * @throws \S2\Rose\Exception\LogicException
+	 * @throws \S2\Rose\Exception\InvalidArgumentException
 	 */
 	public function getTocByExternalId($externalId)
 	{
-		$cache = $this->getTocCache();
+		$entries = $this->getTocByExternalIds(array($externalId));
 
-		if (isset($cache[$externalId])) {
-			return $cache[$externalId];
-		}
-
-		return null;
+		return count($entries) > 0 ? $entries[$externalId] : null;
 	}
 
 	/**
 	 * {@inheritdoc}
 	 * @throws \S2\Rose\Exception\LogicException
-	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @throws \S2\Rose\Exception\UnknownException
 	 */
 	public function getTocSize()
 	{
-		return count($this->getTocCache());
+		$sql = 'SELECT count(*) FROM ' . $this->getTableName(self::TOC);
+
+		try {
+			$st     = $this->pdo->query($sql);
+			$result = $st->fetch(\PDO::FETCH_COLUMN);
+		} catch (\PDOException $e) {
+			if ($e->getCode() === '42S02') {
+				throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+			}
+			throw new UnknownException('Unknown exception occurred while obtaining TOC size:' . $e->getMessage(), $e->getCode(), $e);
+		}
+
+		return $result;
 	}
 
 	/**
@@ -522,7 +551,8 @@ class PdoStorage implements
 			}
 			throw new UnknownException('Unknown exception occurred while removing from TOC:' . $e->getMessage(), $e->getCode(), $e);
 		}
-		unset($this->tocCache[$externalId]);
+
+		unset($this->idMapping[$externalId]);
 	}
 
 	/**
@@ -530,6 +560,7 @@ class PdoStorage implements
 	 */
 	public function startTransaction()
 	{
+		$this->idMapping = [];
 		$this->pdo->beginTransaction();
 	}
 
@@ -539,6 +570,7 @@ class PdoStorage implements
 	public function commitTransaction()
 	{
 		$this->pdo->commit();
+		$this->idMapping = [];
 	}
 
 	/**
@@ -614,19 +646,15 @@ class PdoStorage implements
 	 * @param string $externalId
 	 *
 	 * @return int
-	 * @throws \S2\Rose\Exception\LogicException
-	 * @throws \S2\Rose\Exception\UnknownException
-	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @throws \S2\Rose\Exception\UnknownIdException
 	 */
 	private function getInternalIdFromExternalId($externalId)
 	{
-		$tocEntry = $this->getTocByExternalId($externalId);
-
-		if (!$tocEntry) {
+		if (!isset($this->idMapping[$externalId])) {
 			throw UnknownIdException::createIndexMissingExternalId($externalId);
 		}
 
-		return $tocEntry->getInternalId();
+		return $this->idMapping[$externalId];
 	}
 
 	/**
@@ -660,17 +688,18 @@ class PdoStorage implements
 	}
 
 	/**
-	 * @param array $params
+	 * @param array $criteria
 	 *
 	 * @return array
-	 * @throws \S2\Rose\Exception\LogicException
 	 * @throws \S2\Rose\Exception\UnknownException
 	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @throws \S2\Rose\Exception\InvalidArgumentException
+	 * @throws \S2\Rose\Exception\LogicException
 	 */
-	private function getTocEntries(array $params = array())
+	private function getTocEntries(array $criteria = array())
 	{
 		try {
-			if (isset($params['title'])) {
+			if (isset($criteria['title'])) {
 				$sql = '
 					SELECT *
 					FROM ' . $this->getTableName(self::TOC) . ' AS t
@@ -678,11 +707,24 @@ class PdoStorage implements
 				';
 
 				$st = $this->pdo->prepare($sql);
-				$st->execute(array('%' . $this->escapeLike($params['title'], '=') . '%'));
-			} else {
-				$sql = 'SELECT * FROM ' . $this->getTableName(self::TOC) . ' AS t';
+				$st->execute(['%' . $this->escapeLike($criteria['title'], '=') . '%']);
+			} elseif (isset($criteria['ids'])) {
+				if (!is_array($criteria['ids'])) {
+					throw new InvalidArgumentException('Ids must be an array.');
+				}
+				$ids = $criteria['ids'];
+				if (count($ids) === 0) {
+					return array();
+				}
+				$sql = '
+					SELECT *
+					FROM ' . $this->getTableName(self::TOC) . ' AS t
+					WHERE t.external_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
 
-				$st = $this->pdo->query($sql);
+				$st = $this->pdo->prepare($sql);
+				$st->execute($ids);
+			} else {
+				throw new InvalidArgumentException('Criteria must contain title or ids conditions.');
 			}
 		} catch (\PDOException $e) {
 			if ($e->getCode() === '42S02') {
@@ -709,21 +751,6 @@ class PdoStorage implements
 	}
 
 	/**
-	 * @return array
-	 * @throws \S2\Rose\Exception\LogicException
-	 * @throws \S2\Rose\Exception\UnknownException
-	 * @throws \S2\Rose\Storage\Exception\EmptyIndexException
-	 */
-	private function getTocCache()
-	{
-		if ($this->tocCache === null) {
-			$this->tocCache = $this->getTocEntries();
-		}
-
-		return $this->tocCache;
-	}
-
-	/**
 	 * @param string $externalId
 	 *
 	 * @return mixed
@@ -738,14 +765,6 @@ class PdoStorage implements
 		$internalId = $statement->fetch(\PDO::FETCH_COLUMN);
 
 		return $internalId;
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function clearTocCache()
-	{
-		$this->tocCache = null;
 	}
 
 	/**

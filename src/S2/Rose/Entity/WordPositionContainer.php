@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -62,12 +62,12 @@ class WordPositionContainer
 			for ($j = $i + 1; $j < $len; $j++) {
 				$word2 = $wordMap[$j];
 
-				$referenceDistance = $referenceContainer->getClosesDistanceBetween($word1, $word2, 0);
+				$referenceDistance = $referenceContainer->getClosestDistanceBetween($word1, $word2, 0);
 				if ($referenceDistance == self::INFINITY) {
 					continue;
 				}
 
-				$distance = $this->getClosesDistanceBetween($word1, $word2, $referenceDistance);
+				$distance = $this->getClosestDistanceBetween($word1, $word2, $referenceDistance);
 
 				$result[] = array($word1, $word2, $distance);
 			}
@@ -104,9 +104,9 @@ class WordPositionContainer
 	 *
 	 * @return number
 	 */
-	public function getClosesDistanceBetween($word1, $word2, $shift = 0)
+	public function getClosestDistanceBetween($word1, $word2, $shift = 0)
 	{
-		if (!isset($this->data[$word1]) || !isset($this->data[$word2])) {
+		if (!isset($this->data[$word1], $this->data[$word2])) {
 			return self::INFINITY;
 		}
 

@@ -2,7 +2,7 @@
 /**
  * Fulltext and keyword search
  *
- * @copyright 2010-2017 Roman Parpalak
+ * @copyright 2010-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -14,7 +14,6 @@ use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Exception\UnknownKeywordTypeException;
 use S2\Rose\Stemmer\StemmerInterface;
-use S2\Rose\Storage\CacheableStorageInterface;
 use S2\Rose\Storage\StorageReadInterface;
 
 /**
@@ -68,6 +67,7 @@ class Finder
 	 * @param int $type
 	 *
 	 * @return int
+	 * @throws \S2\Rose\Exception\UnknownKeywordTypeException
 	 */
 	protected static function getKeywordWeight($type)
 	{
@@ -97,6 +97,8 @@ class Finder
 	/**
 	 * @param array     $words
 	 * @param ResultSet $resultSet
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	protected function findFulltext(array $words, ResultSet $resultSet)
 	{
@@ -114,6 +116,8 @@ class Finder
 	/**
 	 * @param string[]  $words
 	 * @param ResultSet $result
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	protected function findSimpleKeywords($words, ResultSet $result)
 	{
@@ -138,6 +142,8 @@ class Finder
 	/**
 	 * @param string    $string
 	 * @param ResultSet $result
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	protected function findSpacedKeywords($string, ResultSet $result)
 	{
@@ -151,6 +157,7 @@ class Finder
 	 * @param bool  $isDebug
 	 *
 	 * @return ResultSet
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function find(Query $query, $isDebug = false)
 	{
@@ -178,37 +185,18 @@ class Finder
 
 		$resultSet->freeze();
 
-		$emptyExternalIds      = array();
-		$hasMissingExternalIds = false;
-		foreach ($resultSet->getFoundExternalIds() as $externalId) {
-			$tocEntry = $this->storage->getTocByExternalId($externalId);
-			if ($tocEntry !== null) {
-				$resultSet->attachToc($externalId, $tocEntry);
-			}
-			else {
-				$emptyExternalIds[]    = $externalId;
-				$hasMissingExternalIds = true;
-			}
+		$foundExternalIds     = $resultSet->getFoundExternalIds();
+		$remainingExternalIds = array_flip($foundExternalIds);
+
+		foreach ($this->storage->getTocByExternalIds($foundExternalIds) as $externalId => $tocEntry) {
+			$resultSet->attachToc($externalId, $tocEntry);
+			unset($remainingExternalIds[$externalId]);
 		}
 
-		if ($hasMissingExternalIds) {
-			// Seems like there are some new indexed items
-			// missing in the storage cache. Let's clear it.
-			if ($this->storage instanceof CacheableStorageInterface) {
-				$this->storage->clearTocCache();
-			}
-
-			foreach ($resultSet->getFoundExternalIds() as $externalId) {
-				$tocEntry = $this->storage->getTocByExternalId($externalId);
-				if ($tocEntry !== null) {
-					$resultSet->attachToc($externalId, $tocEntry);
-				}
-				else {
-					// We found a result just before it was deleted.
-					// Remove it from the result set.
-					$resultSet->removeByExternalId($externalId);
-				}
-			}
+		foreach ($remainingExternalIds as $externalId => $no) {
+			// We found a result just before it was deleted.
+			// Remove it from the result set.
+			$resultSet->removeByExternalId($externalId);
 		}
 
 		return $resultSet;

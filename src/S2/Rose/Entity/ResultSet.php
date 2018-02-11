@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -152,6 +152,8 @@ class ResultSet
 	 * @param string $externalId
 	 * @param float  $weight
 	 * @param int[]  $positions
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function addWordWeight($word, $externalId, $weight, $positions = array())
 	{
@@ -182,6 +184,8 @@ class ResultSet
 	 * @param string $externalId
 	 * @param float  $weight
 	 * @param int    $distance
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function addNeighbourWeight($word1, $word2, $externalId, $weight, $distance)
 	{
@@ -197,6 +201,10 @@ class ResultSet
 	/**
 	 * @param string $externalId
 	 * @param float  $ratio
+	 *
+	 * @throws \S2\Rose\Exception\UnknownIdException
+	 * @throws \S2\Rose\Exception\RuntimeException
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function setRelevanceRatio($externalId, $ratio)
 	{
@@ -221,6 +229,7 @@ class ResultSet
 
 	/**
 	 * @return array
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function getSortedRelevanceByExternalId()
 	{
@@ -257,6 +266,8 @@ class ResultSet
 
 	/**
 	 * @param string $externalId
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function removeByExternalId($externalId)
 	{
@@ -264,14 +275,17 @@ class ResultSet
 			throw new ImmutableException('One cannot remove results after sorting the result set.');
 		}
 
-		unset($this->data[$externalId]);
-		unset($this->externalRelevanceRatios[$externalId]);
-		unset($this->items[$externalId]);
-		unset($this->positions[$externalId]);
+		unset(
+			$this->data[$externalId],
+			$this->externalRelevanceRatios[$externalId],
+			$this->items[$externalId],
+			$this->positions[$externalId]
+		);
 	}
 
 	/**
 	 * @return array
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function getFoundWordPositionsByExternalId()
 	{
@@ -312,6 +326,8 @@ class ResultSet
 	/**
 	 * @param string  $externalId
 	 * @param Snippet $snippet
+	 *
+	 * @throws \S2\Rose\Exception\UnknownIdException
 	 */
 	public function attachSnippet($externalId, Snippet $snippet)
 	{
@@ -323,6 +339,7 @@ class ResultSet
 
 	/**
 	 * @return ResultItem[]
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function getItems()
 	{
@@ -345,6 +362,7 @@ class ResultSet
 
 	/**
 	 * @return string[]
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function getFoundExternalIds()
 	{
@@ -357,6 +375,7 @@ class ResultSet
 
 	/**
 	 * @return string[]
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function getSortedExternalIds()
 	{
@@ -365,6 +384,8 @@ class ResultSet
 
 	/**
 	 * @return array
+	 * @throws \S2\Rose\Exception\UnknownIdException
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function getTrace()
 	{

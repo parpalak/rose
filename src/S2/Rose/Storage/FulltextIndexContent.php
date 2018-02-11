@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -35,7 +35,7 @@ class FulltextIndexContent
 	}
 
 	/**
-	 * @return array
+	 * @return array|int[][][]
 	 */
 	public function toArray()
 	{

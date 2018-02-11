@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -14,7 +14,7 @@ class UnknownIdException extends RuntimeException
 	/**
 	 * @param string $externalId
 	 *
-	 * @return static
+	 * @return UnknownIdException
 	 */
 	public static function createIndexMissingExternalId($externalId)
 	{
@@ -24,7 +24,7 @@ class UnknownIdException extends RuntimeException
 	/**
 	 * @param string $externalId
 	 *
-	 * @return static
+	 * @return UnknownIdException
 	 */
 	public static function createResultMissingExternalId($externalId)
 	{

@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -22,10 +22,10 @@ class WordPositionContainerTest extends Unit
 			'word2' => [2, 57],
 		]);
 
-		$this->assertEquals(1, $container->getClosesDistanceBetween('word1', 'word2', 0));
-		$this->assertEquals(-1, $container->getClosesDistanceBetween('word2', 'word1', 0));
-		$this->assertEquals(23 - 2 - 20, $container->getClosesDistanceBetween('word2', 'word1', 20));
-		$this->assertEquals(23 - 2 - 25, $container->getClosesDistanceBetween('word2', 'word1', 25));
+		$this->assertEquals(1, $container->getClosestDistanceBetween('word1', 'word2', 0));
+		$this->assertEquals(-1, $container->getClosestDistanceBetween('word2', 'word1', 0));
+		$this->assertEquals(23 - 2 - 20, $container->getClosestDistanceBetween('word2', 'word1', 20));
+		$this->assertEquals(23 - 2 - 25, $container->getClosestDistanceBetween('word2', 'word1', 25));
 	}
 
 	public function testCompare()

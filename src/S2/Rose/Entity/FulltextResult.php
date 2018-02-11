@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -98,6 +98,8 @@ class FulltextResult
 
 	/**
 	 * @param ResultSet $resultSet
+	 *
+	 * @throws \S2\Rose\Exception\ImmutableException
 	 */
 	public function fillResultSet(ResultSet $resultSet)
 	{

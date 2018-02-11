@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -181,6 +181,21 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 	public function addToMultipleKeywordIndex($string, $externalId, $type)
 	{
 		$this->indexMultiKeywords[$string][$this->internalIdFromExternalId($externalId)] = $type;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function getTocByExternalIds($externalIds)
+	{
+		$result = array();
+		foreach ($externalIds as $externalId) {
+			if (isset($this->toc[$externalId])) {
+				$result[$externalId] = $this->toc[$externalId];
+			}
+		}
+
+		return $result;
 	}
 
 	/**

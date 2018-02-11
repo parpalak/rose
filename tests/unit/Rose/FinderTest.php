@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -102,8 +102,10 @@ class FinderTest extends Unit
 				}
 				return $result;
 			},
-			'getTocByExternalId' => function ($id) {
-				return new TocEntry('Title ' . $id, '', null, 'url_' . $id, 'hash_' . $id);
+			'getTocByExternalIds' => function (array $ids) {
+				return array_map(function ($id) {
+					return new TocEntry('Title ' . $id, '', null, 'url_' . $id, 'hash_' . $id);
+				}, array_combine($ids, $ids));
 			}
 		));
 

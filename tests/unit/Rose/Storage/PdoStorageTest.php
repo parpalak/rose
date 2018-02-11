@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -74,8 +74,7 @@ class PdoStorageTest extends Unit
 		$this->assertNotNull($entry);
 
 		$storage->removeFromToc('id_2');
-		$entry = $storage->getTocByExternalId('id_2');
-		$this->assertNull($entry);
+		$this->assertCount(0, $storage->getTocByExternalIds(['id_2']));
 
 		$fulltextResult = $storage->fulltextResultByWords(['word2']);
 		$this->assertEquals(['id_1' => [2]], $fulltextResult->toArray()['word2']);
@@ -84,8 +83,7 @@ class PdoStorageTest extends Unit
 		$storage = new PdoStorage($this->pdo, 'test_');
 
 		// ... make sure the cache works properly
-		$entry = $storage->getTocByExternalId('id_2');
-		$this->assertNull($entry);
+		$this->assertCount(0, $storage->getTocByExternalIds(['id_2']));
 
 		$fulltextResult = $storage->fulltextResultByWords(['word2']);
 		$this->assertEquals(['id_1' => [2]], $fulltextResult->toArray()['word2']);
@@ -100,8 +98,7 @@ class PdoStorageTest extends Unit
 		$this->assertNotNull($entry);
 
 		$storage->removeFromToc('id_1');
-		$entry = $storage->getTocByExternalId('id_1');
-		$this->assertNull($entry);
+		$this->assertCount(0, $storage->getTocByExternalIds(['id_1']));
 	}
 
 	public function testParallelProcesses()
@@ -210,7 +207,7 @@ class PdoStorageTest extends Unit
 	}
 
 	/**
-	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @expectedException \S2\Rose\Exception\UnknownIdException
 	 */
 	public function testNonExistentDbAddToFulltext()
 	{
@@ -219,7 +216,7 @@ class PdoStorageTest extends Unit
 	}
 
 	/**
-	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @expectedException \S2\Rose\Exception\UnknownIdException
 	 */
 	public function testNonExistentDbAddToSingleKeywordIndex()
 	{
@@ -228,7 +225,7 @@ class PdoStorageTest extends Unit
 	}
 
 	/**
-	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
+	 * @expectedException \S2\Rose\Exception\UnknownIdException
 	 */
 	public function testNonExistentDbAddToMultipleKeywordIndex()
 	{
@@ -239,10 +236,10 @@ class PdoStorageTest extends Unit
 	/**
 	 * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
 	 */
-	public function testNonExistentDbGetTocByExternalId()
+	public function testNonExistentDbGetTocByExternalIds()
 	{
 		$storage = new PdoStorage($this->pdo, 'non_existent_');
-		$storage->getTocByExternalId('id_1');
+		$storage->getTocByExternalIds(['id_1'])['id_1'];
 	}
 
 	/**
