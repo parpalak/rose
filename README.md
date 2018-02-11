@@ -3,7 +3,7 @@ This is a simple search engine for content sites with partial Russian morphology
 
 ## Requirements
 
-1. PHP 5.4 or later.
+1. PHP 5.6 or later. [![Build Status](https://travis-ci.org/parpalak/rose.svg?branch=master)](https://travis-ci.org/parpalak/rose)
 2. A relational database like MySQL in case of significant content size.
 
 ## Installation
