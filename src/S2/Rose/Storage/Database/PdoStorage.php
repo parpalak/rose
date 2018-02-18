@@ -89,6 +89,20 @@ class PdoStorage implements
 	{
 		$this->cachedWordIds = array();
 
+		$charset = $this->pdo->query("SELECT @@character_set_connection")->fetchColumn();
+
+		if ($charset === 'utf8mb4') {
+			$large_prefix = $this->pdo->query("SELECT @@innodb_large_prefix")->fetchColumn();
+
+			// 767 = InnoDB w/o large prefix limit
+			// 4 = max of UTF-8 char
+			// intdiv(767, 4) = 191
+			$key_len = $large_prefix ? 255 : 191;
+		} else {
+			$key_len = 255;
+			$charset = 'utf8';
+		}
+
 		try {
 			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
 			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
@@ -105,8 +119,8 @@ class PdoStorage implements
                 url TEXT NOT NULL,
                 hash VARCHAR(80) NOT NULL DEFAULT "",
                 PRIMARY KEY (`id`),
-                UNIQUE KEY (external_id)
-            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+                UNIQUE KEY (external_id('.$key_len.'))
+            ) ENGINE=InnoDB CHARACTER SET '.$charset);
 
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
                 word_id INT(11) UNSIGNED NOT NULL,
@@ -114,30 +128,30 @@ class PdoStorage implements
                 position INT(11) UNSIGNED NOT NULL,
                 PRIMARY KEY (word_id, toc_id, position),
                 KEY (toc_id)
-            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+            ) ENGINE=InnoDB CHARACTER SET '.$charset);
 
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
                 id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
                 name VARCHAR(255) NOT NULL DEFAULT "",
                 PRIMARY KEY (`id`),
-                KEY (name)
-            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+                KEY (name('.$key_len.'))
+            ) ENGINE=InnoDB CHARACTER SET '.$charset);
 
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
                 keyword VARCHAR(255) NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
                 type INT(11) UNSIGNED NOT NULL,
-                KEY (keyword),
+                KEY (keyword('.$key_len.')),
                 KEY (toc_id)
-            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+            ) ENGINE=InnoDB CHARACTER SET '.$charset);
 
 			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
                 keyword VARCHAR(255) NOT NULL,
                 toc_id INT(11) UNSIGNED NOT NULL,
                 type INT(11) UNSIGNED NOT NULL,
-                KEY (keyword),
+                KEY (keyword('.$key_len.')),
                 KEY (toc_id)
-            ) ENGINE=InnoDB CHARACTER SET utf8 COLLATE utf8_general_ci;');
+            ) ENGINE=InnoDB CHARACTER SET '.$charset);
 
 		} catch (\PDOException $e) {
 			if ($e->getCode() === '42000') {
