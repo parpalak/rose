@@ -132,7 +132,7 @@ class IntegrationTest extends Unit
 		$resultSet3 = $finder->find(new Query('сущность Plus'));
 		$snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);
 		$this->assertEquals(
-			'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде +. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
+			'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде &plus;. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
 			$resultSet3->getItems()['id_3']->getSnippet()
 		);
 

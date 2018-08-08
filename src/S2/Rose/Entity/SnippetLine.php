@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2018 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,11 +8,10 @@ namespace S2\Rose\Entity;
 
 use S2\Rose\Exception\RuntimeException;
 
-/**
- * Class SnippetLine
- */
 class SnippetLine
 {
+	const STORE_MARKER = "\r";
+
 	/**
 	 * @var string[]
 	 */
@@ -29,8 +28,16 @@ class SnippetLine
 	protected $foundStemCount = 0;
 
 	/**
-	 * SnippetLine constructor.
-	 *
+	 * @var string|null
+	 */
+	protected $lineWithoutEntities;
+
+	/**
+	 * @var string[]
+	 */
+	protected $storedEntities;
+
+	/**
 	 * @param string   $line
 	 * @param string[] $foundWords
 	 * @param int      $foundStemCount
@@ -71,14 +78,7 @@ class SnippetLine
 			throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
 		}
 
-		$line       = $this->line;
-		$quoteStyle = defined('ENT_HTML5') ? (ENT_HTML5 | ENT_NOQUOTES) : ENT_NOQUOTES;
-		$line       = html_entity_decode($line, $quoteStyle, 'UTF-8');
-
-		// prev versions
-		//$snippet[$lineNum] = strtr($lines[$lineNum], $replace);
-		// Cleaning up HTML entites TODO $word may be undefined
-		//$snippet[$lineNum] = preg_replace('#&[^;]{0,10}(?:<i>' . preg_quote($word, '#') . '</i>[^;]{0,15})+;#ue', 'str_replace(array("<i>", "</i>"), "", "\\0")', $snippet[$lineNum]);
+		$line = $this->getLineWithoutEntities();
 
 		$replacedLine = preg_replace_callback(
 			'#\b(' . implode('|', $this->foundWords) . ')\b#su',
@@ -90,6 +90,57 @@ class SnippetLine
 			$count
 		);
 
-		return $replacedLine;
+		return $this->restoreEntities($replacedLine);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function getLineWithoutEntities()
+	{
+		if ($this->lineWithoutEntities !== null) {
+			return $this->lineWithoutEntities;
+		}
+
+		// Remove substrings that are not store markers
+		$this->lineWithoutEntities = str_replace(self::STORE_MARKER, '', $this->line);
+
+		$storedEntities = array();
+		$storeMarker    = self::STORE_MARKER;
+
+		$this->lineWithoutEntities = preg_replace_callback(
+			'#&(\\#[1-9]\d{1,3}|[A-Za-z][0-9A-Za-z]+);#',
+			function (array $matches) use (&$storedEntities, $storeMarker) {
+				$storedEntities[] = $matches[0];
+
+				return $storeMarker;
+			},
+			$this->line
+		);
+
+		$this->storedEntities = $storedEntities;
+
+		return $this->lineWithoutEntities;
+	}
+
+	/**
+	 * @param string $line
+	 *
+	 * @return string
+	 */
+	protected function restoreEntities($line)
+	{
+		$i = 0;
+		while (true) {
+			$pos = strpos($line, self::STORE_MARKER);
+			if ($pos === false || !isset($this->storedEntities[$i])) {
+				break;
+			}
+
+			$line = substr_replace($line, $this->storedEntities[$i], $pos, strlen(self::STORE_MARKER));
+			$i++;
+		}
+
+		return $line;
 	}
 }

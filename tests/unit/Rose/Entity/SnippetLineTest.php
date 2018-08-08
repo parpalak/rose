@@ -38,6 +38,17 @@ class SnippetLineTest extends Unit
 		$this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
 	}
 
+	public function testHtmlEntities()
+	{
+		$snippetLine = new SnippetLine(
+			'This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch 160 and dash.',
+			['dash', '160'],
+			1
+		);
+
+		$this->assertEquals('This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch <i>160</i> and <i>dash</i>.', $snippetLine->getHighlighted('<i>%s</i>'));
+	}
+
 	/**
 	 * @expectedException \S2\Rose\Exception\RuntimeException
 	 */
