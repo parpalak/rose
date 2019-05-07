@@ -89,75 +89,30 @@ class PdoStorage implements
 	{
 		$this->cachedWordIds = array();
 
-		$charset = $this->pdo->query("SELECT @@character_set_connection")->fetchColumn();
-
-		if ($charset === 'utf8mb4') {
-			$large_prefix = $this->pdo->query("SELECT @@innodb_large_prefix")->fetchColumn();
-
-			// 767 = InnoDB w/o large prefix limit
-			// 4 = max of UTF-8 char
-			// intdiv(767, 4) = 191
-			$key_len = $large_prefix ? 255 : 191;
-		} else {
-			$key_len = 255;
+		$charset = $this->pdo->query('SELECT @@character_set_connection')->fetchColumn();
+		if ($charset !== 'utf8mb4') {
 			$charset = 'utf8';
 		}
 
 		try {
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
-			$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
-
-			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
-                id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-                external_id VARCHAR(255) NOT NULL,
-                title VARCHAR(255) NOT NULL DEFAULT "",
-                description TEXT NOT NULL,
-                added_at DATETIME NULL,
-                url TEXT NOT NULL,
-                hash VARCHAR(80) NOT NULL DEFAULT "",
-                PRIMARY KEY (`id`),
-                UNIQUE KEY (external_id('.$key_len.'))
-            ) ENGINE=InnoDB CHARACTER SET '.$charset);
-
-			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
-                word_id INT(11) UNSIGNED NOT NULL,
-                toc_id INT(11) UNSIGNED NOT NULL,
-                position INT(11) UNSIGNED NOT NULL,
-                PRIMARY KEY (word_id, toc_id, position),
-                KEY (toc_id)
-            ) ENGINE=InnoDB CHARACTER SET '.$charset);
-
-			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
-                id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-                name VARCHAR(255) NOT NULL DEFAULT "",
-                PRIMARY KEY (`id`),
-                KEY (name('.$key_len.'))
-            ) ENGINE=InnoDB CHARACTER SET '.$charset);
-
-			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
-                keyword VARCHAR(255) NOT NULL,
-                toc_id INT(11) UNSIGNED NOT NULL,
-                type INT(11) UNSIGNED NOT NULL,
-                KEY (keyword('.$key_len.')),
-                KEY (toc_id)
-            ) ENGINE=InnoDB CHARACTER SET '.$charset);
-
-			$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
-                keyword VARCHAR(255) NOT NULL,
-                toc_id INT(11) UNSIGNED NOT NULL,
-                type INT(11) UNSIGNED NOT NULL,
-                KEY (keyword('.$key_len.')),
-                KEY (toc_id)
-            ) ENGINE=InnoDB CHARACTER SET '.$charset);
+			try {
+				$this->dropAndCreateTables($charset, 255);
+			} catch (\PDOException $e) {
+				if ($charset === 'utf8mb4' && $e->getCode() === 'HY000') {
+					// See https://stackoverflow.com/questions/30761867/mysql-error-the-maximum-column-size-is-767-bytes
+					// In certain configurations we have only 767 bytes for index.
+					// We can index only 191 = round(767/4) characters in case of 4-bytes encoding utf8mb4.
+					$this->dropAndCreateTables($charset, 191);
+				} else {
+					throw $e;
+				}
+			}
 
 		} catch (\PDOException $e) {
 			if ($e->getCode() === '42000') {
 				throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
 			}
-			throw new UnknownException('Unknown exception occurred while creating tables:' . $e->getMessage(), $e->getCode(), $e);
+			throw new UnknownException(sprintf('Unknown exception "%s" occurred while creating tables: %s', $e->getCode(), $e->getMessage()), 0, $e);
 		}
 	}
 
@@ -794,5 +749,60 @@ class PdoStorage implements
 		}
 
 		return $this->prefix . $this->options[$key];
+	}
+
+	/**
+	 * @param string $charset
+	 * @param int    $keyLen
+	 */
+	private function dropAndCreateTables($charset, $keyLen)
+	{
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
+			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+			external_id VARCHAR(255) NOT NULL,
+			title VARCHAR(255) NOT NULL DEFAULT "",
+			description TEXT NOT NULL,
+			added_at DATETIME NULL,
+			url TEXT NOT NULL,
+			hash VARCHAR(80) NOT NULL DEFAULT "",
+			PRIMARY KEY (`id`),
+			UNIQUE KEY (external_id(' . $keyLen . '))
+		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
+			word_id INT(11) UNSIGNED NOT NULL,
+			toc_id INT(11) UNSIGNED NOT NULL,
+			position INT(11) UNSIGNED NOT NULL,
+			PRIMARY KEY (word_id, toc_id, position),
+			KEY (toc_id)
+		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
+			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+			name VARCHAR(255) NOT NULL DEFAULT "",
+			PRIMARY KEY (`id`),
+			KEY (name(' . $keyLen . '))
+		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
+			keyword VARCHAR(255) NOT NULL,
+			toc_id INT(11) UNSIGNED NOT NULL,
+			type INT(11) UNSIGNED NOT NULL,
+			KEY (keyword(' . $keyLen . ')),
+			KEY (toc_id)
+		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+		$this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
+		$this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
+			keyword VARCHAR(255) NOT NULL,
+			toc_id INT(11) UNSIGNED NOT NULL,
+			type INT(11) UNSIGNED NOT NULL,
+			KEY (keyword(' . $keyLen . ')),
+			KEY (toc_id)
+		) ENGINE=InnoDB CHARACTER SET ' . $charset);
 	}
 }
