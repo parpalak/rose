@@ -116,21 +116,21 @@ class SingleFileArrayStorage extends ArrayStorage
             }
         }
         file_put_contents($this->filename, $buffer . '}' . "\n", FILE_APPEND);
-        $this->fulltextProxy->setFulltextIndex(null);
+        $this->fulltextProxy->setFulltextIndex([]);
 
         file_put_contents($this->filename, '      //' . serialize($this->excludedWords) . "\n", FILE_APPEND);
-        $this->excludedWords = null;
+        $this->excludedWords = [];
 
         file_put_contents($this->filename, '      //' . serialize($this->indexSingleKeywords) . "\n", FILE_APPEND);
-        $this->indexSingleKeywords = null;
+        $this->indexSingleKeywords = [];
 
         file_put_contents($this->filename, '      //' . serialize($this->indexBaseKeywords) . "\n", FILE_APPEND);
-        $this->indexBaseKeywords = null;
+        $this->indexBaseKeywords = [];
 
         file_put_contents($this->filename, '      //' . serialize($this->indexMultiKeywords) . "\n", FILE_APPEND);
-        $this->indexMultiKeywords = null;
+        $this->indexMultiKeywords = [];
 
         file_put_contents($this->filename, '      //' . serialize($this->toc) . "\n", FILE_APPEND);
-        $this->toc = null;
+        $this->toc = [];
     }
 }

@@ -8,7 +8,9 @@ namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Storage\Database\PdoStorage;
+use S2\Rose\Storage\Exception\EmptyIndexException;
 
 /**
  * Class PdoStorageTest
@@ -178,11 +180,10 @@ class PdoStorageTest extends Unit
         $storage->commitTransaction();
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testBrokenDb()
     {
+        $this->expectException(EmptyIndexException::class);
+
         $storage = new PdoStorage($this->pdo, 'test_');
         $storage->erase();
 
@@ -196,111 +197,88 @@ class PdoStorageTest extends Unit
         $storage->removeFromIndex('id_1');
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbAddToToc()
     {
+        $this->expectException(EmptyIndexException::class);
+
         $storage   = new PdoStorage($this->pdo, 'non_existent_');
         $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
         $storage->addItemToToc($tocEntry1, 'id_1');
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\UnknownIdException
-     */
     public function testNonExistentDbAddToFulltext()
     {
+        $this->expectException(UnknownIdException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->addToFulltext(['word'], 'id_1');
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\UnknownIdException
-     */
     public function testNonExistentDbAddToSingleKeywordIndex()
     {
+        $this->expectException(UnknownIdException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->addToSingleKeywordIndex('keyword', 'id_1', 1);
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\UnknownIdException
-     */
     public function testNonExistentDbAddToMultipleKeywordIndex()
     {
+        $this->expectException(UnknownIdException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->addToMultipleKeywordIndex('multi keyword', 'id_1', 1);
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbGetTocByExternalIds()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->getTocByExternalIds(['id_1'])['id_1'];
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbFindTocByTitle()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->findTocByTitle('title');
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbGetTocSize()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->getTocSize();
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbFillFulltextResultForWords()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->fulltextResultByWords(['word']);
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbGetSingleKeywordIndexByString()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->getSingleKeywordIndexByWords(['keyword']);
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbGetMultipleKeywordIndexByString()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->getMultipleKeywordIndexByString('multi keyword');
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbRemoveFromToc()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->removeFromToc('id_1');
     }
 
-    /**
-     * @expectedException \S2\Rose\Storage\Exception\EmptyIndexException
-     */
     public function testNonExistentDbRemoveFromIndex()
     {
+        $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->removeFromIndex('id_1');
     }

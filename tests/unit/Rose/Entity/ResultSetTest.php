@@ -9,6 +9,9 @@ namespace S2\Rose\Test\Entity;
 use Codeception\Test\Unit;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Entity\Snippet;
+use S2\Rose\Exception\ImmutableException;
+use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Exception\UnknownIdException;
 
 /**
  * Class ResultTest
@@ -39,20 +42,16 @@ class ResultSetTest extends Unit
         $this->assertEquals(33, $data['id_23']);
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\UnknownIdException
-     */
     public function testSetRelevanceInvalidExternalId()
     {
+        $this->expectException(UnknownIdException::class);
         $result = $this->prepareResult(new ResultSet());
         $result->setRelevanceRatio('not_found', 2);
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\RuntimeException
-     */
     public function testSetRelevanceInvalidRatio()
     {
+        $this->expectException(RuntimeException::class);
         $result = $this->prepareResult(new ResultSet());
         $result->setRelevanceRatio('id_10', ['not a number']);
     }
@@ -76,12 +75,11 @@ class ResultSetTest extends Unit
         $this->assertEquals((10 + 29) * 1.1, $data['id_29']);
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     * @expectedExceptionMessage One cannot set relevance ratios after sorting the result set.
-     */
     public function testNoSetRelevanceAfterSorting()
     {
+        $this->expectException(ImmutableException::class);
+        $this->expectExceptionMessage('One cannot set relevance ratios after sorting the result set.');
+
         $result = $this->prepareResult(new ResultSet(2));
         $this->assertContains('id_10', $result->getFoundExternalIds());
 
@@ -100,65 +98,51 @@ class ResultSetTest extends Unit
         $this->assertCount(0, $data);
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     */
     public function testNotFrozenGetItems()
     {
+        $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->getItems();
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\UnknownIdException
-     */
     public function testNotFrozenAttachSnippet()
     {
+        $this->expectException(UnknownIdException::class);
         $resultSet = new ResultSet();
         $resultSet->attachSnippet('not found', new Snippet('', '', '<i>%s</i>'));
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     */
     public function testNotFrozenGetFoundExternalIds()
     {
+        $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->getFoundExternalIds();
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     */
     public function testNotFrozenSetRelevanceRatio()
     {
+        $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->setRelevanceRatio('not found', 2);
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     */
     public function testNotFrozenGetFoundWordsByExternalId()
     {
+        $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->getFoundWordPositionsByExternalId();
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     */
     public function testNotFrozenGetSortedExternalIds()
     {
+        $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->getSortedExternalIds();
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\ImmutableException
-     */
     public function testNotFrozenGetSortedRelevanceByExternalId()
     {
+        $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->getSortedRelevanceByExternalId();
     }

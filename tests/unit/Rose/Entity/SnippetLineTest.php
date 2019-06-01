@@ -8,6 +8,7 @@ namespace S2\Rose\Test\Entity;
 
 use Codeception\Test\Unit;
 use S2\Rose\Entity\SnippetLine;
+use S2\Rose\Exception\RuntimeException;
 
 /**
  * Class SnippetLineTest
@@ -49,11 +50,9 @@ class SnippetLineTest extends Unit
         $this->assertEquals('This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch <i>160</i> and <i>dash</i>.', $snippetLine->getHighlighted('<i>%s</i>'));
     }
 
-    /**
-     * @expectedException \S2\Rose\Exception\RuntimeException
-     */
     public function testCreateHighlightedFail()
     {
+        $this->expectException(RuntimeException::class);
         $snippetLine = new SnippetLine(
             'Testing string to highlight some test values, Test is case-sensitive.',
             ['test', 'is'],

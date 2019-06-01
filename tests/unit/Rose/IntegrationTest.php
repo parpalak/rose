@@ -175,7 +175,7 @@ class IntegrationTest extends Unit
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(47, $resultSet6->getItems()['id_3']->getRelevance(), '', 100);
+        $this->assertEquals(63.5, $resultSet6->getItems()['id_3']->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));
