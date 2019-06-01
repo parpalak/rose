@@ -122,13 +122,8 @@ class Finder
     protected function findSimpleKeywords($words, ResultSet $result)
     {
         $wordsWithStems = $words;
-
-        $map = [];
         foreach ($words as $word) {
             $stem = $this->stemmer->stemWord($word);
-            if ($stem != $word) {
-                $map[$stem] = $word;
-            }
             $wordsWithStems[] = $stem;
         }
 
