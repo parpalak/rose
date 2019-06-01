@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2019 Roman Parpalak
  * @license   MIT
  */
 
@@ -46,6 +46,8 @@ class IntegrationTest extends Unit
      * @param Indexable[]           $indexables
      * @param StorageReadInterface  $readStorage
      * @param StorageWriteInterface $writeStorage
+     *
+     * @throws \Exception
      */
     public function testFeatures(
         array $indexables,
@@ -172,7 +174,6 @@ class IntegrationTest extends Unit
 
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
-//		codecept_debug($resultSet6->getTrace());
         $this->assertCount(1, $resultSet6->getItems());
         $this->assertEquals(47, $resultSet6->getItems()['id_3']->getRelevance(), '', 100);
 
@@ -189,6 +190,35 @@ class IntegrationTest extends Unit
         $this->assertEquals(
             'Например, в украинском есть слово <b>ціна</b>.',
             $resultSet8->getItems()['id_3']->getSnippet()
+        );
+
+        // Query 9
+        $resultSet9 = $finder->find(new Query('7.0'));
+        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
+        $this->assertEquals(
+            'Я не помню Windows 3.1, но помню Turbo Pascal <b>7.0</b>.',
+            $resultSet9->getItems()['id_3']->getSnippet()
+        );
+
+        $resultSet9 = $finder->find(new Query('7'));
+        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
+        $this->assertEquals(
+            'В 1,<b>7</b> раз больше... Я не помню Windows 3.1, но помню Turbo Pascal <b>7</b>.0. Надо отдельно посмотреть, что ищется по одной цифре <b>7</b>...',
+            $resultSet9->getItems()['id_3']->getSnippet()
+        );
+
+        $resultSet9 = $finder->find(new Query('Windows 3'));
+        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
+        $this->assertEquals(
+            'Я не помню <b>Windows</b> <b>3</b>.1, но помню Turbo Pascal 7.0.',
+            $resultSet9->getItems()['id_3']->getSnippet()
+        );
+
+        $resultSet9 = $finder->find(new Query('Windows 3.1'));
+        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
+        $this->assertEquals(
+            'Я не помню <b>Windows</b> <b>3.1</b>, но помню Turbo Pascal 7.0.',
+            $resultSet9->getItems()['id_3']->getSnippet()
         );
     }
 
@@ -275,7 +305,7 @@ class IntegrationTest extends Unit
                 ->setDate(new \DateTime('2016-08-20 00:00:00'))
                 ->setUrl('any string')
             ,
-            (new Indexable('id_3', 'Русский текст. Красным заголовком', '<p>Для проверки работы нужно написать побольше слов. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации. Учитель не должен допускать такого.</p><p>А еще текст бывает на других языках. Например, в украинском есть слово ціна.</p>'))
+            (new Indexable('id_3', 'Русский текст. Красным заголовком', '<p>Для проверки работы нужно написать побольше слов. В 1,7 раз больше. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации. Встречаются и другие знаки препинания, например, цифры. Я не помню Windows 3.1, но помню Turbo Pascal 7.0. Надо отдельно посмотреть, что ищется по одной цифре 7... Учитель не должен допускать такого...</p><p>А еще текст бывает на других языках. Например, в украинском есть слово ціна.</p>'))
                 ->setKeywords('ключевые слова')
                 ->setDescription('')
                 ->setDate(new \DateTime('2016-08-22 00:00:00'))

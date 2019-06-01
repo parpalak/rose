@@ -2,7 +2,7 @@
 /**
  * Creates search index
  *
- * @copyright 2010-2018 Roman Parpalak
+ * @copyright 2010-2019 Roman Parpalak
  * @license   MIT
  */
 
@@ -54,12 +54,20 @@ class Indexer
      */
     public static function strFromHtml($content, $allowedSymbols = '')
     {
+        // Prevents word concatenation like this: "something.</p><p>Something else"
+        $content = str_replace( '<', ' <', $content);
         $content = strip_tags($content);
 
         $content = mb_strtolower($content);
         $content = str_replace(['&nbsp;', "\xc2\xa0"], ' ', $content);
         $content = preg_replace('#&[^;]{1,20};#', '', $content);
-        $content = preg_replace('#[^\\-0-9\\p{L}\\^_' . $allowedSymbols . ']+#u', ' ', $content);
+
+        // We allow letters, digits and some punctuation: ".,-"
+        $content = preg_replace('#[^\\-.,0-9\\p{L}\\^_' . $allowedSymbols . ']+#u', ' ', $content);
+
+        // These punctuation characters are meant to be inside words and numbers.
+        // We'll remove trailing characters when splitting the words.
+        $content .= ' ';
 
         return $content;
     }
@@ -71,7 +79,7 @@ class Indexer
      */
     protected static function arrayFromStr($contents)
     {
-        return preg_split('#[ ]+#', $contents);
+        return preg_split('#[\\-.,]*?[ ]+#S', $contents);
     }
 
     /**
@@ -118,19 +126,19 @@ class Indexer
             $content . ' ' . str_replace(', ', ' ', $keywords)
         ));
 
-        $subwords = [];
+        $subWords = [];
 
         foreach ($words as $i => &$word) {
-            if ($word === '-' || $this->storage->isExcluded($word)) {
+            if ($this->storage->isExcluded($word)) {
                 unset($words[$i]);
                 continue;
             }
 
             // If the word contains the hyphen, add a variant without it
-            if (strlen($word) > 1 && false !== strpos($word, '-')) {
-                foreach (explode('-', $word) as $k => $subword) {
-                    if ($subword) {
-                        $subwords[(string)($i + 0.1 * $k)] = $this->stemmer->stemWord($subword);
+            if (false !== strpbrk($word, '-.,')) {
+                foreach (preg_split('#[\-.,]#', $word) as $k => $subWord) {
+                    if ($subWord) {
+                        $subWords[(string)($i + 0.001 * $k)] = $this->stemmer->stemWord($subWord);
                     }
                 }
             }
@@ -140,7 +148,7 @@ class Indexer
         unset($word);
 
         $this->storage->addToFulltext($words, $externalId);
-        $this->storage->addToFulltext($subwords, $externalId);
+        $this->storage->addToFulltext($subWords, $externalId);
     }
 
     /**
