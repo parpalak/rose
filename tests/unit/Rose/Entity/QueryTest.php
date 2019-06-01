@@ -16,11 +16,11 @@ use S2\Rose\Entity\Query;
  */
 class QueryTest extends Unit
 {
-	public function testFilterInput()
-	{
-		$this->assertEquals([1, 2], (new Query('1|||2'))->valueToArray());
-		$this->assertEquals([1, 2], (new Query('1\\\\\\2'))->valueToArray());
-		$this->assertEquals(['a', 'b'], (new Query('a/b'))->valueToArray());
-		$this->assertEquals(['a', 'b'], (new Query(' a   b   '))->valueToArray());
-	}
+    public function testFilterInput()
+    {
+        $this->assertEquals([1, 2], (new Query('1|||2'))->valueToArray());
+        $this->assertEquals([1, 2], (new Query('1\\\\\\2'))->valueToArray());
+        $this->assertEquals(['a', 'b'], (new Query('a/b'))->valueToArray());
+        $this->assertEquals(['a', 'b'], (new Query(' a   b   '))->valueToArray());
+    }
 }

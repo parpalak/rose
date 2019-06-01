@@ -17,203 +17,203 @@ use S2\Rose\Stemmer\StemmerInterface;
  */
 class SnippetBuilder
 {
-	const LINE_SEPARATOR = "\r";
+    const LINE_SEPARATOR = "\r";
 
-	/**
-	 * @var StemmerInterface
-	 */
-	protected $stemmer;
+    /**
+     * @var StemmerInterface
+     */
+    protected $stemmer;
 
-	/**
-	 * @var string
-	 */
-	protected $snippetLineSeparator;
+    /**
+     * @var string
+     */
+    protected $snippetLineSeparator;
 
-	/**
-	 * SnippetBuilder constructor.
-	 *
-	 * @param StemmerInterface     $stemmer
-	 */
-	public function __construct(StemmerInterface $stemmer)
-	{
-		$this->stemmer = $stemmer;
-	}
+    /**
+     * SnippetBuilder constructor.
+     *
+     * @param StemmerInterface $stemmer
+     */
+    public function __construct(StemmerInterface $stemmer)
+    {
+        $this->stemmer = $stemmer;
+    }
 
-	/**
-	 * @param string $snippetLineSeparator
-	 *
-	 * @return SnippetBuilder
-	 */
-	public function setSnippetLineSeparator($snippetLineSeparator)
-	{
-		$this->snippetLineSeparator = $snippetLineSeparator;
+    /**
+     * @param string $snippetLineSeparator
+     *
+     * @return SnippetBuilder
+     */
+    public function setSnippetLineSeparator($snippetLineSeparator)
+    {
+        $this->snippetLineSeparator = $snippetLineSeparator;
 
-		return $this;
-	}
+        return $this;
+    }
 
-	/**
-	 * @param ResultSet $result
-	 * @param callable  $callback
-	 *
-	 * @return $this
-	 */
-	public function attachSnippets(ResultSet $result, $callback)
-	{
-		if (!is_callable($callback)) {
-			throw new InvalidArgumentException('Argument "callback" must be a callable');
-		}
+    /**
+     * @param ResultSet $result
+     * @param callable  $callback
+     *
+     * @return $this
+     */
+    public function attachSnippets(ResultSet $result, $callback)
+    {
+        if (!is_callable($callback)) {
+            throw new InvalidArgumentException('Argument "callback" must be a callable');
+        }
 
-		$externalIds = $result->getSortedExternalIds();
+        $externalIds = $result->getSortedExternalIds();
 
-		$contentArray = $callback($externalIds);
-		if (!is_array($contentArray)) {
-			throw new InvalidArgumentException(sprintf(
-				'Snippet callback must return an array. "%s" given.',
-				gettype($contentArray)
-			));
-		}
+        $contentArray = $callback($externalIds);
+        if (!is_array($contentArray)) {
+            throw new InvalidArgumentException(sprintf(
+                'Snippet callback must return an array. "%s" given.',
+                gettype($contentArray)
+            ));
+        }
 
-		$result->addProfilePoint('Snippets: obtaining');
+        $result->addProfilePoint('Snippets: obtaining');
 
-		$contentArray = $this->cleanupContent($contentArray);
+        $contentArray = $this->cleanupContent($contentArray);
 
-		$result->addProfilePoint('Snippets: cleaning');
+        $result->addProfilePoint('Snippets: cleaning');
 
-		$foundWords = $result->getFoundWordPositionsByExternalId();
+        $foundWords = $result->getFoundWordPositionsByExternalId();
 
-		foreach ($contentArray as $externalId => $content) {
-			$snippet = $this->buildSnippet(
-				$foundWords[$externalId],
-				$content,
-				$result->getHighlightTemplate()
-			);
-			$result->attachSnippet($externalId, $snippet);
-		}
+        foreach ($contentArray as $externalId => $content) {
+            $snippet = $this->buildSnippet(
+                $foundWords[$externalId],
+                $content,
+                $result->getHighlightTemplate()
+            );
+            $result->attachSnippet($externalId, $snippet);
+        }
 
-		$result->addProfilePoint('Snippets: building');
+        $result->addProfilePoint('Snippets: building');
 
-		return $this;
-	}
+        return $this;
+    }
 
-	/**
-	 * @param array $contentArray
-	 *
-	 * @return array
-	 */
-	public function cleanupContent(array $contentArray)
-	{
-		// Text cleanup
-		$replaceFrom = array(self::LINE_SEPARATOR, '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;');
-		$replaceTo   = array('', ' ', '—', '–', '«', '»');
-		foreach (array(
-			'<br>',
-			'<br />',
-			'</h1>',
-			'</h2>',
-			'</h3>',
-			'</h4>',
-			'</p>',
-			'</pre>',
-			'</blockquote>',
-			'</li>',
-		) as $tag) {
-			$replaceFrom[] = $tag;
-			$replaceTo[]   = $tag . self::LINE_SEPARATOR;
-		}
+    /**
+     * @param array $contentArray
+     *
+     * @return array
+     */
+    public function cleanupContent(array $contentArray)
+    {
+        // Text cleanup
+        $replaceFrom = [self::LINE_SEPARATOR, '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;'];
+        $replaceTo   = ['', ' ', '—', '–', '«', '»'];
+        foreach ([
+                     '<br>',
+                     '<br />',
+                     '</h1>',
+                     '</h2>',
+                     '</h3>',
+                     '</h4>',
+                     '</p>',
+                     '</pre>',
+                     '</blockquote>',
+                     '</li>',
+                 ] as $tag) {
+            $replaceFrom[] = $tag;
+            $replaceTo[]   = $tag . self::LINE_SEPARATOR;
+        }
 
-		$contentArray = str_replace($replaceFrom, $replaceTo, $contentArray);
-		foreach ($contentArray as &$string) {
-			$string = strip_tags($string);
-		}
-		unset($string);
+        $contentArray = str_replace($replaceFrom, $replaceTo, $contentArray);
+        foreach ($contentArray as &$string) {
+            $string = strip_tags($string);
+        }
+        unset($string);
 
-		// Preparing for breaking into lines
-		$contentArray = preg_replace('#(?<=[\.?!;])[ \n\t]+#sS', self::LINE_SEPARATOR, $contentArray);
+        // Preparing for breaking into lines
+        $contentArray = preg_replace('#(?<=[\.?!;])[ \n\t]+#sS', self::LINE_SEPARATOR, $contentArray);
 
-		return $contentArray;
-	}
+        return $contentArray;
+    }
 
-	/**
-	 * @param array  $foundPositionsByStems
-	 * @param string $content
-	 * @param string $highlightTemplate
-	 *
-	 * @return Snippet
-	 */
-	public function buildSnippet($foundPositionsByStems, $content, $highlightTemplate)
-	{
-		// Stems of the words found in the $id chapter
-		$stems        = array();
-		$foundWordNum = 0;
-		foreach ($foundPositionsByStems as $stem => $positions) {
-			if (empty($positions)) {
-				//  Not a fulltext search result (e.g. title from single keywords)
-				continue;
-			}
-			$stems[] = $stem;
-			$foundWordNum++;
-		}
+    /**
+     * @param array  $foundPositionsByStems
+     * @param string $content
+     * @param string $highlightTemplate
+     *
+     * @return Snippet
+     */
+    public function buildSnippet($foundPositionsByStems, $content, $highlightTemplate)
+    {
+        // Stems of the words found in the $id chapter
+        $stems        = [];
+        $foundWordNum = 0;
+        foreach ($foundPositionsByStems as $stem => $positions) {
+            if (empty($positions)) {
+                //  Not a fulltext search result (e.g. title from single keywords)
+                continue;
+            }
+            $stems[] = $stem;
+            $foundWordNum++;
+        }
 
-		// Breaking the text into lines
-		$lines = explode(self::LINE_SEPARATOR, $content);
+        // Breaking the text into lines
+        $lines = explode(self::LINE_SEPARATOR, $content);
 
-		$textStart = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
-		$snippet   = new Snippet($textStart, $foundWordNum, $highlightTemplate);
-		if ($this->snippetLineSeparator !== null) {
-			$snippet->setLineSeparator($this->snippetLineSeparator);
-		}
+        $textStart = $lines[0] . (isset($lines[1]) ? ' ' . $lines[1] : '');
+        $snippet   = new Snippet($textStart, $foundWordNum, $highlightTemplate);
+        if ($this->snippetLineSeparator !== null) {
+            $snippet->setLineSeparator($this->snippetLineSeparator);
+        }
 
-		if ($foundWordNum == 0) {
-			return $snippet;
-		}
+        if ($foundWordNum == 0) {
+            return $snippet;
+        }
 
-		$joinedStems = implode('|', $stems);
-		$joinedStems = str_replace('е', '[её]', $joinedStems);
+        $joinedStems = implode('|', $stems);
+        $joinedStems = str_replace('е', '[её]', $joinedStems);
 
-		// Check the text for the query words
-		// TODO: Make sure the modifier S works correct on cyrillic
-		preg_match_all(
-			'#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
-			$content,
-			$matches,
-			PREG_OFFSET_CAPTURE
-		);
+        // Check the text for the query words
+        // TODO: Make sure the modifier S works correct on cyrillic
+        preg_match_all(
+            '#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
+            $content,
+            $matches,
+            PREG_OFFSET_CAPTURE
+        );
 
-		$lineNum = 0;
-		$lineEnd = strlen($lines[$lineNum]);
+        $lineNum = 0;
+        $lineEnd = strlen($lines[$lineNum]);
 
-		$foundWordsInLines = $foundStemsInLines = array();
-		foreach ($matches[0] as $i => $wordInfo) {
-			$word           = $wordInfo[0];
-			$stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
-			$stem           = str_replace('ё', 'е', mb_strtolower($matches[1][$i][0]));
-			$stemmedWord    = $this->stemmer->stemWord($word);
+        $foundWordsInLines = $foundStemsInLines = [];
+        foreach ($matches[0] as $i => $wordInfo) {
+            $word           = $wordInfo[0];
+            $stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
+            $stem           = str_replace('ё', 'е', mb_strtolower($matches[1][$i][0]));
+            $stemmedWord    = $this->stemmer->stemWord($word);
 
-			// Ignore entry if the word stem differs from needed ones
-			if (!$stemEqualsWord && $stem != $stemmedWord) {
-				continue;
-			}
+            // Ignore entry if the word stem differs from needed ones
+            if (!$stemEqualsWord && $stem != $stemmedWord) {
+                continue;
+            }
 
-			$offset = $wordInfo[1];
+            $offset = $wordInfo[1];
 
-			while ($lineEnd < $offset && isset($lines[$lineNum + 1])) {
-				$lineNum++;
-				$lineEnd += 1 + strlen($lines[$lineNum]);
-			}
+            while ($lineEnd < $offset && isset($lines[$lineNum + 1])) {
+                $lineNum++;
+                $lineEnd += 1 + strlen($lines[$lineNum]);
+            }
 
-			$foundStemsInLines[$lineNum][$stem] = 1;
-			$foundWordsInLines[$lineNum][$word] = 1;
-		}
+            $foundStemsInLines[$lineNum][$stem] = 1;
+            $foundWordsInLines[$lineNum][$word] = 1;
+        }
 
-		foreach ($foundStemsInLines as $lineIndex => $foundStemsInLine) {
-			$snippetLine = new SnippetLine(
-				$lines[$lineIndex],
-				array_keys($foundWordsInLines[$lineIndex]),
-				count($foundStemsInLine)
-			);
-			$snippet->attachSnippetLine($lineIndex, $snippetLine);
-		}
+        foreach ($foundStemsInLines as $lineIndex => $foundStemsInLine) {
+            $snippetLine = new SnippetLine(
+                $lines[$lineIndex],
+                array_keys($foundWordsInLines[$lineIndex]),
+                count($foundStemsInLine)
+            );
+            $snippet->attachSnippetLine($lineIndex, $snippetLine);
+        }
 
-		return $snippet;
-	}
+        return $snippet;
+    }
 }

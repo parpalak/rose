@@ -11,10 +11,10 @@ namespace S2\Rose\Stemmer;
  */
 interface StemmerInterface
 {
-	/**
-	 * @param string $word
-	 *
-	 * return string
-	 */
-	public function stemWord($word);
+    /**
+     * @param string $word
+     *
+     * return string
+     */
+    public function stemWord($word);
 }

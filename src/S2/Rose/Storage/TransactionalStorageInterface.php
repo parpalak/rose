@@ -11,18 +11,18 @@ namespace S2\Rose\Storage;
  */
 interface TransactionalStorageInterface
 {
-	/**
-	 * Starts a transaction
-	 */
-	public function startTransaction();
+    /**
+     * Starts a transaction
+     */
+    public function startTransaction();
 
-	/**
-	 * Commits a transaction
-	 */
-	public function commitTransaction();
+    /**
+     * Commits a transaction
+     */
+    public function commitTransaction();
 
-	/**
-	 * Rollbacks a transaction
-	 */
-	public function rollbackTransaction();
+    /**
+     * Rollbacks a transaction
+     */
+    public function rollbackTransaction();
 }

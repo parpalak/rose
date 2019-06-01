@@ -16,49 +16,49 @@ use S2\Rose\Entity\SnippetLine;
  */
 class SnippetLineTest extends Unit
 {
-	public function testCreateHighlighted1()
-	{
-		$snippetLine = new SnippetLine(
-			'Testing string to highlight some test values, Test is case-sensitive.',
-			['test', 'is'],
-			2
-		);
+    public function testCreateHighlighted1()
+    {
+        $snippetLine = new SnippetLine(
+            'Testing string to highlight some test values, Test is case-sensitive.',
+            ['test', 'is'],
+            2
+        );
 
-		$this->assertEquals('Testing string to highlight some <i>test</i> values, Test <i>is</i> case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
-	}
+        $this->assertEquals('Testing string to highlight some <i>test</i> values, Test <i>is</i> case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
+    }
 
-	public function testCreateHighlighted2()
-	{
-		$snippetLine = new SnippetLine(
-			'Testing string to highlight some test values, Test is case-sensitive.',
-			['Test'],
-			1
-		);
+    public function testCreateHighlighted2()
+    {
+        $snippetLine = new SnippetLine(
+            'Testing string to highlight some test values, Test is case-sensitive.',
+            ['Test'],
+            1
+        );
 
-		$this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
-	}
+        $this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
+    }
 
-	public function testHtmlEntities()
-	{
-		$snippetLine = new SnippetLine(
-			'This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch 160 and dash.',
-			['dash', '160'],
-			1
-		);
+    public function testHtmlEntities()
+    {
+        $snippetLine = new SnippetLine(
+            'This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch 160 and dash.',
+            ['dash', '160'],
+            1
+        );
 
-		$this->assertEquals('This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch <i>160</i> and <i>dash</i>.', $snippetLine->getHighlighted('<i>%s</i>'));
-	}
+        $this->assertEquals('This string contains several entities like &ndash;, &amp;, &mdash; &#160;. Do not touch <i>160</i> and <i>dash</i>.', $snippetLine->getHighlighted('<i>%s</i>'));
+    }
 
-	/**
-	 * @expectedException \S2\Rose\Exception\RuntimeException
-	 */
-	public function testCreateHighlightedFail()
-	{
-		$snippetLine = new SnippetLine(
-			'Testing string to highlight some test values, Test is case-sensitive.',
-			['test', 'is'],
-			2
-		);
-		$snippetLine->getHighlighted('<i></i>');
-	}
+    /**
+     * @expectedException \S2\Rose\Exception\RuntimeException
+     */
+    public function testCreateHighlightedFail()
+    {
+        $snippetLine = new SnippetLine(
+            'Testing string to highlight some test values, Test is case-sensitive.',
+            ['test', 'is'],
+            2
+        );
+        $snippetLine->getHighlighted('<i></i>');
+    }
 }

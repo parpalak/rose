@@ -22,13 +22,13 @@ $filenames = glob(__DIR__ . '/../tests/Resource/data/' . '*.txt');
 $filenames = array_slice($filenames, 0, TEST_FILE_NUM);
 
 foreach ($filenames as $filename) {
-	echo 'Indexing ', $filename, "\n";
-	$content   = file_get_contents($filename) . ' ' . rand();
-	$indexable = new \S2\Rose\Entity\Indexable(
-		basename($filename),
-		substr($content, 0, strpos($content, "\n")),
-		$content
-	);
+    echo 'Indexing ', $filename, "\n";
+    $content   = file_get_contents($filename) . ' ' . rand();
+    $indexable = new \S2\Rose\Entity\Indexable(
+        basename($filename),
+        substr($content, 0, strpos($content, "\n")),
+        $content
+    );
 
-	$indexer->index($indexable);
+    $indexer->index($indexable);
 }

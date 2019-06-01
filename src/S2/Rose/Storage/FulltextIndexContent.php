@@ -13,46 +13,46 @@ use S2\Rose\Entity\WordPositionContainer;
  */
 class FulltextIndexContent
 {
-	/**
-	 * @var array
-	 */
-	protected $dataByWord = array();
+    /**
+     * @var array
+     */
+    protected $dataByWord = [];
 
-	/**
-	 * @var array
-	 */
-	protected $dataByExternalId = array();
+    /**
+     * @var array
+     */
+    protected $dataByExternalId = [];
 
-	/**
-	 * @param string $word
-	 * @param string $externalId
-	 * @param int    $position
-	 */
-	public function add($word, $externalId, $position)
-	{
-		$this->dataByWord[$word][$externalId][]       = $position;
-		$this->dataByExternalId[$externalId][$word][] = $position;
-	}
+    /**
+     * @param string $word
+     * @param string $externalId
+     * @param int    $position
+     */
+    public function add($word, $externalId, $position)
+    {
+        $this->dataByWord[$word][$externalId][]       = $position;
+        $this->dataByExternalId[$externalId][$word][] = $position;
+    }
 
-	/**
-	 * @return array|int[][][]
-	 */
-	public function toArray()
-	{
-		return $this->dataByWord;
-	}
+    /**
+     * @return array|int[][][]
+     */
+    public function toArray()
+    {
+        return $this->dataByWord;
+    }
 
-	/**
-	 * @return array|WordPositionContainer[]
-	 */
-	public function toWordPositionContainerArray()
-	{
-		$result = array();
-		foreach ($this->dataByExternalId as $externalId => $data) {
-			$result[$externalId] = new WordPositionContainer($data);
-		}
+    /**
+     * @return array|WordPositionContainer[]
+     */
+    public function toWordPositionContainerArray()
+    {
+        $result = [];
+        foreach ($this->dataByExternalId as $externalId => $data) {
+            $result[$externalId] = new WordPositionContainer($data);
+        }
 
-		return $result;
-	}
+        return $result;
+    }
 
 }
