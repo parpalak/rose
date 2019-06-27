@@ -98,10 +98,14 @@ class PdoStorage implements
             try {
                 $this->dropAndCreateTables($charset, 255);
             } catch (\PDOException $e) {
-                if ($charset === 'utf8mb4' && $e->getCode() === 'HY000') {
+                if ($charset === 'utf8mb4') {
                     // See https://stackoverflow.com/questions/30761867/mysql-error-the-maximum-column-size-is-767-bytes
                     // In certain configurations we have only 767 bytes for index.
                     // We can index only 191 = round(767/4) characters in case of 4-bytes encoding utf8mb4.
+                    // I prefer not to check exception codes because there are at least two possible values
+                    // of $e->errorInfo: [42000, 1071, 'Specified key was too long; max key length is 767 bytes']
+                    // and ['HY000', 1709, 'Index column size too large. The maximum column size is 767 bytes.'].
+
                     $this->dropAndCreateTables($charset, 191);
                 } else {
                     throw $e;
