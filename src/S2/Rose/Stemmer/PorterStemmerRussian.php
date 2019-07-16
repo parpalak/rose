@@ -3,26 +3,21 @@
 namespace S2\Rose\Stemmer;
 
 /**
- * Class PorterStemmerRussian
- *
  * @see http://forum.dklab.ru/php/advises/HeuristicWithoutTheDictionaryExtractionOfARootFromRussianWord.html
  */
-class PorterStemmerRussian implements StemmerInterface
+class PorterStemmerRussian implements StemmerChainInterface
 {
-    const VOWEL            = '/аеиоуыэюя/u';
-    const PERFECTIVEGROUND = '/((ив|ивши|ившись|ыв|ывши|ывшись)|((?<=[ая])(в|вши|вшись)))$/u';
-    const REFLEXIVE        = '/(с[яь])$/u';
-    const ADJECTIVE        = '/(ее|ие|ые|ое|ими|ыми|ей|ий|ый|ой|ем|им|ым|ом|его|ого|ему|ому|их|ых|еых|ую|юю|ая|яя|ою|ею)$/u';
-    const PARTICIPLE       = '/((ивш|ывш|ующ)|((?<=[ая])(ем|нн|вш|ющ|щ)))$/u';
-    const VERB             = '/((ила|ыла|ена|ейте|уйте|ите|или|ыли|ей|уй|ил|ыл|им|ым|ен|ило|ыло|ено|ят|ует|уют|ит|ыт|ены|ить|ыть|ишь|ую|ю)|((?<=[ая])(ла|на|ете|йте|ли|й|л|ем|н|ло|но|ет|ют|ны|ть|ешь|нно)))$/u';
-    const NOUN             = '/(а|ев|ов|ие|ье|е|иями|ями|ами|еи|ии|и|ией|ей|ой|ий|й|иям|ям|ием|ем|ам|ом|о|у|ах|иях|ях|ы|ь|у|ию|ью|ю|ия|ья|я)$/u';
-    const RVRE             = '/^(.*?[аеиоуыэюя])(.*)$/u';
-    const DERIVATIONAL     = '/[^аеиоуыэюя][аеиоуыэюя]+[^аеиоуыэюя]+[аеиоуыэюя].*(?<=о)сть?$/u';
+    const VOWEL            = '/аеиоуыэюя/Su';
+    const PERFECTIVEGROUND = '/((ив|ивши|ившись|ыв|ывши|ывшись)|((?<=[ая])(в|вши|вшись)))$/Su';
+    const REFLEXIVE        = '/(с[яь])$/Su';
+    const ADJECTIVE        = '/(ее|ие|ые|ое|ими|ыми|ей|ий|ый|ой|ем|им|ым|ом|его|ого|ему|ому|их|ых|еых|ую|юю|ая|яя|ою|ею)$/Su';
+    const PARTICIPLE       = '/((ивш|ывш|ующ)|((?<=[ая])(ем|нн|вш|ющ|щ)))$/Su';
+    const VERB             = '/((ила|ыла|ена|ейте|уйте|ите|или|ыли|ей|уй|ил|ыл|им|ым|ен|ило|ыло|ено|ят|ует|уют|ит|ыт|ены|ить|ыть|ишь|ую|ю)|((?<=[ая])(ла|на|ете|йте|ли|й|л|ем|н|ло|но|ет|ют|ны|ть|ешь|нно)))$/Su';
+    const NOUN             = '/(а|ев|ов|ие|ье|е|иями|ями|ами|еи|ии|и|ией|ей|ой|ий|й|иям|ям|ием|ем|ам|ом|о|у|ах|иях|ях|ы|ь|у|ию|ью|ю|ия|ья|я)$/Su';
+    const RVRE             = '/^(.*?[аеиоуыэюя])(.*)$/Su';
+    const DERIVATIONAL     = '/[^аеиоуыэюя][аеиоуыэюя]+[^аеиоуыэюя]+[аеиоуыэюя].*(?<=о)сть?$/Su';
 
-    protected $useCache = true;
-    protected $cache = [];
-
-    protected static $irregularWords = [
+    protected static $exceptions = [
         'и'       => '',
         'или'     => '',
         'когда'   => '',
@@ -183,35 +178,29 @@ class PorterStemmerRussian implements StemmerInterface
         'ищут'  => 'иска',
     ];
 
-    protected static function s(&$s, $re, $to)
-    {
-        $orig = $s;
-        $s    = preg_replace($re, $to, $s);
+    protected $cache = [];
 
-        return $orig !== $s;
-    }
-
-    protected static function m($s, $re)
+    /**
+     * {@inheritdoc}
+     */
+    public function supports($word)
     {
-        return preg_match($re, $s);
+        return preg_match('#[а-яА-ЯёЁ\-0-9]#Su', $word);
     }
 
     /**
-     * @param string $word
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function stemWord($word)
     {
         $word = mb_strtolower($word);
         $word = str_replace('ё', 'е', $word);
 
-        if (isset(self::$irregularWords[$word])) {
-            return self::$irregularWords[$word] ? self::$irregularWords[$word] : $word;
+        if (isset(self::$exceptions[$word])) {
+            return self::$exceptions[$word] !== '' ? self::$exceptions[$word] : $word;
         }
 
-        # Check against cache of stemmed words
-        if ($this->useCache && isset($this->cache[$word])) {
+        if (isset($this->cache[$word])) {
             return $this->cache[$word];
         }
 
@@ -241,36 +230,37 @@ class PorterStemmerRussian implements StemmerInterface
             }
 
             # Step 2
-            self::s($RV, '/и$/u', '');
+            self::s($RV, '/и$/Su', '');
 
             # Step 3
             if (self::m($RV, self::DERIVATIONAL)) {
-                self::s($RV, '/ость?$/u', '');
+                self::s($RV, '/ость?$/Su', '');
             }
 
             # Step 4
-            if (!self::s($RV, '/ь$/u', '')) {
-                self::s($RV, '/ейше?/u', '');
-                self::s($RV, '/нн$/u', 'н');
+            if (!self::s($RV, '/ь$/Su', '')) {
+                self::s($RV, '/ейше?/Su', '');
+                self::s($RV, '/нн$/Su', 'н');
             }
 
             $stem = $start . $RV;
         } while (false);
 
-        if ($this->useCache) {
-            $this->cache[$word] = $stem;
-        }
+        $this->cache[$word] = $stem;
 
         return $stem;
     }
 
-    public function setStemCaching($cachingLevel)
+    protected static function s(&$s, $re, $to)
     {
-        $this->useCache = $cachingLevel;
+        $orig = $s;
+        $s    = preg_replace($re, $to, $s);
+
+        return $orig !== $s;
     }
 
-    public function clearStemCache()
+    protected static function m($s, $re)
     {
-        $this->cache = [];
+        return preg_match($re, $s);
     }
 }

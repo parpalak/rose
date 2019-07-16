@@ -6,12 +6,12 @@
 
 namespace S2\Rose\Stemmer;
 
-interface StemmerInterface
+interface StemmerChainInterface extends StemmerInterface
 {
     /**
      * @param string $word
      *
-     * return string
+     * @return bool
      */
-    public function stemWord($word);
+    public function supports($word);
 }
