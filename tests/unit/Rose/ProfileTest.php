@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2019 Roman Parpalak
  * @license   MIT
  */
 
@@ -13,7 +13,6 @@ use S2\Rose\Finder;
 use S2\Rose\Helper\Helper;
 use S2\Rose\Indexer;
 use S2\Rose\SnippetBuilder;
-use S2\Rose\Stemmer\ChainedStemmer;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Storage\Database\PdoStorage;
@@ -134,10 +133,7 @@ class ProfileTest extends Unit
     {
         $start = microtime(true);
 
-        $stemmer = (new ChainedStemmer())
-            ->attach(new PorterStemmerRussian())
-            ->attach(new PorterStemmerEnglish())
-        ;
+        $stemmer = new PorterStemmerRussian(new PorterStemmerEnglish());
         $storage = new SingleFileArrayStorage($this->getTempFilename());
         $indexer = new Indexer($storage, $stemmer);
 
@@ -221,10 +217,7 @@ class ProfileTest extends Unit
 
         $indexProfilePoints[] = Helper::getProfilePoint('Db cleanup', -$start + ($start = microtime(true)));
 
-        $stemmer = (new ChainedStemmer())
-            ->attach(new PorterStemmerRussian())
-            ->attach(new PorterStemmerEnglish())
-        ;
+        $stemmer = new PorterStemmerRussian(new PorterStemmerEnglish());
         $indexer = new Indexer($storage, $stemmer);
 
         $indexProfilePoints[] = Helper::getProfilePoint('Indexer initialization', -$start + ($start = microtime(true)));

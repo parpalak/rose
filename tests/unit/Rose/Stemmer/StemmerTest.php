@@ -7,7 +7,6 @@
 namespace S2\Rose\Test\Stemmer;
 
 use Codeception\Test\Unit;
-use S2\Rose\Stemmer\ChainedStemmer;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Stemmer\StemmerInterface;
@@ -30,13 +29,19 @@ class StemmerTest extends Unit
     /**
      * @var StemmerInterface
      */
-    private $chainedStemmer;
+    private $chainedStemmer1;
+
+    /**
+     * @var StemmerInterface
+     */
+    private $chainedStemmer2;
 
     public function _before()
     {
-        $this->russianStemmer = new PorterStemmerRussian();
-        $this->englishStemmer = new PorterStemmerEnglish();
-        $this->chainedStemmer = (new ChainedStemmer())->attach($this->englishStemmer)->attach($this->russianStemmer);
+        $this->russianStemmer  = new PorterStemmerRussian();
+        $this->englishStemmer  = new PorterStemmerEnglish();
+        $this->chainedStemmer1 = new PorterStemmerRussian(new PorterStemmerEnglish());
+        $this->chainedStemmer2 = new PorterStemmerEnglish(new PorterStemmerRussian());
     }
 
     public function _after()
@@ -45,11 +50,22 @@ class StemmerTest extends Unit
 
     public function testStem()
     {
+        $this->assertEquals('ухмыляться', $this->englishStemmer->stemWord('ухмыляться'));
         $this->assertEquals('ухмыля', $this->russianStemmer->stemWord('ухмыляться'));
-        $this->assertEquals('ухмыля', $this->chainedStemmer->stemWord('ухмыляться'));
+        $this->assertEquals('ухмыля', $this->chainedStemmer1->stemWord('ухмыляться'));
+        $this->assertEquals('ухмыля', $this->chainedStemmer2->stemWord('ухмыляться'));
+
         $this->assertEquals('рраф', $this->russianStemmer->stemWord('Ррафа'));
+
+        $this->assertEquals('учитель', $this->englishStemmer->stemWord('Учитель'));
         $this->assertEquals('учител', $this->russianStemmer->stemWord('учитель'));
+        $this->assertEquals('учител', $this->chainedStemmer1->stemWord('учитель'));
+        $this->assertEquals('учител', $this->chainedStemmer2->stemWord('учитель'));
+
         $this->assertEquals('gun', $this->englishStemmer->stemWord('guns'));
-        $this->assertEquals('papa', $this->chainedStemmer->stemWord('papa\'s'));
+        $this->assertEquals('guns', $this->russianStemmer->stemWord('guns'));
+
+        $this->assertEquals('papa', $this->chainedStemmer1->stemWord('papa\'s'));
+        $this->assertEquals('papa', $this->chainedStemmer2->stemWord('papa\'s'));
     }
 }

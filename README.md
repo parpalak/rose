@@ -1,5 +1,5 @@
 # Rose
-This is a simple search engine for content sites with partial Russian morphology support. It indexes your content and provides a full-text search.
+This is a simple search engine for content sites with partial English and Russian morphology support. It indexes your content and provides a full-text search.
 
 ## Requirements
 
@@ -16,8 +16,8 @@ If you do not use composer, download the archive, unpack it somewhere and ensure
 
 ## Usage
 ### Preparing Storage
-The index can be stored in a database or in a file. The storage is an abstraction layer that hides implementation details.
-In most cases you gonna need a database storage `PdoStorage`.
+The index can be stored in a database or in a file. Storage is an abstraction layer that hides implementation details.
+In most cases you gonna need database storage `PdoStorage`.
 
 Both indexing and searching require the storage.
 
@@ -35,7 +35,22 @@ When you want to rebuild the index, you call `PdoStorage::erase()` method:
 $storage->erase();
 ```
 
-It drops the index tables (if exist) and creates new ones from scratch. This method will be enough to upgrade to a new version of Rose that breaks down the backward compatibility of the index.
+It drops index tables (if exist) and creates new ones from scratch. This method will be enough to upgrade to a new version of Rose that breaks down the backward compatibility of the index.
+
+### Morphology
+
+For natural language processing, Rose uses stemmers.
+Stemmer cuts off the changing part of words and Rose deals with stems.
+It has no built-in dictionaries but contains heuristic stemmers developed by Porter.
+You can integrate any other algorithm by implementing the StemmerInterface.
+
+```php
+use S2\Rose\Stemmer\PorterStemmerEnglish;
+use S2\Rose\Stemmer\PorterStemmerRussian;
+
+// For optimization primary language goes first (in this case Russian)
+$stemmer = new PorterStemmerRussian(new PorterStemmerEnglish());
+```
 
 ### Indexing
 
@@ -43,9 +58,7 @@ It drops the index tables (if exist) and creates new ones from scratch. This met
 
 ```php
 use S2\Rose\Indexer;
-use S2\Rose\Stemmer\PorterStemmerRussian;
 
-$stemmer = new PorterStemmerRussian();
 $indexer = new Indexer($storage, $stemmer);
 ```
 
@@ -105,7 +118,7 @@ Full-text search results can be obtained via `Finder` class.
 use S2\Rose\Finder;
 use S2\Rose\Entity\Query;
 
-$finder = new Finder($storage, $stemmer);
+$finder    = new Finder($storage, $stemmer);
 $resultSet = $finder->find(new Query('content'));
 
 foreach ($resultSet->getItems() as $externalId => $item) {
@@ -133,7 +146,7 @@ $resultSet = $finder->find($query);
 Adjust the relevance for favorite and popular pages:
 ```php
 $resultSet = $finder->find(new Query('content'));
-echo $resultSet->getFoundExternalIds(); // ['id_1', 'id_2']
+var_dump($resultSet->getFoundExternalIds()); // ['id_1', 'id_2']
 $resultSet->setRelevanceRatio('id_1', 3.14);
 
 foreach ($resultSet->getItems() as $externalId => $item) {

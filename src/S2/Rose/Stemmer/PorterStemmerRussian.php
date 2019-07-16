@@ -5,8 +5,10 @@ namespace S2\Rose\Stemmer;
 /**
  * @see http://forum.dklab.ru/php/advises/HeuristicWithoutTheDictionaryExtractionOfARootFromRussianWord.html
  */
-class PorterStemmerRussian implements StemmerChainInterface
+class PorterStemmerRussian implements StemmerInterface
 {
+    const SUPPORTS_REGEX = '#^[а-яА-ЯёЁ\-0-9]*$#Su';
+
     const VOWEL            = '/аеиоуыэюя/Su';
     const PERFECTIVEGROUND = '/((ив|ивши|ившись|ыв|ывши|ывшись)|((?<=[ая])(в|вши|вшись)))$/Su';
     const REFLEXIVE        = '/(с[яь])$/Su';
@@ -180,12 +182,11 @@ class PorterStemmerRussian implements StemmerChainInterface
 
     protected $cache = [];
 
-    /**
-     * {@inheritdoc}
-     */
-    public function supports($word)
+    protected $nextStemmer;
+
+    public function __construct(StemmerInterface $nextStemmer = null)
     {
-        return preg_match('#[а-яА-ЯёЁ\-0-9]#Su', $word);
+        $this->nextStemmer = $nextStemmer;
     }
 
     /**
@@ -193,20 +194,24 @@ class PorterStemmerRussian implements StemmerChainInterface
      */
     public function stemWord($word)
     {
-        $word = mb_strtolower($word);
-        $word = str_replace('ё', 'е', $word);
-
-        if (isset(self::$exceptions[$word])) {
-            return self::$exceptions[$word] !== '' ? self::$exceptions[$word] : $word;
-        }
+        $word = \mb_strtolower($word);
+        $word = \str_replace('ё', 'е', $word);
 
         if (isset($this->cache[$word])) {
             return $this->cache[$word];
         }
 
+        if (isset(self::$exceptions[$word])) {
+            return self::$exceptions[$word] !== '' ? self::$exceptions[$word] : $word;
+        }
+
+        if (!\preg_match(self::SUPPORTS_REGEX, $word)) {
+            return $this->nextStemmer !== null ? $this->nextStemmer->stemWord($word) : $word;
+        }
+
         $stem = $word;
         do {
-            if (!preg_match(self::RVRE, $word, $p)) {
+            if (!\preg_match(self::RVRE, $word, $p)) {
                 break;
             }
 
@@ -233,7 +238,7 @@ class PorterStemmerRussian implements StemmerChainInterface
             self::s($RV, '/и$/Su', '');
 
             # Step 3
-            if (self::m($RV, self::DERIVATIONAL)) {
+            if (\preg_match(self::DERIVATIONAL, $RV)) {
                 self::s($RV, '/ость?$/Su', '');
             }
 
@@ -254,13 +259,8 @@ class PorterStemmerRussian implements StemmerChainInterface
     protected static function s(&$s, $re, $to)
     {
         $orig = $s;
-        $s    = preg_replace($re, $to, $s);
+        $s    = \preg_replace($re, $to, $s);
 
         return $orig !== $s;
-    }
-
-    protected static function m($s, $re)
-    {
-        return preg_match($re, $s);
     }
 }

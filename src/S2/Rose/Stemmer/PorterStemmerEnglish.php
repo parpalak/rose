@@ -8,8 +8,10 @@ namespace S2\Rose\Stemmer;
  * See http://snowball.tartarus.org/algorithms/english/stemmer.html .
  * See https://raw.githubusercontent.com/markfullmer/porter2/master/src/Porter2.php
  */
-class PorterStemmerEnglish implements StemmerChainInterface
+class PorterStemmerEnglish implements StemmerInterface
 {
+    const SUPPORTS_REGEX = '#^[a-zA-Z\-0-9\'’]*$#Su';
+
     protected static $exceptions = [
         'skis'   => 'ski',
         'skies'  => 'sky',
@@ -33,12 +35,11 @@ class PorterStemmerEnglish implements StemmerChainInterface
 
     protected $cache = [];
 
-    /**
-     * {@inheritdoc}
-     */
-    public function supports($word)
+    protected $nextStemmer;
+
+    public function __construct(StemmerInterface $nextStemmer = null)
     {
-        return preg_match('#[a-zA-Z\-0-9\'’]#Su', $word);
+        $this->nextStemmer = $nextStemmer;
     }
 
     /**
@@ -46,19 +47,23 @@ class PorterStemmerEnglish implements StemmerChainInterface
      */
     public function stemWord($word)
     {
-        $word = mb_strtolower($word);
-
-        if (isset(self::$exceptions[$word])) {
-            return self::$exceptions[$word];
-        }
+        $word = \mb_strtolower($word);
 
         if (isset($this->cache[$word])) {
             return $this->cache[$word];
         }
 
+        if (isset(self::$exceptions[$word])) {
+            return self::$exceptions[$word];
+        }
+
+        if (!\preg_match(self::SUPPORTS_REGEX, $word)) {
+            return $this->nextStemmer !== null ? $this->nextStemmer->stemWord($word) : $word;
+        }
+
         $stem = $word;
 
-        if (mb_strlen($stem) > 2) {
+        if (\mb_strlen($stem) > 2) {
             $stem = self::prepare($stem);
             $stem = self::step0($stem);
             $stem = self::step1a($stem);

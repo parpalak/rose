@@ -12,7 +12,6 @@ use S2\Rose\Entity\Query;
 use S2\Rose\Finder;
 use S2\Rose\Indexer;
 use S2\Rose\SnippetBuilder;
-use S2\Rose\Stemmer\ChainedStemmer;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Storage\Database\PdoStorage;
@@ -56,10 +55,7 @@ class IntegrationTest extends Unit
         StorageReadInterface $readStorage,
         StorageWriteInterface $writeStorage
     ) {
-        $stemmer = (new ChainedStemmer())
-            ->attach(new PorterStemmerRussian())
-            ->attach(new PorterStemmerEnglish())
-        ;
+        $stemmer = new PorterStemmerRussian(new PorterStemmerEnglish());
         $indexer = new Indexer($writeStorage, $stemmer);
 
         // We're working on an empty storage
