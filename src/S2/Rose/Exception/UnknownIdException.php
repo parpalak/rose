@@ -1,33 +1,30 @@
 <?php
 /**
- * @copyright 2016-2018 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Exception;
 
-/**
- * Class UnknownIdExtension
- */
+use S2\Rose\Entity\ExternalId;
+
 class UnknownIdException extends RuntimeException
 {
-    /**
-     * @param string $externalId
-     *
-     * @return UnknownIdException
-     */
-    public static function createIndexMissingExternalId($externalId)
+    public static function createIndexMissingExternalId(ExternalId $externalId)
     {
-        return new static(sprintf('External id "%s" not found in index.', $externalId));
+        return new static(sprintf(
+            'External id "%s" for instance "%s" not found in index.',
+            $externalId->getId(),
+            $externalId->getInstanceId()
+        ));
     }
 
-    /**
-     * @param string $externalId
-     *
-     * @return UnknownIdException
-     */
-    public static function createResultMissingExternalId($externalId)
+    public static function createResultMissingExternalId(ExternalId $externalId)
     {
-        return new static(sprintf('External id "%s" not found in result.', $externalId));
+        return new static(sprintf(
+            'External id "%s" for instance "%s" not found in result.',
+            $externalId->getId(),
+            $externalId->getInstanceId()
+        ));
     }
 }

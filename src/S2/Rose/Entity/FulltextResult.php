@@ -1,16 +1,14 @@
 <?php
 /**
- * @copyright 2017-2018 Roman Parpalak
+ * @copyright 2017-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Storage\FulltextIndexContent;
 
-/**
- * Class FulltextResult
- */
 class FulltextResult
 {
     /**
@@ -29,8 +27,6 @@ class FulltextResult
     protected $fulltextIndexContent;
 
     /**
-     * FulltextResult constructor.
-     *
      * @param FulltextQuery        $query
      * @param FulltextIndexContent $fulltextIndexContent
      * @param int                  $tocSize
@@ -99,7 +95,7 @@ class FulltextResult
     /**
      * @param ResultSet $resultSet
      *
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
     public function fillResultSet(ResultSet $resultSet)
     {
@@ -108,20 +104,23 @@ class FulltextResult
         foreach ($this->fulltextIndexContent->toArray() as $word => $items) {
             $reductionRatio = self::frequencyReduction($this->tocSize, count($items));
 
-            foreach ($items as $externalId => $positions) {
-                $weight = self::fulltextWeight($reductionRatio, $queryWordCount, count($positions));
-                $resultSet->addWordWeight($word, $externalId, $weight, $positions);
+            foreach ($items as $positions) {
+                $weight = self::fulltextWeight($reductionRatio, $queryWordCount, count($positions['pos']));
+                $resultSet->addWordWeight($word, $positions['extId'], $weight, $positions['pos']);
             }
         }
 
         $referenceContainer = $this->query->toWordPositionContainer();
-        foreach ($this->fulltextIndexContent->toWordPositionContainerArray() as $externalId => $wordPositionContainer) {
-            $pairsDistance = $wordPositionContainer->compareWith($referenceContainer);
-            foreach ($pairsDistance as $pairDistance) {
-                list($word1, $word2, $distance) = $pairDistance;
-                $weight = self::neighbourWeight($distance);
-                $resultSet->addNeighbourWeight($word1, $word2, $externalId, $weight, $distance);
+
+        $this->fulltextIndexContent->iterateWordPositions(
+            static function (ExternalId $id, WordPositionContainer $container) use ($referenceContainer, $resultSet) {
+                $pairsDistance = $container->compareWith($referenceContainer);
+                foreach ($pairsDistance as $pairDistance) {
+                    list($word1, $word2, $distance) = $pairDistance;
+                    $weight = self::neighbourWeight($distance);
+                    $resultSet->addNeighbourWeight($word1, $word2, $id, $weight, $distance);
+                }
             }
-        }
+        );
     }
 }

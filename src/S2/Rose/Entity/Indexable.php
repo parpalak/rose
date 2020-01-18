@@ -1,20 +1,17 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Entity;
 
-/**
- * Class IndexItem
- */
 class Indexable
 {
     /**
-     * @var string
+     * @var ExternalId
      */
-    protected $id;
+    protected $externalId;
 
     /**
      * @var string
@@ -47,37 +44,26 @@ class Indexable
     protected $url = '';
 
     /**
-     * Chapter constructor.
+     * @param string   $id
+     * @param string   $title
+     * @param string   $content
+     * @param int|null $instanceId
      *
-     * @param string $id
-     * @param string $title
-     * @param string $content
+     * @throws \S2\Rose\Exception\InvalidArgumentException
      */
-    public function __construct($id, $title, $content)
+    public function __construct($id, $title, $content, $instanceId = null)
     {
-        $this->id      = $id;
-        $this->title   = $title;
-        $this->content = $content;
+        $this->externalId = new ExternalId($id, $instanceId);
+        $this->title      = $title;
+        $this->content    = $content;
     }
 
     /**
-     * @return string
+     * @return ExternalId
      */
-    public function getId()
+    public function getExternalId()
     {
-        return $this->id;
-    }
-
-    /**
-     * @param string $id
-     *
-     * @return Indexable
-     */
-    public function setId($id)
-    {
-        $this->id = $id;
-
-        return $this;
+        return $this->externalId;
     }
 
     /**

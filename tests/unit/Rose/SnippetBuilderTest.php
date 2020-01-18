@@ -1,14 +1,18 @@
-<?php
+<?php /** @noinspection PhpComposerExtensionStubsInspection */
+/** @noinspection PhpUnhandledExceptionInspection */
+
 /**
- * @copyright 2017-2018 Roman Parpalak
+ * @copyright 2017-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
+use S2\Rose\Entity\ExternalContent;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
+use S2\Rose\Entity\ResultItem;
 use S2\Rose\Finder;
 use S2\Rose\Indexer;
 use S2\Rose\SnippetBuilder;
@@ -19,8 +23,6 @@ use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 
 /**
- * Class SnippetBuilderTest
- *
  * @group snippet
  * @group snippet-builder
  */
@@ -77,6 +79,7 @@ class SnippetBuilderTest extends Unit
      * @dataProvider indexableProvider
      *
      * @param Indexable[] $indexables
+     * @throws \Exception
      */
     public function testSnippets(array $indexables)
     {
@@ -84,11 +87,13 @@ class SnippetBuilderTest extends Unit
             $this->indexer->index($indexable);
         }
 
-        $snippetCallbackProvider = function (array $ids) use ($indexables) {
-            $result = [];
+        $snippetCallbackProvider = static function (array $ids) use ($indexables) {
+            $result = new ExternalContent();
             foreach ($indexables as $indexable) {
-                if (in_array($indexable->getId(), $ids)) {
-                    $result[$indexable->getId()] = $indexable->getContent();
+                foreach ($ids as $id) {
+                    if ($indexable->getExternalId()->equals($id)) {
+                        $result->attach($id, $indexable->getContent());
+                    }
                 }
             }
 
@@ -101,7 +106,7 @@ class SnippetBuilderTest extends Unit
 
         $this->assertEquals(
             'Если пренебречь малыми величинами, то видно, что <i>механическая</i> <i>природа</i> устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
-            $resultSet->getItems()['id_3']->getSnippet()
+            $resultSet->getItems()[0]->getSnippet()
         );
 
         // Check if highlighting works with different upper and lower cases.
@@ -109,7 +114,7 @@ class SnippetBuilderTest extends Unit
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
         $this->assertContains(
-            $resultSet->getItems()['id_3']->getSnippet(),
+            $resultSet->getItems()[0]->getSnippet(),
             [
                 'Внешнее кольцо позволяет <i>пренебречь</i> колебаниями корпуса, хотя развития этого в любом случае требует угол крена, поэтому энергия гироскопического маятника на неподвижной оси остаётся неизменной. <i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... <i>Если</i> <i>пренебречь</i> малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
                 'Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа. <i>Если</i> <i>пренебречь</i> малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет <i>пренебречь</i> колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.',
@@ -120,7 +125,7 @@ class SnippetBuilderTest extends Unit
         $resultSet = $this->finder->find(new Query('если'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertContains(
-            $resultSet->getItems()['id_3']->getSnippet(),
+            $resultSet->getItems()[0]->getSnippet(),
             [
                 '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр... Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа.',
                 'В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр... Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа. <i>Если</i> пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
@@ -131,7 +136,7 @@ class SnippetBuilderTest extends Unit
         $this->snippetBuilder->setSnippetLineSeparator(' &middot; ');
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertContains(
-            $resultSet->getItems()['id_3']->getSnippet(),
+            $resultSet->getItems()[0]->getSnippet(),
             [
                 '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки. &middot; В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр. &middot; Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа.',
                 'В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр. &middot; Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа. <i>Если</i> пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
@@ -142,43 +147,49 @@ class SnippetBuilderTest extends Unit
         $resultSet = $this->finder->find(new Query('твердыми'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
-        $this->assertEquals(
-            'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
-            $resultSet->getItems()['id_3']->getSnippet()
-        );
-        $this->assertEquals(
-            'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
-            $resultSet->getItems()['id_1']->getSnippet()
+        $this->assertSimilar(
+            [
+                'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
+                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.'
+            ],
+            array_map(static function (ResultItem $item) {return $item->getSnippet(); }, $resultSet->getItems())
         );
 
         $resultSet = $this->finder->find(new Query('твёрдая'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
-        $this->assertEquals(
-            'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
-            $resultSet->getItems()['id_3']->getSnippet()
-        );
-        $this->assertEquals(
-            'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
-            $resultSet->getItems()['id_1']->getSnippet()
+        $this->assertSimilar(
+            [
+                'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
+                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
+            ],
+            array_map(static function (ResultItem $item) {return $item->getSnippet(); }, $resultSet->getItems())
         );
 
         $resultSet = $this->finder->find(new Query('артемий'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
-        $this->assertEquals(
-            'Политическое учение <i>Артёма</i>, в первом приближении, формирует экзистенциальный социализм.',
-            $resultSet->getItems()['id_1']->getSnippet()
+
+        $this->assertSimilar(
+            [
+                'Политическое учение <i>Артёма</i>, в первом приближении, формирует экзистенциальный социализм.',
+                '<i>Артемий</i> как абсолютно твёрдое тело заставляет иначе взглянуть на то, что такое объект.',
+            ],
+            array_map(static function (ResultItem $item) {return $item->getSnippet(); }, $resultSet->getItems())
         );
-        $this->assertEquals(
-            'Почему неоднозначна борьба <i>Артёма</i> против демократических и олигархических тенденций?',
-            $resultSet->getItems()['id_1']->getHighlightedTitle($this->stemmer)
+
+        $this->assertSimilar(
+            [
+                'Почему неоднозначна борьба <i>Артёма</i> против демократических и олигархических тенденций?',
+                'Почему апериодичен маховик?',
+            ],
+            array_map(function (ResultItem $item) {return $item->getHighlightedTitle($this->stemmer); }, $resultSet->getItems())
         );
 
         $resultSet = $this->finder->find(new Query('1 защита xss gt'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertEquals(
             'Еще <i>1</i> раз проверим, как <i>gt</i> работает <i>защита</i> против &lt;script&gt;alert();&lt;/script&gt; <i>xss</i>-уязвимостей.',
-            $resultSet->getItems()['id_3']->getSnippet()
+            $resultSet->getItems()[0]->getSnippet()
         );
     }
 
@@ -205,5 +216,11 @@ class SnippetBuilderTest extends Unit
         return [
             'db' => [$indexables],
         ];
+    }
+
+    private function assertSimilar(array $array1, array $array2)
+    {
+        $this->assertEquals([], array_diff($array1, $array2));
+        $this->assertEquals([], array_diff($array2, $array1));
     }
 }
