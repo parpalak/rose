@@ -1,14 +1,11 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Entity;
 
-/**
- * Class TOCEntry
- */
 class TocEntry
 {
     /**
@@ -42,8 +39,6 @@ class TocEntry
     protected $hash;
 
     /**
-     * TOCEntry constructor.
-     *
      * @param string    $title
      * @param string    $description
      * @param \DateTime $date
@@ -108,21 +103,10 @@ class TocEntry
     }
 
     /**
-     * @param string $hash
+     * @param mixed $internalId TODO why mixed? Int?
      *
      * @return TocEntry
-     */
-    public function setHash($hash)
-    {
-        $this->hash = $hash;
-
-        return $this;
-    }
-
-    /**
-     * @param mixed $internalId
-     *
-     * @return TocEntry
+     * @deprecated Make immutable
      */
     public function setInternalId($internalId)
     {
@@ -132,7 +116,7 @@ class TocEntry
     }
 
     /**
-     * @return null|string
+     * @return string|null
      */
     public function getFormattedDate()
     {

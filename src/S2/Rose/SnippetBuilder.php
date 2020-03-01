@@ -1,20 +1,20 @@
 <?php
 /**
- * @copyright 2011-2017 Roman Parpalak
+ * @copyright 2011-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose;
 
+use S2\Rose\Entity\ExternalContent;
+use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
+use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Stemmer\StemmerInterface;
 
-/**
- * Class SnippetBuilder
- */
 class SnippetBuilder
 {
     const LINE_SEPARATOR = "\r";
@@ -30,8 +30,6 @@ class SnippetBuilder
     protected $snippetLineSeparator;
 
     /**
-     * SnippetBuilder constructor.
-     *
      * @param StemmerInterface $stemmer
      */
     public function __construct(StemmerInterface $stemmer)
@@ -56,6 +54,8 @@ class SnippetBuilder
      * @param callable  $callback
      *
      * @return $this
+     * @throws ImmutableException
+     * @throws InvalidArgumentException
      */
     public function attachSnippets(ResultSet $result, $callback)
     {
@@ -63,74 +63,38 @@ class SnippetBuilder
             throw new InvalidArgumentException('Argument "callback" must be a callable');
         }
 
-        $externalIds = $result->getSortedExternalIds();
+        $externalIds = $result->getSortedExternalIds()->toArray();
 
-        $contentArray = $callback($externalIds);
-        if (!is_array($contentArray)) {
+        $extContent = $callback($externalIds);
+        if (!($extContent instanceof ExternalContent)) {
             throw new InvalidArgumentException(sprintf(
-                'Snippet callback must return an array. "%s" given.',
-                gettype($contentArray)
+                'Snippet callback must return ExternalContent object. "%s" given.',
+                is_object($extContent) ? get_class($extContent) : gettype($extContent)
             ));
         }
 
         $result->addProfilePoint('Snippets: obtaining');
 
-        $contentArray = $this->cleanupContent($contentArray);
-
-        $result->addProfilePoint('Snippets: cleaning');
-
         $foundWords = $result->getFoundWordPositionsByExternalId();
 
-        foreach ($contentArray as $externalId => $content) {
+        $isCleaningProfiled = false;
+        $extContent->iterate(function (ExternalId $externalId, $text) use ($foundWords, $result, &$isCleaningProfiled) {
+            if (!$isCleaningProfiled) {
+                $isCleaningProfiled = true;
+                $result->addProfilePoint('Snippets: cleaning');
+            }
+
             $snippet = $this->buildSnippet(
-                $foundWords[$externalId],
-                $content,
+                $foundWords[$externalId->toString()],
+                $text,
                 $result->getHighlightTemplate()
             );
             $result->attachSnippet($externalId, $snippet);
-        }
+        });
 
         $result->addProfilePoint('Snippets: building');
 
         return $this;
-    }
-
-    /**
-     * @param array $contentArray
-     *
-     * @return array
-     */
-    public function cleanupContent(array $contentArray)
-    {
-        // Text cleanup
-        $replaceFrom = [self::LINE_SEPARATOR, '&nbsp;', '&mdash;', '&ndash;', '&laquo;', '&raquo;'];
-        $replaceTo   = ['', ' ', '—', '–', '«', '»'];
-        foreach ([
-                     '<br>',
-                     '<br />',
-                     '</h1>',
-                     '</h2>',
-                     '</h3>',
-                     '</h4>',
-                     '</p>',
-                     '</pre>',
-                     '</blockquote>',
-                     '</li>',
-                 ] as $tag) {
-            $replaceFrom[] = $tag;
-            $replaceTo[]   = $tag . self::LINE_SEPARATOR;
-        }
-
-        $contentArray = str_replace($replaceFrom, $replaceTo, $contentArray);
-        foreach ($contentArray as &$string) {
-            $string = strip_tags($string);
-        }
-        unset($string);
-
-        // Preparing for breaking into lines
-        $contentArray = preg_replace('#(?<=[\.?!;])[ \n\t]+#sS', self::LINE_SEPARATOR, $contentArray);
-
-        return $contentArray;
     }
 
     /**
@@ -163,7 +127,7 @@ class SnippetBuilder
             $snippet->setLineSeparator($this->snippetLineSeparator);
         }
 
-        if ($foundWordNum == 0) {
+        if ($foundWordNum === 0) {
             return $snippet;
         }
 
@@ -190,7 +154,7 @@ class SnippetBuilder
             $stemmedWord    = $this->stemmer->stemWord($word);
 
             // Ignore entry if the word stem differs from needed ones
-            if (!$stemEqualsWord && $stem != $stemmedWord) {
+            if (!$stemEqualsWord && $stem !== $stemmedWord) {
                 continue;
             }
 

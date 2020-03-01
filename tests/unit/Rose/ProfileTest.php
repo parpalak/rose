@@ -1,12 +1,15 @@
-<?php
+<?php /** @noinspection PhpUnhandledExceptionInspection */
+/** @noinspection PhpComposerExtensionStubsInspection */
+
 /**
- * @copyright 2016-2019 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
+use S2\Rose\Entity\ExternalContent;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
 use S2\Rose\Finder;
@@ -19,8 +22,6 @@ use S2\Rose\Storage\Database\PdoStorage;
 use S2\Rose\Storage\File\SingleFileArrayStorage;
 
 /**
- * Class ProfileTest
- *
  * @group profile
  */
 class ProfileTest extends Unit
@@ -187,12 +188,12 @@ class ProfileTest extends Unit
 
         $snippetBuilder = new SnippetBuilder($stemmer);
         $snippetBuilder->attachSnippets($result, function (array $ids) {
-            $data = [];
+            $result = new ExternalContent();
             foreach ($ids as $id) {
-                $data[$id] = file_get_contents(__DIR__ . '/../../Resource/data/' . $id);
+                $result->attach($id, file_get_contents(__DIR__ . '/../../Resource/data/' . $id->getId()));
             }
 
-            return $data;
+            return $result;
         });
 
         foreach (array_merge($indexProfilePoints, $loadingProfilePoints, $result->getProfilePoints()) as $point) {
@@ -252,13 +253,14 @@ class ProfileTest extends Unit
         $result = $finder->find(new Query('захотел разговаривать'), true);
 
         $snippetBuilder = new SnippetBuilder($stemmer);
-        $snippetBuilder->attachSnippets($result, function (array $ids) {
-            $data = [];
+
+        $snippetBuilder->attachSnippets($result, static function (array $ids) {
+            $result = new ExternalContent();
             foreach ($ids as $id) {
-                $data[$id] = file_get_contents(__DIR__ . '/../../Resource/data/' . $id);
+                $result->attach($id, file_get_contents(__DIR__ . '/../../Resource/data/' . $id->getId()));
             }
 
-            return $data;
+            return $result;
         });
 
         foreach (array_merge($indexProfilePoints, $result->getProfilePoints()) as $point) {

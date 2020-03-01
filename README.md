@@ -1,10 +1,11 @@
 # Rose
-This is a simple search engine for content sites with partial English and Russian morphology support. It indexes your content and provides a full-text search.
+This is a simple search engine for content sites with simplified English and Russian morphology support.
+It indexes your content and provides a full-text search.
 
 ## Requirements
 
 1. PHP 5.6 or later. [![Build Status](https://travis-ci.org/parpalak/rose.svg?branch=master)](https://travis-ci.org/parpalak/rose)
-2. A relational database like MySQL in case of significant content size.
+2. A relational database (MySQL is supported for now) in case of significant content size.
 
 ## Installation
 
@@ -71,7 +72,8 @@ use S2\Rose\Entity\Indexable;
 $indexable = new Indexable(
 	'id_1',            // External ID - an identifier in your system 
 	'Test page title', // Title 
-	'This is the first page to be indexed. I have to make up a content.'
+	'This is the first page to be indexed. I have to make up a content.',
+	1                  // Instance ID - an optional ID of your subsystem 
 );
 
 // optional params
@@ -94,10 +96,11 @@ $indexable->setKeywords('content, page');
 $indexer->index($indexable);
 ```
 
-The constructor of `Indexable` requires 3 string arguments:
-- external ID - an arbitrary ID that is sufficient for your code to identify the page;
+The constructor of `Indexable` requires 4 arguments:
+- external ID - an arbitrary string ID that is sufficient for your code to identify the page;
 - page title;
-- page content.
+- page content;
+- instance ID - an optional int ID of the page source (e.g. for multi-site services).
 
 You may also provide some optional parameters: keywords, description, date and URL. Keywords affect the relevance. The description can be used for building a snippet (see below). It's a good idea to use the content of "keyword" and "description" meta-tags for this purpose (if you have any, of course). The URL can be an arbitrary string.
 
@@ -106,7 +109,7 @@ The `Indexer::index()` method is used both for adding and updating the index. If
 When you remove a page from the site, just call
 
 ```php
-$indexer->removeById($externalId);
+$indexer->removeById($externalId, $instanceId);
 ```
 
 ### Searching
@@ -121,9 +124,10 @@ use S2\Rose\Entity\Query;
 $finder    = new Finder($storage, $stemmer);
 $resultSet = $finder->find(new Query('content'));
 
-foreach ($resultSet->getItems() as $externalId => $item) {
+foreach ($resultSet->getItems() as $item) {
 	                         // first iteration:          second iteration:
-	$externalId;             // 'id_2'                    'id_1'
+	$item->getId();          // 'id_2'                    'id_1'
+	$item->getInstanceId();  // null                      1
 	$item->getTitle();       // 'Test page title 2'       'Test page title'
 	$item->getUrl();         // ''                        'url1'
 	$item->getDescription(); // ''                        'Description can be used in snippets'
@@ -149,10 +153,22 @@ $resultSet = $finder->find(new Query('content'));
 var_dump($resultSet->getFoundExternalIds()); // ['id_1', 'id_2']
 $resultSet->setRelevanceRatio('id_1', 3.14);
 
-foreach ($resultSet->getItems() as $externalId => $item) {
+foreach ($resultSet->getItems() as $item) {
 	                         // first iteration:          second iteration:
-	$externalId;             // 'id_2'                    'id_1'
+	$item->getId();          // 'id_2'                    'id_1'
 	$item->getRelevance();   // 31.0                      3.14
+}
+```
+
+Provide instance id to limit the scope of the search with a subsystem:
+```php
+$resultSet = $finder->find((new Query('content'))->setInstanceId(1));
+$resultSet->setRelevanceRatio('id_1', 3.14);
+
+foreach ($resultSet->getItems() as $item) {
+	                         // first iteration:
+	$item->getId();          // 'id_1'
+	$item->getInstanceId();  // 1
 }
 ```
 
@@ -162,7 +178,7 @@ It's a common practice to highlight the found words in the search results. You c
 
 ```php
 $resultSet = $finder->find(new Query('title'));
-$resultSet->getItems()['id_1']->getHighlightedTitle($stemmer); // 'Test page <i>title</i>'
+$resultSet->getItems()[0]->getHighlightedTitle($stemmer); // 'Test page <i>title</i>'
 ```
 
 This method requires the stemmer since it takes into account the morphology and highlights all the word forms. By default, words are highlighted with italics. You can change the highlight template by calling `$finder->setHighlightTemplate('<b>%s</b>')`.
@@ -170,24 +186,25 @@ This method requires the stemmer since it takes into account the morphology and 
 Snippets are small text fragments containing found words displaying in the search result. `SnippetBuilder` processes the source and selects best matching sentences. It should be done just before `$resultSet->getItems()`:
 
 ```php
+use S2\Rose\Entity\ExternalContent;
 use S2\Rose\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($stemmer);
 $this->snippetBuilder->setSnippetLineSeparator(' &middot; '); // Set snippet line separator. Default is '... '.
-$snippetBuilder->attachSnippets($resultSet, function (array $ids) {
-	$result = [];
+$snippetBuilder->attachSnippets($resultSet, static function (array $ids) {
+	$result = new ExternalContent();
 	foreach ($ids as $id) {
-		if ($id == 'id_1') {
-			$result[$id] = 'This page is to be indexed. I have to make up a content.';
+		if ($id->getId() === 'id_1') {
+			$result->attach($id, 'This page is to be indexed. I have to make up a content.');
 		}
 		else {
-			$result[$id] = 'This is the second page to be indexed. Let\'s compose something new.';
+			$result->attach($id, 'This is the second page to be indexed. Let\'s compose something new.');
 		}
 	}
 	return $result;
 });
 
-$resultSet->getItems()['id_1']->getSnippet(); // 'I have to make up a <i>content</i>.'
+$resultSet->getItems()[0]->getSnippet(); // 'I have to make up a <i>content</i>.'
 ```
 
 Words in snippets are highlighted the same way as in titles.

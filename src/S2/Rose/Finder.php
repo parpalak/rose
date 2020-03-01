@@ -2,26 +2,25 @@
 /**
  * Fulltext and keyword search
  *
- * @copyright 2010-2018 Roman Parpalak
+ * @copyright 2010-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose;
 
+use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\FulltextQuery;
 use S2\Rose\Entity\FulltextResult;
 use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultSet;
+use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\UnknownKeywordTypeException;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\StorageReadInterface;
 
-/**
- * Class Finder
- */
 class Finder
 {
-    const TYPE_TITLE   = 1;
+    const TYPE_TITLE = 1;
     const TYPE_KEYWORD = 2;
 
     /**
@@ -40,8 +39,6 @@ class Finder
     protected $highlightTemplate;
 
     /**
-     * Finder constructor.
-     *
      * @param StorageReadInterface $storage
      * @param StemmerInterface     $stemmer
      */
@@ -67,15 +64,15 @@ class Finder
      * @param int $type
      *
      * @return int
-     * @throws \S2\Rose\Exception\UnknownKeywordTypeException
+     * @throws UnknownKeywordTypeException
      */
     protected static function getKeywordWeight($type)
     {
-        if ($type == self::TYPE_KEYWORD) {
+        if ($type === self::TYPE_KEYWORD) {
             return 30;
         }
 
-        if ($type == self::TYPE_TITLE) {
+        if ($type === self::TYPE_TITLE) {
             return 20;
         }
 
@@ -96,18 +93,19 @@ class Finder
 
     /**
      * @param array     $words
+     * @param int|null  $instanceId
      * @param ResultSet $resultSet
      *
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
-    protected function findFulltext(array $words, ResultSet $resultSet)
+    protected function findFulltext(array $words, $instanceId, ResultSet $resultSet)
     {
         $fulltextQuery        = new FulltextQuery($words, $this->stemmer);
-        $fulltextIndexContent = $this->storage->fulltextResultByWords($fulltextQuery->getWordsWithStems());
+        $fulltextIndexContent = $this->storage->fulltextResultByWords($fulltextQuery->getWordsWithStems(), $instanceId);
         $fulltextResult       = new FulltextResult(
             $fulltextQuery,
             $fulltextIndexContent,
-            $this->storage->getTocSize()
+            $this->storage->getTocSize($instanceId)
         );
 
         $fulltextResult->fillResultSet($resultSet);
@@ -115,36 +113,35 @@ class Finder
 
     /**
      * @param string[]  $words
+     * @param int|null  $instanceId
      * @param ResultSet $result
-     *
-     * @throws \S2\Rose\Exception\ImmutableException
      */
-    protected function findSimpleKeywords($words, ResultSet $result)
+    protected function findSimpleKeywords($words, $instanceId, ResultSet $result)
     {
         $wordsWithStems = $words;
         foreach ($words as $word) {
-            $stem = $this->stemmer->stemWord($word);
+            $stem             = $this->stemmer->stemWord($word);
             $wordsWithStems[] = $stem;
         }
 
-        foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems) as $word => $data) {
-            foreach ($data as $externalId => $type) {
+        foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems, $instanceId) as $word => $content) {
+            $content->iterate(static function (ExternalId $externalId, $type) use ($word, $result) {
                 $result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
-            }
+            });
         }
     }
 
     /**
      * @param string    $string
+     * @param int|null  $instanceId
      * @param ResultSet $result
-     *
-     * @throws \S2\Rose\Exception\ImmutableException
      */
-    protected function findSpacedKeywords($string, ResultSet $result)
+    protected function findSpacedKeywords($string, $instanceId, ResultSet $result)
     {
-        foreach ($this->storage->getMultipleKeywordIndexByString($string) as $externalId => $type) {
+        $content = $this->storage->getMultipleKeywordIndexByString($string, $instanceId);
+        $content->iterate(static function (ExternalId $externalId, $type) use ($string, $result) {
             $result->addWordWeight($string, $externalId, self::getKeywordWeight($type));
-        }
+        });
     }
 
     /**
@@ -152,7 +149,8 @@ class Finder
      * @param bool  $isDebug
      *
      * @return ResultSet
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
+     * @throws Exception\InvalidArgumentException
      */
     public function find(Query $query, $isDebug = false)
     {
@@ -166,33 +164,26 @@ class Finder
         $resultSet->addProfilePoint('Input cleanup');
 
         if (count($rawWords) > 1) {
-            $this->findSpacedKeywords($cleanedQuery, $resultSet);
+            $this->findSpacedKeywords($cleanedQuery, $query->getInstanceId(), $resultSet);
             $resultSet->addProfilePoint('Keywords with space');
         }
 
         if (count($rawWords) > 0) {
-            $this->findSimpleKeywords($rawWords, $resultSet);
+            $this->findSimpleKeywords($rawWords, $query->getInstanceId(), $resultSet);
             $resultSet->addProfilePoint('Simple keywords');
 
-            $this->findFulltext($rawWords, $resultSet);
+            $this->findFulltext($rawWords, $query->getInstanceId(), $resultSet);
             $resultSet->addProfilePoint('Fulltext search');
         }
 
         $resultSet->freeze();
 
-        $foundExternalIds     = $resultSet->getFoundExternalIds();
-        $remainingExternalIds = array_flip($foundExternalIds);
-
-        foreach ($this->storage->getTocByExternalIds($foundExternalIds) as $externalId => $tocEntry) {
-            $resultSet->attachToc($externalId, $tocEntry);
-            unset($remainingExternalIds[$externalId]);
+        $foundExternalIds = $resultSet->getFoundExternalIds();
+        foreach ($this->storage->getTocByExternalIds($foundExternalIds) as $tocEntryWithExternalId) {
+            $resultSet->attachToc($tocEntryWithExternalId);
         }
 
-        foreach ($remainingExternalIds as $externalId => $no) {
-            // We found a result just before it was deleted.
-            // Remove it from the result set.
-            $resultSet->removeByExternalId($externalId);
-        }
+        $resultSet->removeDataWithoutToc();
 
         return $resultSet;
     }

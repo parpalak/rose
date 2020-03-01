@@ -1,24 +1,23 @@
 <?php
 /**
- * @copyright 2016-2018 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Storage;
 
-use S2\Rose\Entity\TocEntry;
+use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\TocEntryWithExternalId;
 
-/**
- * Interface IndexReadInterface
- */
 interface StorageReadInterface
 {
     /**
      * @param string[] $words
+     * @param null     $instanceId
      *
      * @return FulltextIndexContent
      */
-    public function fulltextResultByWords(array $words);
+    public function fulltextResultByWords(array $words, $instanceId = null);
 
     /**
      * @param string $word
@@ -29,34 +28,31 @@ interface StorageReadInterface
 
     /**
      * @param string[] $words
+     * @param int|null $instanceId
      *
-     * @return array
+     * @return array|KeywordIndexContent[]
      */
-    public function getSingleKeywordIndexByWords(array $words);
+    public function getSingleKeywordIndexByWords(array $words, $instanceId = null);
 
     /**
-     * @param string $string
+     * @param string   $string
+     * @param int|null $instanceId
      *
-     * @return array
+     * @return KeywordIndexContent
      */
-    public function getMultipleKeywordIndexByString($string);
+    public function getMultipleKeywordIndexByString($string, $instanceId = null);
 
     /**
-     * @param string[] $externalIds
+     * @param ExternalIdCollection $externalIds
      *
-     * @return array|TocEntry[]
+     * @return TocEntryWithExternalId[]
      */
-    public function getTocByExternalIds($externalIds);
+    public function getTocByExternalIds(ExternalIdCollection $externalIds);
 
     /**
+     * @param int|null $instanceId
+     *
      * @return int
      */
-    public function getTocSize();
-
-    /**
-     * @param string $title
-     *
-     * @return TocEntry[]
-     */
-    public function findTocByTitle($title);
+    public function getTocSize($instanceId);
 }

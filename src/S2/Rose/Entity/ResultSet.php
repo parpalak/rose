@@ -1,19 +1,16 @@
 <?php
 /**
- * @copyright 2016-2018 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Entity;
 
 use S2\Rose\Exception\ImmutableException;
-use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Helper\Helper;
 
-/**
- * Class Result
- */
 class ResultSet
 {
     /**
@@ -32,7 +29,7 @@ class ResultSet
     protected $isDebug;
 
     /**
-     * @var
+     * @var int
      */
     protected $startedAt;
 
@@ -88,8 +85,6 @@ class ResultSet
     protected $trace;
 
     /**
-     * Result constructor.
-     *
      * @param int  $limit
      * @param int  $offset
      * @param bool $isDebug
@@ -148,64 +143,72 @@ class ResultSet
     }
 
     /**
-     * @param string $word
-     * @param string $externalId
-     * @param float  $weight
-     * @param int[]  $positions
+     * @param string     $word
+     * @param ExternalId $externalId
+     * @param float      $weight
+     * @param int[]      $positions
      *
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
-    public function addWordWeight($word, $externalId, $weight, $positions = [])
+    public function addWordWeight($word, ExternalId $externalId, $weight, $positions = [])
     {
         if ($this->isFrozen) {
             throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
         }
 
-        if (!isset ($this->data[$externalId][$word])) {
-            $this->data[$externalId][$word]      = $weight;
-            $this->positions[$externalId][$word] = $positions;
+        $serializedExtId = $externalId->toString();
+
+        if (!isset ($this->data[$serializedExtId][$word])) {
+            $this->data[$serializedExtId][$word]      = $weight;
+            $this->positions[$serializedExtId][$word] = $positions;
         } else {
-            $this->data[$externalId][$word]      += $weight;
-            $this->positions[$externalId][$word] = array_merge($this->positions[$externalId][$word], $positions);
+            $this->data[$serializedExtId][$word]      += $weight;
+            $this->positions[$serializedExtId][$word] = array_merge($this->positions[$serializedExtId][$word], $positions);
         }
 
         if (empty($positions)) {
-            $this->trace->addKeywordWeight($word, $externalId, $weight);
+            $this->trace->addKeywordWeight($word, $serializedExtId, $weight);
         } else {
-            $this->trace->addWordWeight($word, $externalId, $weight, $positions);
+            $this->trace->addWordWeight($word, $serializedExtId, $weight, $positions);
         }
     }
 
     /**
-     * @param string $word1
-     * @param string $word2
-     * @param string $externalId
-     * @param float  $weight
-     * @param int    $distance
+     * @param string     $word1
+     * @param string     $word2
+     * @param ExternalId $externalId
+     * @param float      $weight
+     * @param int        $distance
      *
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
-    public function addNeighbourWeight($word1, $word2, $externalId, $weight, $distance)
+    public function addNeighbourWeight($word1, $word2, ExternalId $externalId, $weight, $distance)
     {
         if ($this->isFrozen) {
             throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
         }
 
-        $this->data[$externalId]['*n_' . $word1 . '_' . $word2] = $weight;
+        $serializedExtId = $externalId->toString();
 
-        $this->trace->addNeighbourWeight($word1, $word2, $externalId, $weight, $distance);
+        $this->data[$serializedExtId]['*n_' . $word1 . '_' . $word2] = $weight;
+
+        $this->trace->addNeighbourWeight($word1, $word2, $serializedExtId, $weight, $distance);
     }
 
     /**
-     * @param string $externalId
-     * @param float  $ratio
+     * @param ExternalId $externalId
+     * @param float      $ratio
      *
-     * @throws \S2\Rose\Exception\UnknownIdException
-     * @throws \S2\Rose\Exception\RuntimeException
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
+     * @throws UnknownIdException
+     * @throws InvalidArgumentException
      */
-    public function setRelevanceRatio($externalId, $ratio)
+    public function setRelevanceRatio(ExternalId $externalId, $ratio)
     {
+        if (!is_numeric($ratio)) {
+            throw new InvalidArgumentException(sprintf('Ratio must be a float value. "%s" given.', print_r($ratio, true)));
+        }
+
         if (!$this->isFrozen) {
             throw new ImmutableException('One cannot provide external relevance ratios before freezing the result set.');
         }
@@ -214,20 +217,17 @@ class ResultSet
             throw new ImmutableException('One cannot set relevance ratios after sorting the result set.');
         }
 
-        if (!isset($this->data[$externalId])) {
+        $serializedExtId = $externalId->toString();
+        if (!isset($this->data[$serializedExtId])) {
             throw UnknownIdException::createResultMissingExternalId($externalId);
         }
 
-        if (!is_numeric($ratio)) {
-            throw new RuntimeException(sprintf('Ratio must be a float value. "%s" given.', print_r($ratio, true)));
-        }
-
-        $this->externalRelevanceRatios[$externalId] = $ratio;
+        $this->externalRelevanceRatios[$serializedExtId] = $ratio;
     }
 
     /**
      * @return array
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
     public function getSortedRelevanceByExternalId()
     {
@@ -240,12 +240,12 @@ class ResultSet
         }
 
         $this->sortedRelevance = [];
-        foreach ($this->data as $externalId => $stat) {
+        foreach ($this->data as $serializedExtId => $stat) {
             $relevance = array_sum($stat);
-            if (isset($this->externalRelevanceRatios[$externalId])) {
-                $relevance *= $this->externalRelevanceRatios[$externalId];
+            if (isset($this->externalRelevanceRatios[$serializedExtId])) {
+                $relevance *= $this->externalRelevanceRatios[$serializedExtId];
             }
-            $this->sortedRelevance[$externalId] = $relevance;
+            $this->sortedRelevance[$serializedExtId] = $relevance;
         }
 
         // Order by relevance
@@ -263,27 +263,31 @@ class ResultSet
     }
 
     /**
-     * @param string $externalId
-     *
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
-    public function removeByExternalId($externalId)
+    public function removeDataWithoutToc()
     {
         if ($this->sortedRelevance !== null) {
             throw new ImmutableException('One cannot remove results after sorting the result set.');
         }
 
-        unset(
-            $this->data[$externalId],
-            $this->externalRelevanceRatios[$externalId],
-            $this->items[$externalId],
-            $this->positions[$externalId]
-        );
+        foreach ($this->data as $serializedExtId => $stat) {
+            if (!isset($this->items[$serializedExtId])) {
+                // We found a result just before it was deleted.
+                // Remove it from the result set.
+                unset(
+                    $this->data[$serializedExtId],
+                    $this->externalRelevanceRatios[$serializedExtId],
+                    $this->items[$serializedExtId],
+                    $this->positions[$serializedExtId]
+                );
+            }
+        }
     }
 
     /**
      * @return array
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
     public function getFoundWordPositionsByExternalId()
     {
@@ -306,13 +310,14 @@ class ResultSet
         return $this;
     }
 
-    /**
-     * @param string   $externalId
-     * @param TocEntry $tocEntry
-     */
-    public function attachToc($externalId, TocEntry $tocEntry)
+    public function attachToc(TocEntryWithExternalId $tocEntryWithExternalId)
     {
-        $this->items[$externalId] = new ResultItem(
+        $tocEntry   = $tocEntryWithExternalId->getTocEntry();
+        $externalId = $tocEntryWithExternalId->getExternalId();
+
+        $this->items[$externalId->toString()] = new ResultItem(
+            $externalId->getId(),
+            $externalId->getInstanceId(),
             $tocEntry->getTitle(),
             $tocEntry->getDescription(),
             $tocEntry->getDate(),
@@ -322,22 +327,23 @@ class ResultSet
     }
 
     /**
-     * @param string  $externalId
-     * @param Snippet $snippet
+     * @param ExternalId $externalId
+     * @param Snippet    $snippet
      *
-     * @throws \S2\Rose\Exception\UnknownIdException
+     * @throws UnknownIdException
      */
-    public function attachSnippet($externalId, Snippet $snippet)
+    public function attachSnippet(ExternalId $externalId, Snippet $snippet)
     {
-        if (!isset($this->items[$externalId])) {
+        $serializedExtId = $externalId->toString();
+        if (!isset($this->items[$serializedExtId])) {
             throw UnknownIdException::createResultMissingExternalId($externalId);
         }
-        $this->items[$externalId]->setSnippet($snippet);
+        $this->items[$serializedExtId]->setSnippet($snippet);
     }
 
     /**
      * @return ResultItem[]
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws ImmutableException
      */
     public function getItems()
     {
@@ -346,21 +352,22 @@ class ResultSet
         $foundWords = $this->getFoundWordPositionsByExternalId();
 
         $result = [];
-        foreach ($relevanceArray as $externalId => $relevance) {
-            $resultItem = $this->items[$externalId];
+        foreach ($relevanceArray as $serializedExtId => $relevance) {
+            $resultItem = $this->items[$serializedExtId];
             $resultItem
                 ->setRelevance($relevance)
-                ->setFoundWords(array_keys($foundWords[$externalId]))
+                ->setFoundWords(array_keys($foundWords[$serializedExtId]))
             ;
-            $result[$externalId] = $resultItem;
+            $result[] = $resultItem;
         }
 
         return $result;
     }
 
     /**
-     * @return string[]
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @return ExternalIdCollection
+     * @throws ImmutableException
+     * @throws InvalidArgumentException
      */
     public function getFoundExternalIds()
     {
@@ -368,22 +375,24 @@ class ResultSet
             throw new ImmutableException('One cannot read a result before freezing it.');
         }
 
-        return array_keys($this->data);
+        return ExternalIdCollection::fromStringArray(array_keys($this->data));
     }
 
     /**
-     * @return string[]
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @return ExternalIdCollection
+     * @throws ImmutableException
+     * @throws InvalidArgumentException
      */
     public function getSortedExternalIds()
     {
-        return array_keys($this->getSortedRelevanceByExternalId());
+        return ExternalIdCollection::fromStringArray(array_keys($this->getSortedRelevanceByExternalId()));
     }
 
     /**
      * @return array
-     * @throws \S2\Rose\Exception\UnknownIdException
-     * @throws \S2\Rose\Exception\ImmutableException
+     * @throws UnknownIdException
+     * @throws ImmutableException
+     * @throws InvalidArgumentException
      */
     public function getTrace()
     {
@@ -395,21 +404,21 @@ class ResultSet
         $relevanceArray = $this->getSortedRelevanceByExternalId();
 
         $result = [];
-        foreach ($relevanceArray as $externalId => $relevance) {
-            if (!isset($this->items[$externalId])) {
-                throw UnknownIdException::createResultMissingExternalId($externalId);
+        foreach ($relevanceArray as $serializedExtId => $relevance) {
+            if (!isset($this->items[$serializedExtId])) {
+                throw UnknownIdException::createResultMissingExternalId(ExternalId::fromString($serializedExtId));
             }
 
-            $result[$externalId] = [
-                'title'     => $this->items[$externalId]->getTitle(),
+            $result[$serializedExtId] = [
+                'title'     => $this->items[$serializedExtId]->getTitle(),
                 'relevance' => $relevance,
             ];
 
-            if (isset($this->externalRelevanceRatios[$externalId])) {
-                $result[$externalId]['externalRelevanceRatio'] = $this->externalRelevanceRatios[$externalId];
+            if (isset($this->externalRelevanceRatios[$serializedExtId])) {
+                $result[$serializedExtId]['externalRelevanceRatio'] = $this->externalRelevanceRatios[$serializedExtId];
             }
 
-            $result[$externalId]['trace'] = $traceArray[$externalId];
+            $result[$serializedExtId]['trace'] = $traceArray[$serializedExtId];
         }
 
         return $result;
