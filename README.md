@@ -149,14 +149,18 @@ $resultSet = $finder->find($query);
 
 Adjust the relevance for favorite and popular pages:
 ```php
+use S2\Rose\Entity\ExternalId;
+
 $resultSet = $finder->find(new Query('content'));
-var_dump($resultSet->getFoundExternalIds()); // ['id_1', 'id_2']
-$resultSet->setRelevanceRatio('id_1', 3.14);
+$externalId1 = $resultSet->getFoundExternalIds()->toArray()[0];
+var_dump($externalId1->getId(), $externalId1->getInstanceId()); // id_1 1
+$resultSet->setRelevanceRatio($externalId1, 3.14);
+$resultSet->setRelevanceRatio(new ExternalId('id_2', null), 2);
 
 foreach ($resultSet->getItems() as $item) {
 	                         // first iteration:          second iteration:
 	$item->getId();          // 'id_2'                    'id_1'
-	$item->getRelevance();   // 31.0                      3.14
+	$item->getRelevance();   // 62.0                      3.14
 }
 ```
 
@@ -191,14 +195,16 @@ use S2\Rose\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($stemmer);
 $this->snippetBuilder->setSnippetLineSeparator(' &middot; '); // Set snippet line separator. Default is '... '.
-$snippetBuilder->attachSnippets($resultSet, static function (array $ids) {
+$snippetBuilder->attachSnippets($resultSet, static function (array $externalIds) {
+    /** @var \S2\Rose\Entity\ExternalId[] $externalIds */
+
 	$result = new ExternalContent();
-	foreach ($ids as $id) {
-		if ($id->getId() === 'id_1') {
-			$result->attach($id, 'This page is to be indexed. I have to make up a content.');
+	foreach ($externalIds as $externalId) {
+		if ($externalId->getId() === 'id_1') {
+			$result->attach($externalId, 'This page is to be indexed. I have to make up a content.');
 		}
 		else {
-			$result->attach($id, 'This is the second page to be indexed. Let\'s compose something new.');
+			$result->attach($externalId, 'This is the second page to be indexed. Let\'s compose something new.');
 		}
 	}
 	return $result;
