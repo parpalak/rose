@@ -3,6 +3,7 @@ os:
   - linux
 
 php:
+    - 7.4
     - 7.3
     - 7.2
     - 7.1
@@ -19,7 +20,7 @@ before_install:
   - mysql -e 'CREATE DATABASE s2_rose_test;'
 
 install:
-  - composer install --no-interaction
+  - COMPOSER_MEMORY_LIMIT=-1 travis_retry composer install --prefer-dist --no-interaction
 
 before_script:
   - cp tests/config.php.dist tests/config.php
