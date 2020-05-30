@@ -189,6 +189,21 @@ class PdoStorageTest extends Unit
         $this->assertEquals(2, $result[0][1]);
     }
 
+    public function testDiacritic()
+    {
+        global $s2_rose_test_db;
+
+        $storage = new PdoStorage($this->pdo, 'test_');
+        $storage->erase();
+
+        $storage->addEntryToToc(
+            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+            new ExternalId('id_1')
+        );
+        $storage->addToFulltext(['Flugel', 'Shlomo', 'Tormented'], new ExternalId('id_1'));
+        $storage->addToFulltext(['Flügel', 'Shlømo', 'Tørmented'], new ExternalId('id_1'));
+    }
+
     public function testTransactions()
     {
         global $s2_rose_test_db;

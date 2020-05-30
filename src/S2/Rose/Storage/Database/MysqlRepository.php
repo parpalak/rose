@@ -649,7 +649,7 @@ class MysqlRepository
 			name VARCHAR(255) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (name(' . $keyLen . '))
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+		) ENGINE=InnoDB CHARACTER SET ' . $charset . ' COLLATE ' . $charset . '_bin');
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
