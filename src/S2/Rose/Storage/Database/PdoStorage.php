@@ -389,6 +389,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * @throws InvalidArgumentException
      * @throws LogicException
      * @throws UnknownException
+     * @throws \S2\Rose\Exception\RuntimeException
      */
     protected function getWordIds(array $words)
     {

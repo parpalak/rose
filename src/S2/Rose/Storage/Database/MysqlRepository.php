@@ -12,6 +12,7 @@ use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Exception\InvalidArgumentException;
+use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
@@ -97,7 +98,7 @@ class MysqlRepository
     /**
      * @param string[] $words
      *
-     * @throws InvalidArgumentException
+     * @throws RuntimeException
      */
     public function insertWords(array $words)
     {
@@ -107,7 +108,19 @@ class MysqlRepository
                     return addslashes($x);
                 }, $words)
             ) . '")';
-        $this->pdo->exec($sql);
+
+        try {
+            $this->pdo->exec($sql);
+        } catch (\PDOException $e) {
+            if (1205 === (int)$e->errorInfo[1]) {
+                throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
+            }
+            throw new UnknownException(sprintf(
+                'Unknown exception with code "%s" occurred while fulltext indexing: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
     }
 
     /**

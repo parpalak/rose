@@ -12,6 +12,7 @@ use Codeception\Test\Unit;
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\TocEntry;
+use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Storage\Database\PdoStorage;
 use S2\Rose\Storage\Exception\EmptyIndexException;
@@ -190,13 +191,15 @@ class PdoStorageTest extends Unit
 
     public function testTransactions()
     {
-        // This test should lock on INSERT query.
-        // How this could be tested automatically?
-        return;
         global $s2_rose_test_db;
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot insert words. Possible deadlock?');
 
         $pdo2 = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
         $pdo2->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo2->exec('set innodb_lock_wait_timeout=0;');
+        $this->pdo->exec('set innodb_lock_wait_timeout=0;');
 
         $storage = new PdoStorage($this->pdo, 'test_tr_');
         $storage->erase();
