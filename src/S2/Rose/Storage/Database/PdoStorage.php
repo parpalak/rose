@@ -27,11 +27,6 @@ use S2\Rose\Storage\TransactionalStorageInterface;
 class PdoStorage implements StorageWriteInterface, StorageReadInterface, TransactionalStorageInterface
 {
     /**
-     * @var \PDO
-     */
-    protected $pdo;
-
-    /**
      * @var array
      */
     protected $cachedWordIds = [];
@@ -69,7 +64,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
             default:
                 throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
         }
-        $this->pdo     = $pdo;
         $this->mapping = new IdMappingStorage();
     }
 
@@ -333,16 +327,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
     public function startTransaction()
     {
         $this->mapping->clear();
-
-        try {
-            $this->pdo->beginTransaction();
-        } catch (\PDOException $e) {
-            throw new UnknownException(sprintf(
-                'Unknown exception "%s" occurred while starting transaction: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
+        $this->repository->startTransaction();
     }
 
     /**
@@ -351,32 +336,17 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      */
     public function commitTransaction()
     {
-        try {
-            $this->pdo->commit();
-        } catch (\PDOException $e) {
-            throw new UnknownException(sprintf(
-                'Unknown exception "%s" occurred while committing transaction: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
+        $this->repository->commitTransaction();
         $this->mapping->clear();
     }
 
     /**
      * {@inheritdoc}
+     * @throws UnknownException
      */
     public function rollbackTransaction()
     {
-        try {
-            $this->pdo->rollBack();
-        } catch (\PDOException $e) {
-            throw new UnknownException(sprintf(
-                'Unknown exception "%s" occurred while transaction rollback: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
+        $this->repository->rollbackTransaction();
     }
 
     /**

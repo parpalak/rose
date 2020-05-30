@@ -585,6 +585,55 @@ class MysqlRepository
     }
 
     /**
+     * @throws UnknownException
+     */
+    public function startTransaction()
+    {
+        try {
+            $this->pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+            $this->pdo->beginTransaction();
+        } catch (\PDOException $e) {
+            throw new UnknownException(sprintf(
+                'Unknown exception "%s" occurred while starting transaction: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
+    }
+
+    /**
+     * @throws UnknownException
+     */
+    public function commitTransaction()
+    {
+        try {
+            $this->pdo->commit();
+        } catch (\PDOException $e) {
+            throw new UnknownException(sprintf(
+                'Unknown exception "%s" occurred while committing transaction: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
+    }
+
+    /**
+     * @throws UnknownException
+     */
+    public function rollbackTransaction()
+    {
+        try {
+            $this->pdo->rollBack();
+        } catch (\PDOException $e) {
+            throw new UnknownException(sprintf(
+                'Unknown exception "%s" occurred while transaction rollback: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
+    }
+
+    /**
      * @param string $key
      *
      * @return string
