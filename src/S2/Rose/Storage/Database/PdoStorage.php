@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */
+<?php
+/** @noinspection PhpComposerExtensionStubsInspection */
 
 /**
  * @copyright    2016-2020 Roman Parpalak
@@ -11,7 +12,6 @@ use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Entity\TocEntryWithExternalId;
-use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
@@ -70,7 +70,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
     /**
      * Drops and creates index tables.
      *
-     * @throws InvalidArgumentException
      * @throws InvalidEnvironmentException
      * @throws UnknownException
      */
@@ -86,7 +85,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      *
      * @return FulltextIndexContent
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function fulltextResultByWords(array $words, $instanceId = null)
@@ -109,7 +107,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      * @throws EmptyIndexException
      * @throws UnknownException
-     * @throws InvalidArgumentException
      */
     public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
     {
@@ -138,7 +135,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      * @throws UnknownException
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      */
     public function getMultipleKeywordIndexByString($string, $instanceId = null)
     {
@@ -156,10 +152,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      * @throws UnknownIdException
-     * @throws LogicException
+     * @throws \S2\Rose\Exception\RuntimeException
      */
     public function addToFulltext(array $words, ExternalId $externalId)
     {
@@ -185,7 +180,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
     /**
      * {@inheritdoc}
      *
-     * @throws InvalidArgumentException
      * @throws UnknownException
      * @throws UnknownIdException
      */
@@ -201,7 +195,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
     /**
      * {@inheritdoc}
      *
-     * @throws InvalidArgumentException
      * @throws UnknownException
      * @throws UnknownIdException
      */
@@ -218,7 +211,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function removeFromIndex(ExternalId $externalId)
@@ -230,7 +222,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function addEntryToToc(TocEntry $entry, ExternalId $externalId)
@@ -251,7 +242,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function getTocByExternalIds(ExternalIdCollection $externalIds, $instanceId = null)
@@ -285,7 +275,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function getTocByExternalId(ExternalId $externalId)
@@ -299,7 +288,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function getTocSize($instanceId)
@@ -311,7 +299,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * {@inheritdoc}
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function removeFromToc(ExternalId $externalId)
@@ -356,8 +343,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      *
      * @return int[]
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
-     * @throws LogicException
      * @throws UnknownException
      * @throws \S2\Rose\Exception\RuntimeException
      */
@@ -410,7 +395,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * @param int        $type
      * @param string     $tableKey
      *
-     * @throws InvalidArgumentException
      * @throws UnknownIdException
      */
     private function addKeywordToDb($word, ExternalId $externalId, $type, $tableKey)
@@ -438,7 +422,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
      * @param array $row
      *
      * @return ExternalId
-     * @throws InvalidArgumentException
      */
     private function getExternalIdFromRow($row)
     {

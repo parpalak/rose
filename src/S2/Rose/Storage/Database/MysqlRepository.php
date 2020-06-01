@@ -1,4 +1,5 @@
 <?php
+/** @noinspection SqlDialectInspection */
 /** @noinspection SqlResolve */
 /** @noinspection PhpComposerExtensionStubsInspection */
 /**
@@ -54,7 +55,6 @@ class MysqlRepository
     }
 
     /**
-     * @throws InvalidArgumentException
      * @throws InvalidEnvironmentException
      * @throws UnknownException
      */
@@ -128,7 +128,6 @@ class MysqlRepository
      *
      * @return array
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function findIdsByWords(array $words)
@@ -161,7 +160,6 @@ class MysqlRepository
      * @param array $wordIds
      * @param int   $internalId
      *
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function insertFulltext(array $words, array $wordIds, $internalId)
@@ -192,7 +190,6 @@ class MysqlRepository
      *
      * @return array
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function findFulltextByWords(array $words, $instanceId = null)
@@ -235,8 +232,6 @@ class MysqlRepository
      * @param int      $internalId
      * @param int      $type
      * @param string   $tableKey
-     *
-     * @throws InvalidArgumentException
      */
     public function insertKeywords(array $words, $internalId, $type, $tableKey)
     {
@@ -255,7 +250,6 @@ class MysqlRepository
      *
      * @return array
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function findSingleKeywordIndex(array $words, $instanceId)
@@ -313,7 +307,6 @@ class MysqlRepository
      *
      * @return array
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function findMultipleKeywordIndex($string, $instanceId)
@@ -355,7 +348,6 @@ class MysqlRepository
      * @param ExternalId $externalId
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function removeFromIndex(ExternalId $externalId)
@@ -394,7 +386,6 @@ class MysqlRepository
      * @param ExternalId $externalId
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function addToToc(TocEntry $entry, ExternalId $externalId)
@@ -436,7 +427,6 @@ class MysqlRepository
      *
      * @return array
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function getTocEntries(array $criteria = [])
@@ -494,7 +484,6 @@ class MysqlRepository
      *
      * @return int
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function getTocSize($instanceId)
@@ -527,7 +516,6 @@ class MysqlRepository
      * @param ExternalId $externalId
      *
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function removeFromToc(ExternalId $externalId)
@@ -557,7 +545,6 @@ class MysqlRepository
      *
      * @return int|null
      * @throws EmptyIndexException
-     * @throws InvalidArgumentException
      * @throws UnknownException
      */
     public function selectInternalId(ExternalId $externalId)
@@ -637,7 +624,6 @@ class MysqlRepository
      * @param string $key
      *
      * @return string
-     * @throws InvalidArgumentException
      */
     private function getTableName($key)
     {
@@ -664,8 +650,6 @@ class MysqlRepository
     /**
      * @param string $charset
      * @param int    $keyLen
-     *
-     * @throws InvalidArgumentException
      */
     private function dropAndCreateTables($charset, $keyLen)
     {

@@ -33,7 +33,6 @@ class SingleFileArrayStorage extends ArrayStorage
      * @param bool $isDebug
      *
      * @return array
-     * @throws \S2\Rose\Exception\InvalidArgumentException
      */
     public function load($isDebug = false)
     {

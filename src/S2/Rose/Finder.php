@@ -150,7 +150,6 @@ class Finder
      *
      * @return ResultSet
      * @throws ImmutableException
-     * @throws Exception\InvalidArgumentException
      */
     public function find(Query $query, $isDebug = false)
     {

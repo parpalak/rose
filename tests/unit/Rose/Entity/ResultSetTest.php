@@ -12,6 +12,7 @@ use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Entity\Snippet;
 use S2\Rose\Exception\ImmutableException;
+use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownIdException;
 
@@ -51,7 +52,7 @@ class ResultSetTest extends Unit
 
     public function testSetRelevanceInvalidRatio()
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidArgumentException::class);
         $result = $this->prepareResult(new ResultSet());
         $result->setRelevanceRatio(new ExternalId('id_10'), ['not a number']);
     }

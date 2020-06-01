@@ -203,7 +203,6 @@ class ResultItem
      * @param StemmerInterface $stemmer
      *
      * @return string
-     * @throws InvalidArgumentException
      */
     public function getHighlightedTitle(StemmerInterface $stemmer)
     {

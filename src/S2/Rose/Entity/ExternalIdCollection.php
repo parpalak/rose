@@ -16,9 +16,7 @@ class ExternalIdCollection
     private $externalIds;
 
     /**
-     * @param array $externalIds
-     *
-     * @throws InvalidArgumentException
+     * @param ExternalId[] $externalIds
      */
     public function __construct(array $externalIds)
     {
@@ -35,7 +33,6 @@ class ExternalIdCollection
      * @param string[] $serializedExternalIds
      *
      * @return ExternalIdCollection
-     * @throws InvalidArgumentException
      */
     public static function fromStringArray(array $serializedExternalIds)
     {

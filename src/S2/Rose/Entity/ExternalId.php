@@ -1,4 +1,6 @@
 <?php
+/** @noinspection CallableParameterUseCaseInTypeContextInspection */
+
 /**
  * @copyright 2020 Roman Parpalak
  * @license   MIT
@@ -23,8 +25,6 @@ class ExternalId
     /**
      * @param string   $id
      * @param int|null $instanceId
-     *
-     * @throws InvalidArgumentException
      */
     public function __construct($id, $instanceId = null)
     {

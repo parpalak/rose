@@ -201,7 +201,6 @@ class ResultSet
      *
      * @throws ImmutableException
      * @throws UnknownIdException
-     * @throws InvalidArgumentException
      */
     public function setRelevanceRatio(ExternalId $externalId, $ratio)
     {
@@ -367,7 +366,6 @@ class ResultSet
     /**
      * @return ExternalIdCollection
      * @throws ImmutableException
-     * @throws InvalidArgumentException
      */
     public function getFoundExternalIds()
     {
@@ -381,7 +379,6 @@ class ResultSet
     /**
      * @return ExternalIdCollection
      * @throws ImmutableException
-     * @throws InvalidArgumentException
      */
     public function getSortedExternalIds()
     {
@@ -392,7 +389,6 @@ class ResultSet
      * @return array
      * @throws UnknownIdException
      * @throws ImmutableException
-     * @throws InvalidArgumentException
      */
     public function getTrace()
     {

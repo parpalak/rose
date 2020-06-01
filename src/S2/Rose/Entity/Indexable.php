@@ -48,8 +48,6 @@ class Indexable
      * @param string   $title
      * @param string   $content
      * @param int|null $instanceId
-     *
-     * @throws \S2\Rose\Exception\InvalidArgumentException
      */
     public function __construct($id, $title, $content, $instanceId = null)
     {

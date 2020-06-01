@@ -55,12 +55,11 @@ class SnippetBuilder
      *
      * @return $this
      * @throws ImmutableException
-     * @throws InvalidArgumentException
      */
     public function attachSnippets(ResultSet $result, $callback)
     {
         if (!is_callable($callback)) {
-            throw new InvalidArgumentException('Argument "callback" must be a callable');
+            throw new InvalidArgumentException('Argument "callback" must be a callable.');
         }
 
         $externalIds = $result->getSortedExternalIds()->toArray();

@@ -148,8 +148,6 @@ class Indexer
     /**
      * @param string   $id
      * @param int|null $instanceId
-     *
-     * @throws Exception\InvalidArgumentException
      */
     public function removeById($id, $instanceId)
     {

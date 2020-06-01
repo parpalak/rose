@@ -1,15 +1,12 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Exception;
 
-/**
- * Class InvalidArgumentException
- */
-class InvalidArgumentException extends RuntimeException
+class InvalidArgumentException extends \InvalidArgumentException implements ExceptionInterface
 {
 
 }
