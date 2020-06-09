@@ -7,6 +7,7 @@
 namespace S2\Rose\Entity;
 
 use S2\Rose\Exception\InvalidArgumentException;
+use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
 use S2\Rose\Stemmer\StemmerInterface;
 
 class ResultItem
@@ -212,17 +213,20 @@ class ResultItem
             throw new InvalidArgumentException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
-        $joinedStems = implode('|', $this->foundWords);
+        $joinedStems = $this->foundWords;
+        if ($stemmer instanceof IrregularWordsStemmerInterface) {
+            $joinedStems = array_merge($joinedStems, $stemmer->irregularWordsFromStems($this->foundWords));
+        }
+        $joinedStems = implode('|', $joinedStems);
         $joinedStems = str_replace('е', '[её]', $joinedStems);
 
         $replacedLine = preg_replace_callback(
             '#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
-            static function ($matches) use ($template, $stemmer) {
+            function ($matches) use ($template, $stemmer) {
                 $word        = $matches[0];
-                $stem        = str_replace('ё', 'е', mb_strtolower($matches[1]));
                 $stemmedWord = $stemmer->stemWord($word);
 
-                if ($stem !== $stemmedWord) {
+                if (!in_array($stemmedWord, $this->foundWords, true)) {
                     return $word;
                 }
 

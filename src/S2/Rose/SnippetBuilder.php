@@ -13,6 +13,7 @@ use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\InvalidArgumentException;
+use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
 use S2\Rose\Stemmer\StemmerInterface;
 
 class SnippetBuilder
@@ -130,6 +131,10 @@ class SnippetBuilder
             return $snippet;
         }
 
+        if ($this->stemmer instanceof IrregularWordsStemmerInterface) {
+            $stems = array_merge($stems, $this->stemmer->irregularWordsFromStems($stems));
+        }
+
         $joinedStems = implode('|', $stems);
         $joinedStems = str_replace('е', '[её]', $joinedStems);
 
@@ -149,11 +154,10 @@ class SnippetBuilder
         foreach ($matches[0] as $i => $wordInfo) {
             $word           = $wordInfo[0];
             $stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
-            $stem           = str_replace('ё', 'е', mb_strtolower($matches[1][$i][0]));
             $stemmedWord    = $this->stemmer->stemWord($word);
 
             // Ignore entry if the word stem differs from needed ones
-            if (!$stemEqualsWord && $stem !== $stemmedWord) {
+            if (!$stemEqualsWord && !in_array($stemmedWord, $stems, true)) {
                 continue;
             }
 
@@ -164,7 +168,7 @@ class SnippetBuilder
                 $lineEnd += 1 + strlen($lines[$lineNum]);
             }
 
-            $foundStemsInLines[$lineNum][$stem] = 1;
+            $foundStemsInLines[$lineNum][$stemmedWord] = 1;
             $foundWordsInLines[$lineNum][$word] = 1;
         }
 

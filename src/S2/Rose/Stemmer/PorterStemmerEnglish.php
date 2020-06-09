@@ -8,11 +8,11 @@ namespace S2\Rose\Stemmer;
  * See http://snowball.tartarus.org/algorithms/english/stemmer.html .
  * See https://raw.githubusercontent.com/markfullmer/porter2/master/src/Porter2.php
  */
-class PorterStemmerEnglish implements StemmerInterface
+class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
 {
     const SUPPORTS_REGEX = '#^[a-zA-Z\-0-9\'’]*$#Su';
 
-    protected static $exceptions = [
+    protected static $irregularWords = [
         'skis'   => 'ski',
         'skies'  => 'sky',
         'dying'  => 'die',
@@ -35,13 +35,6 @@ class PorterStemmerEnglish implements StemmerInterface
 
     protected $cache = [];
 
-    protected $nextStemmer;
-
-    public function __construct(StemmerInterface $nextStemmer = null)
-    {
-        $this->nextStemmer = $nextStemmer;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -53,8 +46,8 @@ class PorterStemmerEnglish implements StemmerInterface
             return $this->cache[$word];
         }
 
-        if (isset(self::$exceptions[$word])) {
-            return self::$exceptions[$word];
+        if (isset(self::$irregularWords[$word])) {
+            return self::$irregularWords[$word];
         }
 
         if (!\preg_match(self::SUPPORTS_REGEX, $word)) {
@@ -693,4 +686,11 @@ class PorterStemmerEnglish implements StemmerInterface
         return $word;
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    protected function getIrregularWords()
+    {
+        return self::$irregularWords;
+    }
 }

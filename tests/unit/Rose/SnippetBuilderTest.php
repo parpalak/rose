@@ -142,6 +142,19 @@ class SnippetBuilderTest extends Unit
             ]
         );
 
+        // Highlighting 'мне' as a word found by stem 'я'
+        $resultSet = $this->finder->find(new Query('Мне не душно'));
+        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
+        $this->assertEquals(
+            '<i>Мне</i> <i>не</i> <i>душно</i>',
+            $resultSet->getItems()[0]->getHighlightedTitle($this->stemmer)
+        );
+
+        $this->assertEquals(
+            '<i>Я</i> просто <i>не</i> ощущаю уровень углекислого газа в воздухе. <i>Меня</i> <i>не</i> устраивает.',
+            $resultSet->getItems()[0]->getSnippet()
+        );
+
         // Highlighting 'ё'
         $resultSet = $this->finder->find(new Query('твердыми'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
@@ -151,7 +164,9 @@ class SnippetBuilderTest extends Unit
                 'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
                 'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.'
             ],
-            array_map(static function (ResultItem $item) {return $item->getSnippet(); }, $resultSet->getItems())
+            array_map(static function (ResultItem $item) {
+                return $item->getSnippet();
+            }, $resultSet->getItems())
         );
 
         $resultSet = $this->finder->find(new Query('твёрдая'));
@@ -162,7 +177,9 @@ class SnippetBuilderTest extends Unit
                 'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
                 'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
             ],
-            array_map(static function (ResultItem $item) {return $item->getSnippet(); }, $resultSet->getItems())
+            array_map(static function (ResultItem $item) {
+                return $item->getSnippet();
+            }, $resultSet->getItems())
         );
 
         $resultSet = $this->finder->find(new Query('артемий'));
@@ -173,7 +190,9 @@ class SnippetBuilderTest extends Unit
                 'Политическое учение <i>Артёма</i>, в первом приближении, формирует экзистенциальный социализм.',
                 '<i>Артемий</i> как абсолютно твёрдое тело заставляет иначе взглянуть на то, что такое объект.',
             ],
-            array_map(static function (ResultItem $item) {return $item->getSnippet(); }, $resultSet->getItems())
+            array_map(static function (ResultItem $item) {
+                return $item->getSnippet();
+            }, $resultSet->getItems())
         );
 
         $this->assertSimilar(
@@ -181,7 +200,9 @@ class SnippetBuilderTest extends Unit
                 'Почему неоднозначна борьба <i>Артёма</i> против демократических и олигархических тенденций?',
                 'Почему апериодичен маховик?',
             ],
-            array_map(function (ResultItem $item) {return $item->getHighlightedTitle($this->stemmer); }, $resultSet->getItems())
+            array_map(function (ResultItem $item) {
+                return $item->getHighlightedTitle($this->stemmer);
+            }, $resultSet->getItems())
         );
 
         $resultSet = $this->finder->find(new Query('1 защита xss gt'));
@@ -210,6 +231,7 @@ class SnippetBuilderTest extends Unit
 Ошибка астатически даёт более простую систему дифференциальных уравнений, если исключить небольшой угол тангажа. Если пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет пренебречь колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.
 
 Уравнение возмущенного движения поступательно характеризует подвижный объект. Прецессия гироскопа косвенно интегрирует нестационарный вектор угловой скорости, изменяя направление движения. Угловая скорость, обобщая изложенное, неподвижно не входит своими составляющими, что очевидно, в силы нормальных реакций связей, так же как и кожух. Динамическое уравнение Эйлера, в силу третьего закона Ньютона, вращательно связывает ньютонометр, не забывая о том, что интенсивность диссипативных сил, характеризующаяся величиной коэффициента D, должна лежать в определённых пределах. Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.'),
+            new Indexable('id_4', 'Мне не душно', 'Я просто не ощущаю уровень углекислого газа в воздухе. Меня не устраивает.'),
         ];
 
         return [

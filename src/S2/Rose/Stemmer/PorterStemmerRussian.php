@@ -5,7 +5,7 @@ namespace S2\Rose\Stemmer;
 /**
  * @see http://forum.dklab.ru/php/advises/HeuristicWithoutTheDictionaryExtractionOfARootFromRussianWord.html
  */
-class PorterStemmerRussian implements StemmerInterface
+class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
 {
     const SUPPORTS_REGEX = '#^[а-яА-ЯёЁ\-0-9]*$#Su';
 
@@ -19,7 +19,7 @@ class PorterStemmerRussian implements StemmerInterface
     const RVRE             = '/^(.*?[аеиоуыэюя])(.*)$/Su';
     const DERIVATIONAL     = '/[^аеиоуыэюя][аеиоуыэюя]+[^аеиоуыэюя]+[аеиоуыэюя].*(?<=о)сть?$/Su';
 
-    protected static $exceptions = [
+    protected static $irregularWords = [
         'и'       => '',
         'или'     => '',
         'когда'   => '',
@@ -182,13 +182,6 @@ class PorterStemmerRussian implements StemmerInterface
 
     protected $cache = [];
 
-    protected $nextStemmer;
-
-    public function __construct(StemmerInterface $nextStemmer = null)
-    {
-        $this->nextStemmer = $nextStemmer;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -201,8 +194,8 @@ class PorterStemmerRussian implements StemmerInterface
             return $this->cache[$word];
         }
 
-        if (isset(self::$exceptions[$word])) {
-            return self::$exceptions[$word] !== '' ? self::$exceptions[$word] : $word;
+        if (isset(self::$irregularWords[$word])) {
+            return self::$irregularWords[$word] !== '' ? self::$irregularWords[$word] : $word;
         }
 
         if (!\preg_match(self::SUPPORTS_REGEX, $word)) {
@@ -262,5 +255,13 @@ class PorterStemmerRussian implements StemmerInterface
         $s    = \preg_replace($re, $to, $s);
 
         return $orig !== $s;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getIrregularWords()
+    {
+        return self::$irregularWords;
     }
 }

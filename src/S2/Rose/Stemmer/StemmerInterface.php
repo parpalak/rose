@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2019 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
@@ -11,7 +11,7 @@ interface StemmerInterface
     /**
      * @param string $word
      *
-     * return string
+     * @return string
      */
     public function stemWord($word);
 }
