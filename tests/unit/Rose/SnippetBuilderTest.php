@@ -100,7 +100,6 @@ class SnippetBuilderTest extends Unit
             return $result;
         };
 
-        //$resultSet = $finder->find(new Query('предпосылки и развитие'));
         $resultSet = $this->finder->find(new Query('механическая природа'));
         $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 

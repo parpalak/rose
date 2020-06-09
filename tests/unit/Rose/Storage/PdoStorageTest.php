@@ -6,7 +6,7 @@
  * @license   MIT
  */
 
-namespace S2\Rose\Test;
+namespace S2\Rose\Test\Storage;
 
 use Codeception\Test\Unit;
 use S2\Rose\Entity\ExternalId;
