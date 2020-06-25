@@ -386,7 +386,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
             return $knownWords;
         }
 
-        throw new LogicException('Inserted rows not found.');
+        throw new LogicException('Inserted words not found. Unknown words: ' . var_export($unknownWords, true));
     }
 
     /**

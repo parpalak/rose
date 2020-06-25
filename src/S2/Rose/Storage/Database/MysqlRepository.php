@@ -26,6 +26,9 @@ class MysqlRepository
     const KEYWORD_INDEX          = 'keyword_index';
     const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
 
+    const KEYLEN         = 255;
+    const UTF8MB4_KEYLEN = 191;
+
     /**
      * @var \PDO
      */
@@ -67,7 +70,7 @@ class MysqlRepository
 
         try {
             try {
-                $this->dropAndCreateTables($charset, 255);
+                $this->dropAndCreateTables($charset, self::KEYLEN);
             } catch (\PDOException $e) {
                 if ($charset === 'utf8mb4') {
                     // See https://stackoverflow.com/questions/30761867/mysql-error-the-maximum-column-size-is-767-bytes
@@ -77,7 +80,7 @@ class MysqlRepository
                     // of $e->errorInfo: [42000, 1071, 'Specified key was too long; max key length is 767 bytes']
                     // and ['HY000', 1709, 'Index column size too large. The maximum column size is 767 bytes.'].
 
-                    $this->dropAndCreateTables($charset, 191);
+                    $this->dropAndCreateTables($charset, self::UTF8MB4_KEYLEN);
                 } else {
                     throw $e;
                 }
@@ -102,11 +105,13 @@ class MysqlRepository
      */
     public function insertWords(array $words)
     {
+        $partWords = self::getPartWords($words);
+
         $sql = 'INSERT IGNORE INTO ' . $this->getTableName(self::WORD) . ' (name) VALUES ("' . implode(
                 '"),("',
                 array_map(static function ($x) {
                     return addslashes($x);
-                }, $words)
+                }, $partWords)
             ) . '")';
 
         try {
@@ -132,15 +137,17 @@ class MysqlRepository
      */
     public function findIdsByWords(array $words)
     {
+        $partWords = self::getPartWords($words);
+
         $sql = '
 			SELECT name, id
 			FROM ' . $this->getTableName(self::WORD) . ' AS w
-			WHERE name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
+			WHERE name IN (' . implode(',', array_fill(0, count($partWords), '?')) . ')
 		';
 
         try {
             $st = $this->pdo->prepare($sql);
-            $st->execute(array_values($words));
+            $st->execute(array_values($partWords));
         } catch (\PDOException $e) {
             if (1412 === (int)$e->errorInfo[1]) {
                 throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
@@ -152,7 +159,16 @@ class MysqlRepository
             ), 0, $e);
         }
 
-        return $st->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE) ?: [];
+        $data = $st->fetchAll(\PDO::FETCH_GROUP | \PDO::FETCH_COLUMN | \PDO::FETCH_UNIQUE) ?: [];
+
+        $result = [];
+        foreach ($partWords as $fullWord => $partWord) {
+            if (isset($data[$partWords[$fullWord]])) {
+                $result[$fullWord] = $data[$partWords[$fullWord]];
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -645,6 +661,23 @@ class MysqlRepository
     private function escapeLike($s, $e)
     {
         return str_replace([$e, '_', '%'], [$e . $e, $e . '_', $e . '%'], $s);
+    }
+
+    /**
+     * Converts array of (long) words to array of word parts no longer than 191 chars.
+     *
+     * @param string[] $words
+     *
+     * @return string[]
+     */
+    public static function getPartWords(array $words)
+    {
+        $partWords = [];
+        foreach ($words as $fullWord) {
+            $partWords[$fullWord] = mb_substr($fullWord, 0, self::UTF8MB4_KEYLEN);
+        }
+
+        return $partWords;
     }
 
     /**

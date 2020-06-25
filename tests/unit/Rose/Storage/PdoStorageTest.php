@@ -204,6 +204,30 @@ class PdoStorageTest extends Unit
         $storage->addToFulltext(['Flügel', 'Shlømo', 'Tørmented'], new ExternalId('id_1'));
     }
 
+    public function testLongWords()
+    {
+        global $s2_rose_test_db;
+
+        $storage = new PdoStorage($this->pdo, 'test_');
+        $storage->erase();
+
+        $storage->addEntryToToc(
+            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+            new ExternalId('id_1')
+        );
+
+        $storage->addEntryToToc(
+            new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', '987654321'),
+            new ExternalId('id_2')
+        );
+
+        $storage->addToFulltext(['word', 'iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8cim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_1'));
+        $storage->addToFulltext(['word', 'iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8cim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_2'));
+
+        $storage->addToFulltext(['word2', '9siufiai279837jz972q39z78qao298m3apq8n9283j298cnq08498908ks09809r8mc9o90q7808sdolfjlis39w8kso0sdu87j934797239478o7o3j4d573p985jkdx37oc8so89o3849os8l948o9l8884iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8is8ajpk9xox8jo9834k0ax8k4r9o8wk9o38rmoc8mo95m8co83km898madkjflikjiuroiuiweru0198390u90qu0p98784kqz8p94xco8mcim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_1'));
+        $storage->addToFulltext(['word2', '9siufiai279837jz972q39z78qao298m3apq8n9283j298cnq08498908ks09809r8mc9o90q7808sdolfjlis39w8kso0sdu87j934797239478o7o3j4d573p985jkdx37oc8so89o3849os8l948o9l8884iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8is8ajpk9xox8jo9834k0ax8k4r9o8wk9o38rmoc8mo95m8co83km898madkjflikjiuroiuiweru0198390u90qu0p98784kqz8p94xco8mcim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_2'));
+    }
+
     public function testTransactions()
     {
         global $s2_rose_test_db;
