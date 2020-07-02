@@ -20,11 +20,12 @@ use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
 use S2\Rose\Storage\KeywordIndexContent;
+use S2\Rose\Storage\StorageEraseInterface;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 use S2\Rose\Storage\TransactionalStorageInterface;
 
-class PdoStorage implements StorageWriteInterface, StorageReadInterface, TransactionalStorageInterface
+class PdoStorage implements StorageWriteInterface, StorageReadInterface, StorageEraseInterface, TransactionalStorageInterface
 {
     /**
      * @var array
@@ -68,7 +69,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Transac
     }
 
     /**
-     * Drops and creates index tables.
+     * {@inheritdoc}
      *
      * @throws InvalidEnvironmentException
      * @throws UnknownException

@@ -13,6 +13,8 @@ use S2\Rose\Entity\Indexable;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Stemmer\StemmerInterface;
+use S2\Rose\Storage\Exception\EmptyIndexException;
+use S2\Rose\Storage\StorageEraseInterface;
 use S2\Rose\Storage\StorageWriteInterface;
 use S2\Rose\Storage\TransactionalStorageInterface;
 
@@ -27,6 +29,11 @@ class Indexer
      * @var StemmerInterface
      */
     protected $stemmer;
+
+    /**
+     * @var bool
+     */
+    private $autoErase = false;
 
     /**
      * @param StorageWriteInterface $storage
@@ -165,10 +172,38 @@ class Indexer
     public function index(Indexable $indexable)
     {
         try {
-            if ($this->storage instanceof TransactionalStorageInterface) {
-                $this->storage->startTransaction();
+            $this->doIndex($indexable);
+        } catch (EmptyIndexException $e) {
+            if (!$this->autoErase || !$this->storage instanceof StorageEraseInterface) {
+                throw $e;
             }
 
+            $this->storage->erase();
+            $this->doIndex($indexable);
+        }
+    }
+
+    /**
+     * @param bool $autoErase
+     */
+    public function setAutoErase($autoErase)
+    {
+        $this->autoErase = $autoErase;
+    }
+
+    /**
+     * @param Indexable $indexable
+     *
+     * @throws RuntimeException
+     * @throws UnknownException
+     */
+    protected function doIndex(Indexable $indexable)
+    {
+        if ($this->storage instanceof TransactionalStorageInterface) {
+            $this->storage->startTransaction();
+        }
+
+        try {
             $externalId  = $indexable->getExternalId();
             $oldTocEntry = $this->storage->getTocByExternalId($externalId);
 

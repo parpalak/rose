@@ -18,7 +18,9 @@ use S2\Rose\Indexer;
 use S2\Rose\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
 use S2\Rose\Stemmer\PorterStemmerRussian;
+use S2\Rose\Storage\Database\MysqlRepository;
 use S2\Rose\Storage\Database\PdoStorage;
+use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\File\SingleFileArrayStorage;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
@@ -315,6 +317,30 @@ class IntegrationTest extends Unit
         }
     }
 
+    public function testAutoErase()
+    {
+        global $s2_rose_test_db;
+        $pdo = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $pdo->exec('DROP TABLE IF EXISTS ' . 'test_' . MysqlRepository::TOC);
+
+        $pdoStorage = new PdoStorage($pdo, 'test_');
+        $stemmer    = new PorterStemmerRussian();
+        $indexer    = new Indexer($pdoStorage, $stemmer);
+        $indexable  = new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have to make up a content.', 10);
+
+        $e = null;
+        try {
+            $indexer->index($indexable);
+        } catch (EmptyIndexException $e) {
+        }
+        $this->assertNotNull($e);
+
+        $indexer->setAutoErase(true);
+        $indexer->index($indexable);
+    }
+
     public function indexableProvider()
     {
         $indexables = [
@@ -354,7 +380,7 @@ class IntegrationTest extends Unit
 
         return [
             'files' => [$indexables, new SingleFileArrayStorage($filename), new SingleFileArrayStorage($filename)],
-            'db' => [$indexables, new PdoStorage($pdo, 'test_'), new PdoStorage($pdo, 'test_')],
+            'db'    => [$indexables, new PdoStorage($pdo, 'test_'), new PdoStorage($pdo, 'test_')],
         ];
     }
 }
