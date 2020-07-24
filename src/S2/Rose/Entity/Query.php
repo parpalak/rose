@@ -6,6 +6,8 @@
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Helper\StringHelper;
+
 class Query
 {
     /**
@@ -154,10 +156,10 @@ class Query
             }
         }
 
-        $words = array_filter($words, 'strlen');
+        $words = StringHelper::removeLongWords($words);
 
         // Fix keys
-        $words = array_values($words);
+        // $words = array_values($words); // <- moved to helper
 
         return $words;
     }

@@ -13,7 +13,7 @@ use S2\Rose\Entity\ExternalContent;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
 use S2\Rose\Finder;
-use S2\Rose\Helper\Helper;
+use S2\Rose\Helper\ProfileHelper;
 use S2\Rose\Indexer;
 use S2\Rose\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
@@ -93,7 +93,7 @@ class ProfileTest extends Unit
         $filenames = glob(__DIR__ . '/../../Resource/data/' . '*.txt');
         $filenames = array_slice($filenames, 0, self::TEST_FILE_NUM);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
 
         $stems = ['захот', 'разговарива', 'мно', 'никогда'];
         $regex = '#(?<=[^a-zа-я]|^)(' . implode('|', $stems) . ')[a-zа-я]*#Ssui';
@@ -102,30 +102,30 @@ class ProfileTest extends Unit
         foreach ($filenames as $filename) {
             $contentArray[] = file_get_contents($filename);
         }
-        $indexProfilePoints[] = Helper::getProfilePoint('reading', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('reading', -$start + ($start = microtime(true)));
 
         for ($i = 5; $i--;) {
             foreach ($contentArray as $content) {
                 preg_match_all($regex, $content, $matches, PREG_OFFSET_CAPTURE);
             }
         }
-        $indexProfilePoints[] = Helper::getProfilePoint('matching 1', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('matching 1', -$start + ($start = microtime(true)));
 
         $content = implode("\r", $contentArray);
         unset($contentArray);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('concat', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('concat', -$start + ($start = microtime(true)));
 
         for ($i = 5; $i--;) {
             preg_match_all($regex, $content, $matches, PREG_OFFSET_CAPTURE);
         }
 
-        $indexProfilePoints[] = Helper::getProfilePoint('matching 2', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('matching 2', -$start + ($start = microtime(true)));
 
 //		codecept_debug($matches);
 
         foreach (array_merge($indexProfilePoints) as $point) {
-            codecept_debug(Helper::formatProfilePoint($point));
+            codecept_debug(ProfileHelper::formatProfilePoint($point));
         }
 
     }
@@ -138,19 +138,19 @@ class ProfileTest extends Unit
         $storage = new SingleFileArrayStorage($this->getTempFilename());
         $indexer = new Indexer($storage, $stemmer);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Indexer initialization', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Indexer initialization', -$start + ($start = microtime(true)));
 
         $indexProfilePoints = array_merge(
             $indexProfilePoints,
             $storage->load(true)
         );
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Storage loading', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Storage loading', -$start + ($start = microtime(true)));
 
         $filenames = glob(__DIR__ . '/../../Resource/data/' . '*.txt');
         $filenames = array_slice($filenames, 0, self::TEST_FILE_NUM);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
 
         foreach ($filenames as $filename) {
             $content   = file_get_contents($filename);
@@ -167,20 +167,20 @@ class ProfileTest extends Unit
 //			$indexProfilePoints[] = Helper::getProfilePoint('Indexing item', -$start + ($start = microtime(true)));
         }
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Indexing', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Indexing', -$start + ($start = microtime(true)));
 
         $storage->cleanup();
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Storage cleanup', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Storage cleanup', -$start + ($start = microtime(true)));
 
         $storage->save();
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Storage save', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Storage save', -$start + ($start = microtime(true)));
 
         $storage = new SingleFileArrayStorage($this->getTempFilename());
         $finder  = new Finder($storage, $stemmer);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
 
         $loadingProfilePoints = $storage->load(true);
 
@@ -197,7 +197,7 @@ class ProfileTest extends Unit
         });
 
         foreach (array_merge($indexProfilePoints, $loadingProfilePoints, $result->getProfilePoints()) as $point) {
-            codecept_debug(Helper::formatProfilePoint($point));
+            codecept_debug(ProfileHelper::formatProfilePoint($point));
         }
     }
 
@@ -212,21 +212,21 @@ class ProfileTest extends Unit
 
         $storage = new PdoStorage($pdo, 'profiling_');
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Db initialization', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Db initialization', -$start + ($start = microtime(true)));
 
         $storage->erase();
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Db cleanup', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Db cleanup', -$start + ($start = microtime(true)));
 
         $stemmer = new PorterStemmerRussian(new PorterStemmerEnglish());
         $indexer = new Indexer($storage, $stemmer);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Indexer initialization', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Indexer initialization', -$start + ($start = microtime(true)));
 
         $filenames = glob(__DIR__ . '/../../Resource/data/' . '*.txt');
         $filenames = array_slice($filenames, 0, self::TEST_FILE_NUM);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Preparing data', -$start + ($start = microtime(true)));
 
         foreach ($filenames as $filename) {
             $content   = file_get_contents($filename);
@@ -243,12 +243,12 @@ class ProfileTest extends Unit
 //			$indexProfilePoints[] = Helper::getProfilePoint('Indexing item', -$start + ($start = microtime(true)));
         }
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Indexing', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Indexing', -$start + ($start = microtime(true)));
 
         $storage = new PdoStorage($pdo, 'profiling_');
         $finder  = new Finder($storage, $stemmer);
 
-        $indexProfilePoints[] = Helper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
+        $indexProfilePoints[] = ProfileHelper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
 
         $result = $finder->find(new Query('захотел разговаривать'), true);
 
@@ -264,7 +264,7 @@ class ProfileTest extends Unit
         });
 
         foreach (array_merge($indexProfilePoints, $result->getProfilePoints()) as $point) {
-            codecept_debug(Helper::formatProfilePoint($point));
+            codecept_debug(ProfileHelper::formatProfilePoint($point));
         }
     }
 }

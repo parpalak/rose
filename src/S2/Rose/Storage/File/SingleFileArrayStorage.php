@@ -7,7 +7,7 @@
 namespace S2\Rose\Storage\File;
 
 use S2\Rose\Entity\ExternalId;
-use S2\Rose\Helper\Helper;
+use S2\Rose\Helper\ProfileHelper;
 use S2\Rose\Storage\ArrayFulltextStorage;
 use S2\Rose\Storage\ArrayStorage;
 
@@ -52,7 +52,7 @@ class SingleFileArrayStorage extends ArrayStorage
         $data = file_get_contents($this->filename);
 
         if ($isDebug) {
-            $return[] = Helper::getProfilePoint('Reading index file', -$start_time + ($start_time = microtime(true)));
+            $return[] = ProfileHelper::getProfilePoint('Reading index file', -$start_time + ($start_time = microtime(true)));
         }
 
         $end     = strpos($data, "\n");
@@ -86,7 +86,7 @@ class SingleFileArrayStorage extends ArrayStorage
         $this->toc = unserialize($my_data) ?: [];
 
         if ($isDebug) {
-            $return[] = Helper::getProfilePoint('Unserializing index', -$start_time + ($start_time = microtime(true)));
+            $return[] = ProfileHelper::getProfilePoint('Unserializing index', -$start_time + ($start_time = microtime(true)));
         }
 
         $this->externalIdMap = [];

@@ -1,15 +1,12 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2020 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Helper;
 
-/**
- * Class Helper
- */
-class Helper
+class ProfileHelper
 {
     /**
      * @param string $message
@@ -39,6 +36,6 @@ class Helper
         $point['memory_usage']      = str_pad(number_format($point['memory_usage'], 0, '.', ' '), 20, ' ', STR_PAD_LEFT);
         $point['memory_peak_usage'] = str_pad(number_format($point['memory_peak_usage'], 0, '.', ' '), 20, ' ', STR_PAD_LEFT);
 
-        return implode("", $point);
+        return implode('', $point);
     }
 }

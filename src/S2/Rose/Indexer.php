@@ -12,6 +12,7 @@ use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownException;
+use S2\Rose\Helper\StringHelper;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\StorageEraseInterface;
@@ -80,7 +81,10 @@ class Indexer
      */
     protected static function arrayFromStr($contents)
     {
-        return preg_split('#[\\-.,]*?[ ]+#S', $contents);
+        $words = preg_split('#[\\-.,]*?[ ]+#S', $contents);
+        $words = StringHelper::removeLongWords($words);
+
+        return $words;
     }
 
     /**

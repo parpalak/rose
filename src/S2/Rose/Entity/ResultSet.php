@@ -9,7 +9,7 @@ namespace S2\Rose\Entity;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\UnknownIdException;
-use S2\Rose\Helper\Helper;
+use S2\Rose\Helper\ProfileHelper;
 
 class ResultSet
 {
@@ -109,7 +109,7 @@ class ResultSet
             return;
         }
 
-        $this->profilePoints[] = Helper::getProfilePoint($message, -$this->startedAt + ($this->startedAt = microtime(1)));
+        $this->profilePoints[] = ProfileHelper::getProfilePoint($message, -$this->startedAt + ($this->startedAt = microtime(1)));
     }
 
     /**
