@@ -3,11 +3,11 @@ os:
   - linux
 
 php:
-    - 7.4
-    - 7.3
-    - 7.2
-    - 7.1
-    - 5.6
+  - 7.4
+  - 7.3
+  - 7.2
+  - 7.1
+  - 5.6
 
 services:
   - mysql
@@ -29,6 +29,6 @@ script:
   - php bin/codecept run
 
 cache:
-    directories:
-        - vendor
-        - $HOME/.composer/cache
+  directories:
+    - vendor
+    - $HOME/.composer/cache
