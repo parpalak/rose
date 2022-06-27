@@ -4,7 +4,7 @@ It indexes your content and provides a full-text search.
 
 ## Requirements
 
-1. PHP 5.6 or later. [![Build Status](https://travis-ci.org/parpalak/rose.svg?branch=master)](https://travis-ci.org/parpalak/rose)
+1. PHP 5.6 or later. ![Build Status](https://github.com/parpalak/rose/actions/workflows/test.yml/badge.svg?branch=master)
 2. A relational database (MySQL is supported for now) in case of significant content size.
 
 ## Installation

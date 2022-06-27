@@ -4,5 +4,5 @@
 $GLOBALS['s2_rose_test_db'] = [
 	'dsn'      => 'mysql:host=127.0.0.1;dbname=s2_rose_test;charset=utf8',
 	'username' => 'root',
-	'passwd'   => '',
+	'passwd'   => 'root',
 ];
