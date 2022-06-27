@@ -1,0 +1,116 @@
+name: CI
+
+on:
+#  push:
+#    branches:
+#      - master
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+
+env:
+  COVERAGE: '1'
+  php_extensions: 'pdo, pdo_pgsql, pcntl'
+  key: cache-v0.1
+  DB_USER: 'postgres'
+  DB_NAME: 'testing'
+  DB_PASSWORD: 'postgres'
+  DB_HOST: '127.0.0.1'
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: ['ubuntu-latest']
+        postgres: [11, 12]
+        php_versions: ['7.3', '7.4', '8.0']
+        experimental: false
+        include:
+          - operating_system: ubuntu-latest
+            postgres: '13'
+            php_versions: '8.0'
+            experimental: true
+    runs-on: '${{ matrix.operating_system }}'
+    services:
+      postgres:
+        image: 'postgres:${{ matrix.postgres }}'
+        env:
+          POSTGRES_USER: ${{ env.DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.DB_NAME }}
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    name: 'Test / PHP ${{ matrix.php_versions }} / Postgres ${{ matrix.postgres }}'
+    needs:
+      - lint
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: 'Install postgres client'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libpq-dev postgresql-client
+      - name: 'Setup cache environment'
+        id: cache-env
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php_versions }}
+          extensions: ${{ env.php_extensions }}
+          key: '${{ env.key }}'
+      - name: 'Cache extensions'
+        uses: actions/cache@v1
+        with:
+          path: '${{ steps.cache-env.outputs.dir }}'
+          key: '${{ steps.cache-env.outputs.key }}'
+          restore-keys: '${{ steps.cache-env.outputs.key }}'
+      - name: 'Setup PHP'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_versions }}
+          extensions: ${{ env.php_extensions }}
+          ini-values: 'pcov.directory=src, date.timezone=UTC, upload_max_filesize=20M, post_max_size=20M, memory_limit=512M, short_open_tag=Off'
+          coverage: pcov
+          tools: 'phpunit'
+      - name: 'Install PHP dependencies with Composer'
+        run: composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
+        working-directory: './'
+      - name: 'Run Unit Tests with PHPUnit'
+        continue-on-error: ${{ matrix.experimental }}
+        run: |
+          sed -e "s/\${USERNAME}/${{ env.DB_USER }}/" \
+              -e "s/\${PASSWORD}/${{ env.DB_PASSWORD }}/" \
+              -e "s/\${DATABASE}/${{ env.DB_NAME }}/" \
+              -e "s/\${HOST}/${{ env.DB_HOST }}/" \
+              phpunit.xml.dist > phpunit.xml
+          ./vendor/bin/phpunit \
+            --verbose \
+            --stderr \
+            --coverage-clover build/logs/clover.xml
+        working-directory: './'
+#      - name: 'Upload coverage results to Coveralls'
+#        if: ${{ !matrix.experimental }}
+#        env:
+#          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          COVERALLS_PARALLEL: true
+#          COVERALLS_FLAG_NAME: php-${{ matrix.php_versions }}-postgres-${{ matrix.postgres }}
+#        run: |
+#          ./vendor/bin/php-coveralls \
+#            --coverage_clover=build/logs/clover.xml \
+#            -v
+#  coverage:
+#    needs: test
+#    runs-on: ubuntu-latest
+#    name: "Code coverage"
+#    steps:
+#      - name: 'Coveralls Finished'
+#        uses: coverallsapp/github-action@v1.1.2
+#        with:
+#          github-token: ${{ secrets.GITHUB_TOKEN }}
+#          parallel-finished: true

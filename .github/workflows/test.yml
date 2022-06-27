@@ -1,0 +1,17 @@
+name: Run Codeception test cases
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run:  composer install
+
+      - name: Run test cases
+        run:  php vendor/bin/codecept run acceptance --steps
