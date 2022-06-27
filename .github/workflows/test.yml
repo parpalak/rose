@@ -1,17 +1,27 @@
 name: Run Codeception test cases
 
-on: [push]
+on: [ push ]
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        php_versions: ['7.3', '7.4', '8.0']
 
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
 
+      - name: 'Setup PHP'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_versions }}
+#          ini-values: 'pcov.directory=src, date.timezone=UTC, upload_max_filesize=20M, post_max_size=20M, memory_limit=512M, short_open_tag=Off'
+
       - name: Install dependencies
-        run:  composer install
+        run: COMPOSER_MEMORY_LIMIT=-1 composer install --prefer-dist --no-interaction
 
       - name: Run test cases
-        run:    php bin/codecept run
+        run: php bin/codecept run
