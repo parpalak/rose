@@ -251,10 +251,12 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
 
         $result = [];
         foreach ($data as $row) {
-            try {
-                $date = new \DateTime($row['added_at']);
-            } catch (\Exception $e) {
-                $date = null;
+            $date = null;
+            if (isset($row['added_at'])) {
+                try {
+                    $date = new \DateTime($row['added_at']);
+                } catch (\Exception $e) {
+                }
             }
 
             $tocEntry = new TocEntry(
