@@ -2,13 +2,18 @@ name: Run Codeception test cases
 
 on: [ push ]
 
+env:
+  DB_DATABASE: s2_rose_test
+  DB_USER: root
+  DB_PASSWORD: root
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         php_versions:
-          # - '7.3'
+          - '7.3'
           - '7.4'
           # - '8.0'
 
@@ -28,6 +33,11 @@ jobs:
 
       - name: Prepare config
         run: cp tests/config.php.dist tests/config.php
+
+      - name: Set up MySQL
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
 
       - name: Run test cases
         run: php bin/codecept run
