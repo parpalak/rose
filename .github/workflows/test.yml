@@ -7,7 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php_versions: ['7.3', '7.4', '8.0']
+        php_versions:
+          # - '7.3'
+          - '7.4'
+          # - '8.0'
 
     runs-on: ubuntu-latest
 
@@ -22,6 +25,9 @@ jobs:
 
       - name: Install dependencies
         run: COMPOSER_MEMORY_LIMIT=-1 composer install --prefer-dist --no-interaction
+
+      - name: Prepare config
+        run: cp tests/config.php.dist tests/config.php
 
       - name: Run test cases
         run: php bin/codecept run
