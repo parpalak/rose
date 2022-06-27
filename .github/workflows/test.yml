@@ -14,4 +14,4 @@ jobs:
         run:  composer install
 
       - name: Run test cases
-        run:  php vendor/bin/codecept run acceptance --steps
+        run:    php bin/codecept run
