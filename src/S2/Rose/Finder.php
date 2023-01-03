@@ -2,7 +2,7 @@
 /**
  * Fulltext and keyword search
  *
- * @copyright 2010-2020 Roman Parpalak
+ * @copyright 2010-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -63,17 +63,17 @@ class Finder
     /**
      * @param int $type
      *
-     * @return int
+     * @return int[]|array
      * @throws UnknownKeywordTypeException
      */
     protected static function getKeywordWeight($type)
     {
         if ($type === self::TYPE_KEYWORD) {
-            return 30;
+            return ['keyword' => 15];
         }
 
         if ($type === self::TYPE_TITLE) {
-            return 20;
+            return ['title' => 25];
         }
 
         throw new UnknownKeywordTypeException(sprintf('Unknown type "%s"', $type));
@@ -125,8 +125,12 @@ class Finder
         }
 
         foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems, $instanceId) as $word => $content) {
-            $content->iterate(static function (ExternalId $externalId, $type) use ($word, $result) {
-                $result->addWordWeight($word, $externalId, self::getKeywordWeight($type));
+            $content->iterate(static function (ExternalId $externalId, $type, $tocSize, $foundTocEntriesNum) use ($word, $result) {
+                $weights = self::getKeywordWeight($type);
+                if ($tocSize !== null && $foundTocEntriesNum !== null) {
+                    $weights['abundance_reduction'] = FulltextResult::frequencyReduction($tocSize, $foundTocEntriesNum);
+                }
+                $result->addWordWeight($word, $externalId, $weights);
             });
         }
     }

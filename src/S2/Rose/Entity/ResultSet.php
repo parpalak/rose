@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -143,14 +143,14 @@ class ResultSet
     }
 
     /**
-     * @param string     $word
-     * @param ExternalId $externalId
-     * @param float      $weight
-     * @param int[]      $positions
+     * @param string        $word
+     * @param ExternalId    $externalId
+     * @param float[]|array $weights
+     * @param int[]         $positions
      *
      * @throws ImmutableException
      */
-    public function addWordWeight($word, ExternalId $externalId, $weight, $positions = [])
+    public function addWordWeight($word, ExternalId $externalId, array $weights, array $positions = [])
     {
         if ($this->isFrozen) {
             throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
@@ -158,7 +158,9 @@ class ResultSet
 
         $serializedExtId = $externalId->toString();
 
-        if (!isset ($this->data[$serializedExtId][$word])) {
+        $weight = array_product($weights);
+
+        if (!isset($this->data[$serializedExtId][$word])) {
             $this->data[$serializedExtId][$word]      = $weight;
             $this->positions[$serializedExtId][$word] = $positions;
         } else {
@@ -167,9 +169,9 @@ class ResultSet
         }
 
         if (empty($positions)) {
-            $this->trace->addKeywordWeight($word, $serializedExtId, $weight);
+            $this->trace->addKeywordWeight($word, $serializedExtId, $weights);
         } else {
-            $this->trace->addWordWeight($word, $serializedExtId, $weight, $positions);
+            $this->trace->addWordWeight($word, $serializedExtId, $weights, $positions);
         }
     }
 
@@ -350,15 +352,21 @@ class ResultSet
 
         $foundWords = $this->getFoundWordPositionsByExternalId();
 
-        $result = [];
+        $result          = [];
+        $relevanceResult = [];
+        $dateResult      = [];
         foreach ($relevanceArray as $serializedExtId => $relevance) {
             $resultItem = $this->items[$serializedExtId];
             $resultItem
                 ->setRelevance($relevance)
                 ->setFoundWords(array_keys($foundWords[$serializedExtId]))
             ;
-            $result[] = $resultItem;
+            $result[]          = $resultItem;
+            $relevanceResult[] = $relevance;
+            $dateResult[]      = $resultItem->getDate() ? $resultItem->getDate()->getTimestamp() : 0;
         }
+
+        array_multisort($relevanceResult, SORT_DESC, $dateResult, SORT_DESC, $result);
 
         return $result;
     }

@@ -2,7 +2,7 @@
 /** @noinspection PhpComposerExtensionStubsInspection */
 
 /**
- * @copyright    2016-2020 Roman Parpalak
+ * @copyright    2016-2023 Roman Parpalak
  * @license      MIT
  */
 
@@ -15,7 +15,6 @@ use S2\Rose\Entity\TocEntryWithExternalId;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
-use S2\Rose\Finder;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
@@ -112,21 +111,17 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
     {
         $data      = $this->repository->findSingleKeywordIndex($words, $instanceId);
-        $threshold = Finder::fulltextRateExcludeNum($this->getTocSize($instanceId));
+        $tocSize   = $this->getTocSize($instanceId);
 
         /** @var KeywordIndexContent[]|array $result */
         $result = [];
         foreach ($data as $row) {
-            if ($row['type'] === Finder::TYPE_TITLE && $row['usage_num'] > $threshold) {
-                continue;
-            }
-
             if (!isset($result[$row['keyword']])) {
                 $result[$row['keyword']] = new KeywordIndexContent();
             }
 
             // TODO Making items unique seems to be a hack for caller. Rewrite indexing using INSERT IGNORE?  @see \S2\Rose\Storage\KeywordIndexContent::add
-            $result[$row['keyword']]->add($this->getExternalIdFromRow($row), $row['type']);
+            $result[$row['keyword']]->add($this->getExternalIdFromRow($row), $row['type'], $tocSize, $row['usage_num']);
         }
 
         return $result;

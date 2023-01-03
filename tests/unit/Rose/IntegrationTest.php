@@ -103,7 +103,7 @@ class IntegrationTest extends Unit
         // Query 2
         $resultSet2 = $finder->find(new Query('content'));
 
-        $this->assertEquals(['20:id_2' => 31, '20:id_1' => 1.5, '10:id_1' => 1], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 16.0, '20:id_1' => 1.5, '10:id_1' => 1.0], $resultSet2->getSortedRelevanceByExternalId());
 
         $items = $resultSet2->getItems();
         $this->assertEquals('id_1', $items[2]->getId());
@@ -121,13 +121,13 @@ class IntegrationTest extends Unit
         $this->assertEquals(1.0, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
-        $this->assertEquals(31, $items[0]->getRelevance());
+        $this->assertEquals(16.0, $items[0]->getRelevance());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet());
 
         $resultSet2 = $finder->find(new Query('content'));
         $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 3.14);
 
-        $this->assertEquals(['20:id_2' => 31.0, '10:id_1' => 3.14, '20:id_1' => 1.5], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 16.0, '10:id_1' => 3.14, '20:id_1' => 1.5], $resultSet2->getSortedRelevanceByExternalId());
 
         $resultSet2 = $finder->find(new Query('content'));
         $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 100);
@@ -191,16 +191,16 @@ class IntegrationTest extends Unit
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));
         $this->assertCount(1, $resultSet5->getItems());
-        $this->assertEquals(20, $resultSet5->getItems()[0]->getRelevance());
+        $this->assertEquals(25, $resultSet5->getItems()[0]->getRelevance());
 
         $resultSet5 = $finder->find(new Query('русскому'));
         $this->assertCount(1, $resultSet5->getItems());
-        $this->assertEquals(20, $resultSet5->getItems()[0]->getRelevance());
+        $this->assertEquals(25, $resultSet5->getItems()[0]->getRelevance());
 
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(63.5, $resultSet6->getItems()[0]->getRelevance());
+        $this->assertEquals(93.5, $resultSet6->getItems()[0]->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));

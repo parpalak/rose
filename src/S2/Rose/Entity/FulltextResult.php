@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017-2020 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -64,7 +64,21 @@ class FulltextResult
      */
     protected static function repeatWeightRatio($repeatNum)
     {
-        return min(0.5 * ($repeatNum - 1) + 1, 2);
+        return min(0.5 * ($repeatNum - 1) + 1, 4);
+    }
+
+    /**
+     * Weight ratio for entry size (prefer some middle size)
+     *
+     * https://i.upmath.me/g/%5Cbegin%7Btikzpicture%7D%5Bscale%3D1.0544%5D%5Csmall%0A%5Cbegin%7Baxis%7D%5Baxis%20line%20style%3Dgray%2C%0A%09samples%3D100%2C%0A%09ymin%3D0%2C%20ymax%3D5%2C%0A%09xmin%3D0%2C%20xmax%3D1100%2C%0A%09ytick%3D%7B1%2C2%7D%2C%0A%09xtick%3D%7B50%2C200%2C500%2C1000%7D%2C%0A%09axis%20x%20line%3Dcenter%2C%0A%09axis%20y%20line%3Dcenter%2C%0A%09xlabel%3D%24x%24%2Cylabel%3D%24y%24%5D%0A%5Caddplot%5Bred%2Cdomain%3D0%3A1000%2Csemithick%5D%7B1%2F(1%2Bexp((sqrt(x)-18)%5E2%2F60))%2B1%7D%3B%0A%5Caddplot%5Bblue%2Cdomain%3D0%3A1000%2Csemithick%5D%7B1%7D%3B%0A%5Caddplot%5Bred%5D%20coordinates%20%7B(600%2C3)%7D%20node%7B%24y%3D1%2F(1%2Bexp((sqrt(x)-18)%5E2%2F60))%2B1%24%7D%3B%0A%5Cend%7Baxis%7D%0A%5Cend%7Btikzpicture%7D
+     *
+     * @param int $totalWordsNum
+     *
+     * @return float
+     */
+    protected static function entrySizeWeightRatio($totalWordsNum)
+    {
+        return $totalWordsNum >= 10 ? 1.0 + 1.0 / (1.0 + exp((sqrt($totalWordsNum) - 18) ** 2 / 60.0)) : 1;
     }
 
     /**
@@ -77,19 +91,7 @@ class FulltextResult
      */
     protected static function neighbourWeight($distance)
     {
-        return 20.0 / (1 + pow($distance / 5.0, 2));
-    }
-
-    /**
-     * @param float $ratio
-     * @param int   $querySize
-     * @param int   $wordInTocNum
-     *
-     * @return float
-     */
-    protected static function fulltextWeight($ratio, $querySize, $wordInTocNum)
-    {
-        return $ratio * self::repeatWeightRatio($wordInTocNum);
+        return 30.0 / (1 + pow($distance / 7.0, 2));
     }
 
     /**
@@ -99,14 +101,18 @@ class FulltextResult
      */
     public function fillResultSet(ResultSet $resultSet)
     {
-        $queryWordCount = $this->query->getCount();
+        // $queryWordCount = $this->query->getCount();
 
         foreach ($this->fulltextIndexContent->toArray() as $word => $items) {
             $reductionRatio = self::frequencyReduction($this->tocSize, count($items));
 
             foreach ($items as $positions) {
-                $weight = self::fulltextWeight($reductionRatio, $queryWordCount, count($positions['pos']));
-                $resultSet->addWordWeight($word, $positions['extId'], $weight, $positions['pos']);
+                $weights = [
+                    'abundance_reduction' => $reductionRatio,
+                    'repeat_multiply'     => self::repeatWeightRatio(count($positions['pos'])),
+                    'entry_size'          => 1, // self::entrySizeWeightRatio($positions['wordCount']), TODO enable
+                ];
+                $resultSet->addWordWeight($word, $positions['extId'], $weights, $positions['pos']);
             }
         }
 

@@ -123,7 +123,7 @@ class Indexer
 
         // Processing keywords
         foreach (explode(',', $keywords) as $item) {
-            $this->addKeywordToIndex(trim($item), $externalId, Finder::TYPE_KEYWORD);
+            $this->addKeywordToIndex($this->stemmer->stemWord(trim($item)), $externalId, Finder::TYPE_KEYWORD);
         }
 
         // Fulltext index

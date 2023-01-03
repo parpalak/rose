@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017-2020 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -11,24 +11,32 @@ class ResultTrace
     protected $data = [];
 
     /**
-     * @param string $word
-     * @param string $serializedExtId
-     * @param float  $weight
-     * @param int[]  $positions
+     * @param string        $word
+     * @param string        $serializedExtId
+     * @param float[]|array $weights
+     * @param int[]         $positions
      */
-    public function addWordWeight($word, $serializedExtId, $weight, $positions)
+    public function addWordWeight($word, $serializedExtId, array $weights, $positions)
     {
-        $this->data[$serializedExtId]['fulltext ' . $word][] = sprintf('%s: match at positions [%s]', $weight, implode(', ', $positions));
+        $this->data[$serializedExtId]['fulltext ' . $word][] = [
+            sprintf(
+                '%s: match at positions [%s]',
+                array_product($weights),
+                implode(', ', $positions)
+            ) => $weights,
+        ];
     }
 
     /**
-     * @param string $word
-     * @param string $serializedExtId
-     * @param float  $weight
+     * @param string        $word
+     * @param string        $serializedExtId
+     * @param float[]|array $weights
      */
-    public function addKeywordWeight($word, $serializedExtId, $weight)
+    public function addKeywordWeight($word, $serializedExtId, array $weights)
     {
-        $this->data[$serializedExtId]['keyword ' . $word][] = sprintf('%s', $weight);
+        $this->data[$serializedExtId]['keyword ' . $word][] = [
+            (string)array_product($weights) => $weights,
+        ];
     }
 
     /**

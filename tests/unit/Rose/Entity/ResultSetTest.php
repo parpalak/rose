@@ -1,7 +1,7 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -13,7 +13,6 @@ use S2\Rose\Entity\ResultSet;
 use S2\Rose\Entity\Snippet;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\InvalidArgumentException;
-use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownIdException;
 
 /**
@@ -162,8 +161,8 @@ class ResultSetTest extends Unit
     {
         for ($i = 30; $i--;) {
             $externalId = new ExternalId('id_' . $i);
-            $result->addWordWeight('test1', $externalId, $i);
-            $result->addWordWeight('test2', $externalId, 10);
+            $result->addWordWeight('test1', $externalId, ['test' => $i]);
+            $result->addWordWeight('test2', $externalId, ['test' => 10]);
         }
 
         $result->freeze();
