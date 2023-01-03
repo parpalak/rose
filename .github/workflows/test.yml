@@ -33,6 +33,9 @@ jobs:
           -
             operating_system: 'ubuntu-22.04'
             php_versions: 8.1
+          -
+            operating_system: 'ubuntu-22.04'
+            php_versions: 8.2
 
     runs-on: '${{ matrix.operating_system }}'
 
