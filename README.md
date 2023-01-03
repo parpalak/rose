@@ -145,6 +145,8 @@ $query
 	->setOffset(20) // third page
 ;
 $resultSet = $finder->find($query);
+
+$resultSet->getTotalCount(); // Returns total amount of found items (for pagination links)
 ```
 
 Adjust the relevance for favorite and popular pages:
@@ -194,7 +196,7 @@ use S2\Rose\Entity\ExternalContent;
 use S2\Rose\SnippetBuilder;
 
 $snippetBuilder = new SnippetBuilder($stemmer);
-$this->snippetBuilder->setSnippetLineSeparator(' &middot; '); // Set snippet line separator. Default is '... '.
+$snippetBuilder->setSnippetLineSeparator(' &middot; '); // Set snippet line separator. Default is '... '.
 $snippetBuilder->attachSnippets($resultSet, static function (array $externalIds) {
     /** @var \S2\Rose\Entity\ExternalId[] $externalIds */
 

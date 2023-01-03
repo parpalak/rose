@@ -419,4 +419,17 @@ class ResultSet
 
         return $result;
     }
+
+    /**
+     * @return int
+     * @throws ImmutableException
+     */
+    public function getTotalCount()
+    {
+        if (!$this->isFrozen) {
+            throw new ImmutableException('One cannot obtain a trace before freezing the result set.');
+        }
+
+        return count($this->data);
+    }
 }
