@@ -184,7 +184,7 @@ class IntegrationTest extends Unit
         );
         $this->assertEquals('id_3', $resultSet4->getItems()[0]->getId());
         $this->assertEquals(
-            'Русский текст. <b>Красным</b> <b>заголовком</b>',
+            'Русский текст. <b>Красным заголовком</b>',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
 
@@ -235,14 +235,14 @@ class IntegrationTest extends Unit
         $resultSet9 = $finder->find(new Query('Windows 3'));
         $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
         $this->assertEquals(
-            'Я не помню <b>Windows</b> <b>3</b>.1, но помню Turbo Pascal 7.0.',
+            'Я не помню <b>Windows 3</b>.1, но помню Turbo Pascal 7.0.',
             $resultSet9->getItems()[0]->getSnippet()
         );
 
         $resultSet9 = $finder->find(new Query('Windows 3.1'));
         $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
         $this->assertEquals(
-            'Я не помню <b>Windows</b> <b>3.1</b>, но помню Turbo Pascal 7.0.',
+            'Я не помню <b>Windows 3.1</b>, но помню Turbo Pascal 7.0.',
             $resultSet9->getItems()[0]->getSnippet()
         );
     }

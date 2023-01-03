@@ -1,12 +1,13 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Entity;
 
 use S2\Rose\Exception\InvalidArgumentException;
+use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
 use S2\Rose\Stemmer\StemmerInterface;
 
@@ -204,6 +205,9 @@ class ResultItem
      * @param StemmerInterface $stemmer
      *
      * @return string
+     *
+     * @throws RuntimeException
+     * @see \S2\Rose\SnippetBuilder::buildSnippet for dublicated logic
      */
     public function getHighlightedTitle(StemmerInterface $stemmer)
     {
@@ -220,21 +224,35 @@ class ResultItem
         $joinedStems = implode('|', $joinedStems);
         $joinedStems = str_replace('е', '[её]', $joinedStems);
 
-        $replacedLine = preg_replace_callback(
+        // Check the text for the query words
+        // TODO: Make sure the modifier S works correct on cyrillic
+        preg_match_all(
             '#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
-            function ($matches) use ($template, $stemmer) {
-                $word        = $matches[0];
-                $stemmedWord = $stemmer->stemWord($word);
-
-                if (!in_array($stemmedWord, $this->foundWords, true)) {
-                    return $word;
-                }
-
-                return sprintf($template, $word);
-            },
-            $this->title
+            $this->title,
+            $matches,
+            PREG_OFFSET_CAPTURE
         );
 
-        return $replacedLine;
+        $foundWords = [];
+        foreach ($matches[0] as $i => $wordInfo) {
+            $word           = $wordInfo[0];
+            $stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
+            $stemmedWord    = $stemmer->stemWord($word);
+
+            // Ignore entry if the word stem differs from needed ones
+            if (!$stemEqualsWord && !in_array($stemmedWord, $this->foundWords, true)) {
+                continue;
+            }
+
+            $foundWords[$word] = 1;
+        }
+
+        $snippetLine = new SnippetLine(
+            $this->title,
+            array_keys($foundWords),
+            count($foundWords)
+        );
+
+        return $snippetLine->getHighlighted($template);
     }
 }

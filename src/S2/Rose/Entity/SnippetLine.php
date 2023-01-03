@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017-2018 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -78,12 +78,16 @@ class SnippetLine
             throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
+        if (count($this->foundWords) === 0) {
+            return $this->line;
+        }
+
         $line = $this->getLineWithoutEntities();
 
         $replacedLine = preg_replace_callback(
-            '#\b(' . implode('|', $this->foundWords) . ')\b#su',
+            '#\b(?:' . implode('|', $this->foundWords) . ')(?:\s+(?:' . implode('|', $this->foundWords) . '))*\b#su',
             function ($matches) use ($highlightTemplate) {
-                return sprintf($highlightTemplate, $matches[1]);
+                return sprintf($highlightTemplate, $matches[0]);
             },
             $line,
             -1,

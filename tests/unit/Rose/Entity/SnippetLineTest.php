@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -37,6 +37,17 @@ class SnippetLineTest extends Unit
         );
 
         $this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
+    }
+
+    public function testJoinHighlighted()
+    {
+        $snippetLine = new SnippetLine(
+            'Testing string to highlight some test values, Test is case-sensitive.',
+            ['to', 'highlight'],
+            1
+        );
+
+        $this->assertEquals('Testing string <i>to highlight</i> some test values, Test is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
     }
 
     public function testHtmlEntities()

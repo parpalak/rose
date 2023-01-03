@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -38,7 +38,7 @@ class SnippetTest extends Unit
         ;
 
         $this->assertEquals(
-            'Testing string to highlight some <i>test</i> values. <i>Test</i> <i>is</i> case-sensitive.',
+            'Testing string to highlight some <i>test</i> values. <i>Test is</i> case-sensitive.',
             $snippet->toString()
         );
     }
