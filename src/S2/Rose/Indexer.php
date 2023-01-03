@@ -2,7 +2,7 @@
 /**
  * Creates search index
  *
- * @copyright 2010-2020 Roman Parpalak
+ * @copyright 2010-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -58,6 +58,7 @@ class Indexer
     {
         // Prevents word concatenation like this: "something.</p><p>Something else"
         $content = str_replace('<', ' <', $content);
+        $content = preg_replace('#<(script|style)[^>]*?>.*?</\\1>#si', '', $content);
         $content = strip_tags($content);
 
         $content = mb_strtolower($content);

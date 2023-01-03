@@ -6,9 +6,6 @@
 
 namespace S2\Rose\Entity;
 
-/**
- * Class Snippet
- */
 class Snippet
 {
     const SNIPPET_LINE_COUNT = 3;
@@ -44,8 +41,6 @@ class Snippet
     protected $highlightTemplate;
 
     /**
-     * Snippet constructor.
-     *
      * @param string $textIntroduction
      * @param int    $foundWordNum
      * @param string $highlightTemplate
@@ -84,7 +79,7 @@ class Snippet
     }
 
     /**
-     * @return string
+     * @return SnippetLine[]
      */
     public function getSnippetLines()
     {
@@ -142,8 +137,8 @@ class Snippet
         $previousPosition = -1;
 
         foreach ($snippetLines as $position => $snippetLine) {
-            /** @var SnippetLine $snippetLine */
             $lineStr = $snippetLine->getHighlighted($this->highlightTemplate);
+            $lineStr = trim($lineStr);
 
             // Cleaning up unbalanced quotation marks
             $lineStr = preg_replace('#«(.*?)»#Ss', '&laquo;\\1&raquo;', $lineStr);
@@ -170,7 +165,7 @@ class Snippet
     /**
      * @param SnippetLine[] $snippetLines
      *
-     * @return string
+     * @return float|int
      */
     private function calcLinesRelevance(array $snippetLines)
     {
@@ -180,7 +175,6 @@ class Snippet
 
         $foundWords = [];
         foreach ($snippetLines as $position => $snippetLine) {
-            /** @var SnippetLine $snippetLine */
             foreach ($snippetLine->getFoundWords() as $word) {
                 $foundWords[$word] = 1;
             }

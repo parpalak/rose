@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -45,6 +45,9 @@ class ExternalContent
                      '</h2>',
                      '</h3>',
                      '</h4>',
+                     '</h5>',
+                     '</h6>',
+                     '</style>',
                      '</p>',
                      '</pre>',
                      '</blockquote>',
@@ -55,13 +58,14 @@ class ExternalContent
         }
 
         $contentArray = str_replace($replaceFrom, $replaceTo, $this->texts);
+        $contentArray = preg_replace('#<(script|style)[^>]*?>.*?</\\1>#si', '', $contentArray);
         foreach ($contentArray as &$string) {
-            $string = strip_tags($string);
+            $string = trim(strip_tags($string));
         }
         unset($string);
 
         // Preparing for breaking into lines
-        $contentArray = preg_replace('#(?<=[\.?!;])[ \n\t]+#sS', SnippetBuilder::LINE_SEPARATOR, $contentArray);
+        $contentArray = preg_replace('#(?<=[.?!;])[ \n\t]+#sS', SnippetBuilder::LINE_SEPARATOR, $contentArray);
 
         return $contentArray;
     }
