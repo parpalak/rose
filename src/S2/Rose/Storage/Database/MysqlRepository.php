@@ -26,8 +26,15 @@ class MysqlRepository
     const KEYWORD_INDEX          = 'keyword_index';
     const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
 
-    const KEYLEN         = 255;
-    const UTF8MB4_KEYLEN = 191;
+    const KEYLEN              = 255;
+    const UTF8MB4_KEYLEN      = 191;
+    const DEFAULT_TABLE_NAMES = [
+        self::TOC                    => 'toc',
+        self::WORD                   => 'word',
+        self::FULLTEXT_INDEX         => 'fulltext_index',
+        self::KEYWORD_INDEX          => 'keyword_index',
+        self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
+    ];
 
     /**
      * @var \PDO
@@ -48,13 +55,7 @@ class MysqlRepository
     {
         $this->pdo     = $pdo;
         $this->prefix  = $prefix;
-        $this->options = array_merge([
-            self::TOC                    => 'toc',
-            self::WORD                   => 'word',
-            self::FULLTEXT_INDEX         => 'fulltext_index',
-            self::KEYWORD_INDEX          => 'keyword_index',
-            self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
-        ], $options);
+        $this->options = array_merge(self::DEFAULT_TABLE_NAMES, $options);
     }
 
     /**
@@ -634,6 +635,36 @@ class MysqlRepository
                 $e->getMessage()
             ), 0, $e);
         }
+    }
+
+    /**
+     * @return array
+     * @throws EmptyIndexException
+     */
+    public function getIndexStat()
+    {
+        $tableNames = array_map(function ($s) {
+            return $this->pdo->quote($this->getTableName($s));
+        }, array_keys(self::DEFAULT_TABLE_NAMES));
+
+        $sql           = 'SHOW TABLE STATUS WHERE name IN (' . implode(',', $tableNames) . ')';
+        $tableStatuses = $this->pdo->query($sql)->fetchAll();
+
+        if (\count($tableStatuses) !== \count($tableNames)) {
+            throw new EmptyIndexException('Some storage tables are missed in the database. Call ' . __CLASS__ . '::erase() first.');
+        }
+
+        $indexSize = 0;
+        $indexRows = 0;
+        foreach ($tableStatuses as $tableStatus) {
+            $indexSize += $tableStatus['Data_length'] + $tableStatus['Index_length'];
+            $indexRows += $tableStatus['Rows'];
+        }
+
+        return [
+            'bytes' => $indexSize,
+            'rows'  => $indexRows,
+        ];
     }
 
     /**

@@ -335,6 +335,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     }
 
     /**
+     * @return array
+     */
+    public function getIndexStat()
+    {
+        return $this->repository->getIndexStat();
+    }
+    /**
      * TODO move to another class
      *
      * @param string[] $words

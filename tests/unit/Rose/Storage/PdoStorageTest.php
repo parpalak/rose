@@ -41,6 +41,10 @@ class PdoStorageTest extends Unit
         $storage = new PdoStorage($this->pdo, 'test_');
         $storage->erase();
 
+        $stat = $storage->getIndexStat();
+        $this->assertGreaterThan(0, $stat['bytes']);
+        $this->assertGreaterThanOrEqual(0, $stat['rows']);
+
         // Removing non-existent items
         $storage->removeFromToc(new ExternalId('id_10'));
         $storage->removeFromIndex(new ExternalId('id_10'));
@@ -57,6 +61,10 @@ class PdoStorageTest extends Unit
 
         $storage->addToFulltext([1 => 'word1', 2 => 'word2'], $externalId1);
         $storage->addToFulltext([1 => 'word2', 10 => 'word2'], $externalId2);
+
+        $stat = $storage->getIndexStat();
+        $this->assertGreaterThan(0, $stat['bytes']);
+        $this->assertGreaterThanOrEqual(0, $stat['rows']);
 
         // Searching
         $fulltextResult = $storage->fulltextResultByWords(['word1']);
