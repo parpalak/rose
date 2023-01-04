@@ -103,7 +103,7 @@ class IntegrationTest extends Unit
         // Query 2
         $resultSet2 = $finder->find(new Query('content'));
 
-        $this->assertEquals(['20:id_2' => 16.0, '20:id_1' => 1.5, '10:id_1' => 1.0], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 16.03266189716096, '20:id_1' => 1.5460042968321166, '10:id_1' => 1.0367325906720297], $resultSet2->getSortedRelevanceByExternalId());
 
         $items = $resultSet2->getItems();
         $this->assertEquals('id_1', $items[2]->getId());
@@ -118,22 +118,22 @@ class IntegrationTest extends Unit
         $this->assertEquals('url1', $items[2]->getUrl());
         $this->assertEquals('Description can be used in snippets', $items[2]->getDescription());
         $this->assertEquals(new \DateTime('2016-08-24 00:00:00'), $items[2]->getDate());
-        $this->assertEquals(1.0, $items[2]->getRelevance());
+        $this->assertEquals( 1.0367325906720297, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
-        $this->assertEquals(16.0, $items[0]->getRelevance());
+        $this->assertEquals(16.03266189716096, $items[0]->getRelevance());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet());
 
         $resultSet2 = $finder->find(new Query('content'));
         $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 3.14);
 
-        $this->assertEquals(['20:id_2' => 16.0, '10:id_1' => 3.14, '20:id_1' => 1.5], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 16.03266189716096, '10:id_1' => 3.2553403347101733, '20:id_1' => 1.5460042968321166], $resultSet2->getSortedRelevanceByExternalId());
 
         $resultSet2 = $finder->find(new Query('content'));
         $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 100);
         $resultItems = $resultSet2->getItems();
         $this->assertCount(3, $resultItems);
-        $this->assertEquals(100, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
+        $this->assertEquals(103.67325906720298, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
 
         $resultSet2 = $finder->find(new Query('title'));
         $this->assertEquals('id_1', $resultSet2->getItems()[0]->getId());
@@ -200,7 +200,7 @@ class IntegrationTest extends Unit
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(93.5, $resultSet6->getItems()[0]->getRelevance());
+        $this->assertEquals(94.36024470095455 , $resultSet6->getItems()[0]->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));

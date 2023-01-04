@@ -80,8 +80,13 @@ class SingleFileArrayStorage extends ArrayStorage
         $data                     = substr($data, $end + 1);
         $this->indexMultiKeywords = unserialize($my_data) ?: [];
 
-        $end       = strpos($data, "\n");
-        $my_data   = substr($data, 8, $end);
+        $end            = strpos($data, "\n");
+        $my_data        = substr($data, 8, $end);
+        $data           = substr($data, $end + 1);
+        $this->metadata = unserialize($my_data) ?: [];
+
+        $end     = strpos($data, "\n");
+        $my_data = substr($data, 8, $end);
         // $data      = substr($data, $end + 1);
         $this->toc = unserialize($my_data) ?: [];
 
@@ -127,6 +132,9 @@ class SingleFileArrayStorage extends ArrayStorage
 
         file_put_contents($this->filename, '      //' . serialize($this->indexMultiKeywords) . "\n", FILE_APPEND);
         $this->indexMultiKeywords = [];
+
+        file_put_contents($this->filename, '      //' . serialize($this->metadata) . "\n", FILE_APPEND);
+        $this->metadata = [];
 
         file_put_contents($this->filename, '      //' . serialize($this->toc) . "\n", FILE_APPEND);
         $this->toc = [];

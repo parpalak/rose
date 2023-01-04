@@ -110,7 +110,7 @@ class FulltextResult
                 $weights = [
                     'abundance_reduction' => $reductionRatio,
                     'repeat_multiply'     => self::repeatWeightRatio(count($positions['pos'])),
-                    'entry_size'          => 1, // self::entrySizeWeightRatio($positions['wordCount']), TODO enable
+                    'entry_size'          => self::entrySizeWeightRatio($positions['wordCount']),
                 ];
                 $resultSet->addWordWeight($word, $positions['extId'], $weights, $positions['pos']);
             }

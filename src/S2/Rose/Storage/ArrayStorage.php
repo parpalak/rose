@@ -36,6 +36,11 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     protected $indexMultiKeywords = [];
 
     /**
+     * @var array
+     */
+    protected $metadata = [];
+
+    /**
      * @var TocEntry[]
      */
     protected $toc = [];
@@ -60,9 +65,12 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
             $data = $this->fulltextProxy->getByWord($word);
             foreach ($data as $id => $positions) {
                 $externalId = $this->externalIdFromInternalId($id);
+                if ($externalId === null) {
+                    continue;
+                }
                 if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
                     foreach ($positions as $position) {
-                        $result->add($word, $externalId, $position);
+                        $result->add($word, $externalId, $position, isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0);
                     }
                 }
             }
@@ -196,6 +204,13 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
             }
         }
         unset($data3);
+
+        foreach ($this->metadata as &$data4) {
+            if (isset($data4[$internalId])) {
+                unset($data4[$internalId]);
+            }
+        }
+        unset($data4);
     }
 
     /**
@@ -218,6 +233,15 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 
         $this->toc[$externalId->toString()] = $entry;
         $this->externalIdMap[$internalId]   = $externalId;
+    }
+
+    /**
+     * {@inheritdoc}
+     * @throws UnknownIdException
+     */
+    public function addMetadata($wordCount, ExternalId $externalId)
+    {
+        $this->metadata[$this->internalIdFromExternalId($externalId)]['wordCount'] = $wordCount;
     }
 
     /**

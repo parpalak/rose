@@ -62,4 +62,12 @@ interface StorageWriteInterface
      * @param ExternalId $externalId
      */
     public function removeFromToc(ExternalId $externalId);
+
+    /**
+     * @param int        $wordCount
+     * @param ExternalId $externalId
+     *
+     * @return void
+     */
+    public function addMetadata($wordCount, ExternalId $externalId);
 }

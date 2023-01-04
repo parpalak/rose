@@ -68,22 +68,24 @@ class PdoStorageTest extends Unit
 
         // Searching
         $fulltextResult = $storage->fulltextResultByWords(['word1']);
-        $this->assertEquals(['1:id_1' => ['pos' => [1], 'extId' => new ExternalId('id_1', 1)]], $fulltextResult->toArray()['word1']);
+        $this->assertEquals([
+            '1:id_1' => ['pos' => [1], 'extId' => new ExternalId('id_1', 1), 'wordCount' => 0]
+        ], $fulltextResult->toArray()['word1']);
 
         $fulltextResult = $storage->fulltextResultByWords(['word2']);
         $this->assertEquals([
-            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1)],
-            '2:id_2' => ['pos' => [1, 10], 'extId' => new ExternalId('id_2', 2)],
+            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1), 'wordCount' => 0],
+            '2:id_2' => ['pos' => [1, 10], 'extId' => new ExternalId('id_2', 2), 'wordCount' => 0],
         ], $fulltextResult->toArray()['word2']);
 
         $fulltextResult = $storage->fulltextResultByWords(['word2'], 1);
         $this->assertEquals([
-            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1)],
+            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1), 'wordCount' => 0],
         ], $fulltextResult->toArray()['word2']);
 
         $fulltextResult = $storage->fulltextResultByWords(['word2'], 2);
         $this->assertEquals([
-            '2:id_2' => ['pos' => [1, 10], 'extId' => new ExternalId('id_2', 2)],
+            '2:id_2' => ['pos' => [1, 10], 'extId' => new ExternalId('id_2', 2), 'wordCount' => 0],
         ], $fulltextResult->toArray()['word2']);
 
         $entry = $storage->getTocByExternalId($externalId2);
@@ -107,7 +109,7 @@ class PdoStorageTest extends Unit
 
         $fulltextResult = $storage->fulltextResultByWords(['word2']);
         $this->assertEquals([
-            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1)],
+            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1), 'wordCount' => 0],
         ], $fulltextResult->toArray()['word2']);
 
         // Reinit and...
@@ -118,7 +120,7 @@ class PdoStorageTest extends Unit
 
         $fulltextResult = $storage->fulltextResultByWords(['word2']);
         $this->assertEquals([
-            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1)],
+            '1:id_1' => ['pos' => ['2'], 'extId' => new ExternalId('id_1', 1), 'wordCount' => 0],
         ], $fulltextResult->toArray()['word2']);
 
         // Remove id_1

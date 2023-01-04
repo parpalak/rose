@@ -22,6 +22,7 @@ class MysqlRepository
 {
     const TOC                    = 'toc';
     const WORD                   = 'word';
+    const METADATA               = 'metadata';
     const FULLTEXT_INDEX         = 'fulltext_index';
     const KEYWORD_INDEX          = 'keyword_index';
     const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
@@ -31,6 +32,7 @@ class MysqlRepository
     const DEFAULT_TABLE_NAMES = [
         self::TOC                    => 'toc',
         self::WORD                   => 'word',
+        self::METADATA               => 'metadata',
         self::FULLTEXT_INDEX         => 'fulltext_index',
         self::KEYWORD_INDEX          => 'keyword_index',
         self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
@@ -212,10 +214,11 @@ class MysqlRepository
     public function findFulltextByWords(array $words, $instanceId = null)
     {
         $sql = '
-			SELECT w.name AS word, t.external_id, t.instance_id, f.position
+			SELECT w.name AS word, t.external_id, t.instance_id, f.position, COALESCE(m.word_count, 0) AS word_count
 			FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' AS f
 			JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
 			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id
+			LEFT JOIN ' . $this->getTableName(self::METADATA) . ' AS m ON t.id = m.toc_id
 			WHERE w.name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
 		';
 
@@ -230,6 +233,9 @@ class MysqlRepository
             $statement->execute($parameters);
         } catch (\PDOException $e) {
             if ($e->getCode() === '42S02') {
+                throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+            }
+            if ($e->getCode() === '42S22') { // e.g. SQLSTATE[42S22]: Column not found: 1054 Unknown column 'f.positions' in 'field list'
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -258,6 +264,19 @@ class MysqlRepository
         }
 
         $sql = 'INSERT INTO ' . $this->getTableName($tableKey) . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
+        $this->pdo->exec($sql);
+    }
+
+    /**
+     * @param int $wordCount
+     * @param int $internalId
+     *
+     * @return void
+     */
+    public function insertMetadata($wordCount, $internalId)
+    {
+        $data = ((int)$wordCount) . ',' . $internalId;
+        $sql = 'INSERT INTO ' . $this->getTableName(self::METADATA) . ' (word_count, toc_id) VALUES ( ' . $data . ')';
         $this->pdo->exec($sql);
     }
 
@@ -382,6 +401,9 @@ class MysqlRepository
             $st->execute([$tocId]);
 
             $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' WHERE toc_id = ?');
+            $st->execute([$tocId]);
+
+            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::METADATA) . ' WHERE toc_id = ?');
             $st->execute([$tocId]);
         } catch (\PDOException $e) {
             if (1412 === (int)$e->errorInfo[1]) {
@@ -729,6 +751,13 @@ class MysqlRepository
 			hash VARCHAR(80) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (instance_id, external_id(' . $keyLen . '))
+		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
+        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
+			toc_id INT(11) UNSIGNED NOT NULL,
+			word_count INT(11) UNSIGNED NOT NULL,
+			PRIMARY KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');

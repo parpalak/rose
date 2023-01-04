@@ -140,8 +140,10 @@ class Indexer
                 continue;
             }
 
-            // If the word contains the hyphen, add a variant without it
-            if (false !== strpbrk($word, '-.,')) {
+            $stemmedWord = $this->stemmer->stemWord($word);
+
+            // If the word contains punctuation marks like hyphen, add a variant without it
+            if (false !== strpbrk($stemmedWord, '-.,')) {
                 foreach (preg_split('#[\-.,]#', $word) as $k => $subWord) {
                     if ($subWord) {
                         $subWords[(string)($i + 0.001 * $k)] = $this->stemmer->stemWord($subWord);
@@ -149,10 +151,11 @@ class Indexer
                 }
             }
 
-            $word = $this->stemmer->stemWord($word);
+            $word = $stemmedWord;
         }
         unset($word);
 
+        $this->storage->addMetadata(count($words), $externalId);
         $this->storage->addToFulltext($words, $externalId);
         $this->storage->addToFulltext($subWords, $externalId);
     }

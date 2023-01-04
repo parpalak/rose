@@ -97,7 +97,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $data = $this->repository->findFulltextByWords($words, $instanceId);
 
         foreach ($data as $row) {
-            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['position']);
+            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['position'], $row['word_count']);
         }
 
         return $result;
@@ -201,6 +201,17 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         } catch (\PDOException $e) {
             throw new UnknownException('Unknown exception occurred while multiple keyword indexing:' . $e->getMessage(), $e->getCode(), $e);
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @throws UnknownIdException
+     */
+    public function addMetadata($wordCount, ExternalId $externalId)
+    {
+        $internalId = $this->getInternalIdFromExternalId($externalId);
+        $this->repository->insertMetadata($wordCount, $internalId);
     }
 
     /**

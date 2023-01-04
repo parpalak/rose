@@ -18,16 +18,18 @@ class FulltextIndexContent
      * @param string     $word
      * @param ExternalId $externalId
      * @param int        $position
+     * @param int        $wordCount
      */
-    public function add($word, ExternalId $externalId, $position)
+    public function add($word, ExternalId $externalId, $position, $wordCount = 0)
     {
         $serializedExtId = $externalId->toString();
 
         $this->dataByExternalId[$serializedExtId][$word][] = $position;
 
         // TODO refactor this data transformation
-        $this->dataByWord[$word][$serializedExtId]['extId'] = $externalId;
-        $this->dataByWord[$word][$serializedExtId]['pos'][] = $position;
+        $this->dataByWord[$word][$serializedExtId]['extId']     = $externalId;
+        $this->dataByWord[$word][$serializedExtId]['wordCount'] = $wordCount;
+        $this->dataByWord[$word][$serializedExtId]['pos'][]     = $position;
     }
 
     /**
