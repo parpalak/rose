@@ -97,7 +97,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $data = $this->repository->findFulltextByWords($words, $instanceId);
 
         foreach ($data as $row) {
-            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['position'], $row['word_count']);
+            foreach ($row['positions'] as $position) {
+                $result->add($row['word'], $this->getExternalIdFromRow($row), $position, $row['word_count']);
+            }
         }
 
         return $result;

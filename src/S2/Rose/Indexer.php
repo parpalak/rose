@@ -156,8 +156,7 @@ class Indexer
         unset($word);
 
         $this->storage->addMetadata(count($words), $externalId);
-        $this->storage->addToFulltext($words, $externalId);
-        $this->storage->addToFulltext($subWords, $externalId);
+        $this->storage->addToFulltext(array_merge($words, $subWords), $externalId);
     }
 
     /**

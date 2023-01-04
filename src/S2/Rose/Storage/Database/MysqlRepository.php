@@ -185,11 +185,17 @@ class MysqlRepository
     {
         $data = [];
         foreach ($words as $position => $word) {
-            $expr        = $wordIds[$word] . ',' . $internalId . ',' . ((int)$position);
-            $data[$expr] = $expr;
+            $key          = $wordIds[$word];
+            $data[$key][] = (int)$position;
         }
 
-        $sql = 'INSERT INTO ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (word_id, toc_id, position) VALUES ( ' . implode('),(', $data) . ')';
+        $sqlParts = [];
+        foreach ($data as $wordId => $positions) {
+            $sqlParts[] = $wordId . ',' . $internalId . ',' . $this->pdo->quote(implode(',', $positions));
+        }
+
+        $sql = 'INSERT INTO ' . $this->getTableName(self::FULLTEXT_INDEX)
+            . ' (word_id, toc_id, positions) VALUES ( ' . implode('),(', $sqlParts). ')';
 
         try {
             $this->pdo->exec($sql);
@@ -214,7 +220,7 @@ class MysqlRepository
     public function findFulltextByWords(array $words, $instanceId = null)
     {
         $sql = '
-			SELECT w.name AS word, t.external_id, t.instance_id, f.position, COALESCE(m.word_count, 0) AS word_count
+			SELECT w.name AS word, t.external_id, t.instance_id, f.positions, COALESCE(m.word_count, 0) AS word_count
 			FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' AS f
 			JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
 			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id
@@ -247,6 +253,11 @@ class MysqlRepository
 
         $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
+        foreach ($data as &$row) {
+            $row['positions'] = explode(',', $row['positions']);
+        }
+        unset($row);
+
         return $data;
     }
 
@@ -276,7 +287,7 @@ class MysqlRepository
     public function insertMetadata($wordCount, $internalId)
     {
         $data = ((int)$wordCount) . ',' . $internalId;
-        $sql = 'INSERT INTO ' . $this->getTableName(self::METADATA) . ' (word_count, toc_id) VALUES ( ' . $data . ')';
+        $sql  = 'INSERT INTO ' . $this->getTableName(self::METADATA) . ' (word_count, toc_id) VALUES ( ' . $data . ')';
         $this->pdo->exec($sql);
     }
 
@@ -764,8 +775,8 @@ class MysqlRepository
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
 			word_id INT(11) UNSIGNED NOT NULL,
 			toc_id INT(11) UNSIGNED NOT NULL,
-			position INT(11) UNSIGNED NOT NULL,
-			PRIMARY KEY (word_id, toc_id, position),
+			positions LONGTEXT NOT NULL,
+			PRIMARY KEY (word_id, toc_id),
 			KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
 
