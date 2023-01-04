@@ -59,6 +59,11 @@ class StemmerTest extends Unit
 
         $this->assertEquals('метро', $this->russianStemmer->stemWord('метро'));
 
+        $this->assertEquals('кое-кто', $this->russianStemmer->stemWord('кое-кого'));
+        $this->assertEquals('чем-либ', $this->russianStemmer->stemWord('чем-либо'));
+        $this->assertEquals('когда-нибудь', $this->russianStemmer->stemWord('когда-нибудь'));
+        $this->assertEquals('нехитрое-т', $this->russianStemmer->stemWord('нехитрое-то'));
+
         $this->assertEquals('экзамен', $this->russianStemmer->stemWord('экзамен'));
         $this->assertEquals('экзамен', $this->russianStemmer->stemWord('экзамена'));
         $this->assertEquals('экзамен', $this->russianStemmer->stemWord('экзамену'));
