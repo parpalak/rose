@@ -101,19 +101,33 @@ class Snippet
      */
     public function toString($acceptableRelevance = 0.6)
     {
-        $a = $this->snippetLineWeights;
+        $stat = [];
+        foreach ($this->snippetLines as $index => $snippetLine) {
+            $stat[$snippetLine->getLine()][$index] = $snippetLine->getRelevance();
+        }
+
+        $uniqueLines = [];
+        foreach ($stat as $indexToRelevanceMap) {
+            arsort($indexToRelevanceMap);
+            /** @noinspection LoopWhichDoesNotLoopInspection */
+            foreach ($indexToRelevanceMap as $index => $relevance) {
+                // If there are duplicates, this code takes only one copy with the greatest relevance.
+                $uniqueLines[$index] = $relevance;
+                break;
+            }
+        }
 
         // Reverse sorting by relevance
-        arsort($a);
+        arsort($uniqueLines);
 
-        // Obtaining first bunch of meaningful lines
-        $a = array_slice($a, 0, self::SNIPPET_LINE_COUNT, true);
+        // Obtaining top of meaningful lines
+        $slice = array_slice($uniqueLines, 0, self::SNIPPET_LINE_COUNT, true);
 
         // Sort by natural position
-        ksort($a);
+        ksort($slice);
 
         $resultSnippetLines = [];
-        foreach ($a as $position => $weight) {
+        foreach ($slice as $position => $weight) {
             $resultSnippetLines[$position] = $this->snippetLines[$position];
         }
 
@@ -136,6 +150,7 @@ class Snippet
         $result           = '';
         $previousPosition = -1;
 
+        $foundStrings = [];
         foreach ($snippetLines as $position => $snippetLine) {
             $lineStr = $snippetLine->getHighlighted($this->highlightTemplate);
             $lineStr = trim($lineStr);
@@ -146,6 +161,12 @@ class Snippet
             if (substr_count($lineStr, '"') % 2) {
                 $lineStr = str_replace('"', '', $lineStr);
             }
+
+            // Remove repeating lines
+            if (isset($foundStrings[$lineStr])) {
+                continue;
+            }
+            $foundStrings[$lineStr] = 1;
 
             if ($previousPosition == -1) {
                 $result = $lineStr;

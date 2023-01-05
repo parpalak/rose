@@ -70,6 +70,49 @@ class SnippetTest extends Unit
         );
     }
 
+    public function testSnippetsUnique()
+    {
+        $snippet = new Snippet('introduction', 1, '<i>%s</i>');
+        $snippet
+            ->attachSnippetLine(0, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(1, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(2, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(3, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(4, new SnippetLine('Try to test 2.', ['test'], 1))
+            ->attachSnippetLine(5, new SnippetLine('Try to test 2.', ['test'], 1))
+            ->attachSnippetLine(6, new SnippetLine('Try to test 2.', ['test'], 1))
+        ;
+
+        $this->assertEquals(
+            'Try to <i>test</i> 1... Try to <i>test</i> 2.',
+            $snippet->toString(0.6)
+        );
+
+        $snippet = new Snippet('introduction', 1, '<i>%s</i>');
+        $snippet
+            ->attachSnippetLine(0, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(1, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(2, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(3, new SnippetLine('Try to test 1.', ['test'], 1))
+            ->attachSnippetLine(4, new SnippetLine('Try to test 2.', ['test'], 1))
+            ->attachSnippetLine(5, new SnippetLine('Try to test 2.', ['test'], 1))
+            ->attachSnippetLine(6, new SnippetLine('Try to test 2.', ['test'], 1))
+            ->attachSnippetLine(7, new SnippetLine('Try to test 3.', ['test'], 1))
+            ->attachSnippetLine(8, new SnippetLine('Try to test 3.', ['test'], 1))
+            ->attachSnippetLine(9, new SnippetLine('Try to test 3.', ['test'], 1))
+            ->attachSnippetLine(10, new SnippetLine('Try to test 4.', ['test'], 1))
+            ->attachSnippetLine(11, new SnippetLine('Try to test 4.', ['test'], 2))
+        ;
+
+        $this->assertEquals(
+            PHP_MAJOR_VERSION >= 7
+                ? 'Try to <i>test</i> 1... Try to <i>test</i> 2... Try to <i>test</i> 4.'
+                : 'Try to <i>test</i> 2... Try to <i>test</i> 3... Try to <i>test</i> 4.'
+            ,
+            $snippet->toString(0.6)
+        );
+    }
+
     public function testEmptySnippet()
     {
         $snippet = new Snippet('introduction', 0, '<i>%s</i>');

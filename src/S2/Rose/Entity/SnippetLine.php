@@ -66,6 +66,14 @@ class SnippetLine
     }
 
     /**
+     * @return string
+     */
+    public function getLine()
+    {
+        return $this->line;
+    }
+
+    /**
      * @param string $highlightTemplate
      *
      * @return string
