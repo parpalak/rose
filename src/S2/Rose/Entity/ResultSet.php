@@ -440,4 +440,18 @@ class ResultSet
 
         return count($this->data);
     }
+
+    /**
+     * @return array
+     * @throws UnknownIdException
+     */
+    public function getRelevanceByStemsFromId(ExternalId $externalId)
+    {
+        $serializedExtId = $externalId->toString();
+        if (!isset($this->data[$serializedExtId])) {
+            throw UnknownIdException::createResultMissingExternalId($externalId);
+        }
+
+        return $this->data[$serializedExtId];
+    }
 }

@@ -13,6 +13,7 @@ use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\InvalidArgumentException;
+use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
 use S2\Rose\Stemmer\StemmerInterface;
 
@@ -56,6 +57,7 @@ class SnippetBuilder
      *
      * @return $this
      * @throws ImmutableException
+     * @throws UnknownIdException
      */
     public function attachSnippets(ResultSet $result, $callback)
     {
@@ -87,7 +89,8 @@ class SnippetBuilder
             $snippet = $this->buildSnippet(
                 $foundWords[$externalId->toString()],
                 $text,
-                $result->getHighlightTemplate()
+                $result->getHighlightTemplate(),
+                $result->getRelevanceByStemsFromId($externalId)
             );
             $result->attachSnippet($externalId, $snippet);
         });
@@ -101,10 +104,11 @@ class SnippetBuilder
      * @param array  $foundPositionsByStems
      * @param string $content
      * @param string $highlightTemplate
+     * @param array  $relevanceByStems
      *
      * @return Snippet
      */
-    public function buildSnippet($foundPositionsByStems, $content, $highlightTemplate)
+    public function buildSnippet($foundPositionsByStems, $content, $highlightTemplate, $relevanceByStems)
     {
         // Stems of the words found in the $id chapter
         $stems        = [];
@@ -169,14 +173,16 @@ class SnippetBuilder
             }
 
             $foundStemsInLines[$lineNum][$stemmedWord] = 1;
-            $foundWordsInLines[$lineNum][$word] = 1;
+            $foundWordsInLines[$lineNum][$word]        = 1;
         }
 
         foreach ($foundStemsInLines as $lineIndex => $foundStemsInLine) {
             $snippetLine = new SnippetLine(
                 $lines[$lineIndex],
                 array_keys($foundWordsInLines[$lineIndex]),
-                count($foundStemsInLine)
+                array_sum(array_map(static function ($stem) use ($relevanceByStems) {
+                    return $relevanceByStems[$stem];
+                }, array_keys($foundStemsInLine)))
             );
             $snippet->attachSnippetLine($lineIndex, $snippetLine);
         }

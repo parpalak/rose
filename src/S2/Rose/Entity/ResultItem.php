@@ -179,7 +179,7 @@ class ResultItem
             return $this->description;
         }
 
-        $snippet = $this->snippet->toString(0.6);
+        $snippet = $this->snippet->toString(0.3);
         if ($snippet) {
             return $snippet;
         }

@@ -73,7 +73,7 @@ class Snippet
     public function attachSnippetLine($linePosition, SnippetLine $snippetLine)
     {
         $this->snippetLines[$linePosition]       = $snippetLine;
-        $this->snippetLineWeights[$linePosition] = $snippetLine->getStemCount();
+        $this->snippetLineWeights[$linePosition] = $snippetLine->getRelevance();
 
         return $this;
     }

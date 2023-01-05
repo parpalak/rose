@@ -23,9 +23,9 @@ class SnippetLine
     protected $line = '';
 
     /**
-     * @var int
+     * @var float
      */
-    protected $foundStemCount = 0;
+    protected $relevance = 0;
 
     /**
      * @var string|null
@@ -40,21 +40,21 @@ class SnippetLine
     /**
      * @param string   $line
      * @param string[] $foundWords
-     * @param int      $foundStemCount
+     * @param float    $relevance
      */
-    public function __construct($line, array $foundWords, $foundStemCount)
+    public function __construct($line, array $foundWords, $relevance)
     {
-        $this->line           = $line;
-        $this->foundWords     = $foundWords;
-        $this->foundStemCount = $foundStemCount;
+        $this->line       = $line;
+        $this->foundWords = $foundWords;
+        $this->relevance  = $relevance;
     }
 
     /**
-     * @return int
+     * @return float
      */
-    public function getStemCount()
+    public function getRelevance()
     {
-        return $this->foundStemCount;
+        return $this->relevance;
     }
 
     /**
