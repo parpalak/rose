@@ -103,8 +103,10 @@ class FulltextResult
     {
         // $queryWordCount = $this->query->getCount();
 
+        $wordReductionRatios = [];
         foreach ($this->fulltextIndexContent->toArray() as $word => $items) {
-            $reductionRatio = self::frequencyReduction($this->tocSize, count($items));
+            $reductionRatio             = self::frequencyReduction($this->tocSize, count($items));
+            $wordReductionRatios[$word] = $reductionRatio;
 
             foreach ($items as $positions) {
                 $weights = [
@@ -119,11 +121,17 @@ class FulltextResult
         $referenceContainer = $this->query->toWordPositionContainer();
 
         $this->fulltextIndexContent->iterateWordPositions(
-            static function (ExternalId $id, WordPositionContainer $container) use ($referenceContainer, $resultSet) {
+            static function (ExternalId $id, WordPositionContainer $container) use ($referenceContainer, $wordReductionRatios, $resultSet) {
                 $pairsDistance = $container->compareWith($referenceContainer);
                 foreach ($pairsDistance as $pairDistance) {
                     list($word1, $word2, $distance) = $pairDistance;
                     $weight = self::neighbourWeight($distance);
+                    if (isset($wordReductionRatios[$word1])) {
+                        $weight *= $wordReductionRatios[$word1];
+                    }
+                    if (isset($wordReductionRatios[$word2])) {
+                        $weight *= $wordReductionRatios[$word2];
+                    }
                     $resultSet->addNeighbourWeight($word1, $word2, $id, $weight, $distance);
                 }
             }

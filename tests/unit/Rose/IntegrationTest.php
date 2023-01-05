@@ -103,7 +103,7 @@ class IntegrationTest extends Unit
         // Query 2
         $resultSet2 = $finder->find(new Query('content'));
 
-        $this->assertEquals(['20:id_2' => 16.03266189716096, '20:id_1' => 1.5460042968321166, '10:id_1' => 1.0367325906720297], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 1.3251865179653566, '20:id_1' => 0.12778564557899275, '10:id_1' =>  0.08569157515491249], $resultSet2->getSortedRelevanceByExternalId());
 
         $items = $resultSet2->getItems();
         $this->assertEquals('id_1', $items[2]->getId());
@@ -118,22 +118,22 @@ class IntegrationTest extends Unit
         $this->assertEquals('url1', $items[2]->getUrl());
         $this->assertEquals('Description can be used in snippets', $items[2]->getDescription());
         $this->assertEquals(new \DateTime('2016-08-24 00:00:00'), $items[2]->getDate());
-        $this->assertEquals( 1.0367325906720297, $items[2]->getRelevance());
+        $this->assertEquals( 0.08569157515491249, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
-        $this->assertEquals(16.03266189716096, $items[0]->getRelevance());
+        $this->assertEquals(1.3251865179653566, $items[0]->getRelevance());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet());
 
         $resultSet2 = $finder->find(new Query('content'));
         $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 3.14);
 
-        $this->assertEquals(['20:id_2' => 16.03266189716096, '10:id_1' => 3.2553403347101733, '20:id_1' => 1.5460042968321166], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 1.3251865179653566, '10:id_1' => 0.26907154598642524, '20:id_1' => 0.12778564557899275], $resultSet2->getSortedRelevanceByExternalId());
 
         $resultSet2 = $finder->find(new Query('content'));
-        $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 100);
+        $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 1000);
         $resultItems = $resultSet2->getItems();
         $this->assertCount(3, $resultItems);
-        $this->assertEquals(103.67325906720298, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
+        $this->assertEquals(85.69157515491248, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
 
         $resultSet2 = $finder->find(new Query('title'));
         $this->assertEquals('id_1', $resultSet2->getItems()[0]->getId());
@@ -159,6 +159,7 @@ class IntegrationTest extends Unit
             'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде &plus;. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
             $resultSet3->getItems()[0]->getSnippet()
         );
+        $this->assertEquals(7.557967139988488, $resultSet3->getItems()[0]->getRelevance());
 
         // Query 4
         $resultSet4 = $finder->find(new Query('эпл'));
@@ -187,6 +188,7 @@ class IntegrationTest extends Unit
             'Русский текст. <b>Красным заголовком</b>',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
+        $this->assertEquals(44.895569405379796, $resultSet4->getItems()[0]->getRelevance());
 
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));
@@ -200,7 +202,7 @@ class IntegrationTest extends Unit
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(94.36024470095455 , $resultSet6->getItems()[0]->getRelevance());
+        $this->assertEquals(55.02261191427482 , $resultSet6->getItems()[0]->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));
@@ -362,13 +364,15 @@ class IntegrationTest extends Unit
                 ->setDate(new \DateTime('2016-08-22 00:00:00'))
                 ->setUrl('/якобы.урл')
             ,
-            (new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have changed the content.', 10))
+            (new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have changed the content.', 10)) // overwrite the previous one
                 ->setKeywords('singlekeyword, multiple keywords')
                 ->setDescription('Description can be used in snippets')
                 ->setDate(new \DateTime('2016-08-24 00:00:00'))
                 ->setUrl('url1')
             ,
             (new Indexable('id_1', 'Another instance', 'The same id but another instance. Word "content" is present here. Twice: content.', 20))
+            ,
+            (new Indexable('id_4', 'Another instance', 'Nothing is here.', 20))
             ,
         ];
 

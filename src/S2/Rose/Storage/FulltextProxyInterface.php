@@ -20,6 +20,13 @@ interface FulltextProxyInterface
 
     /**
      * @param string $word
+     *
+     * @return int
+     */
+    public function countByWord($word);
+
+    /**
+     * @param string $word
      * @param int    $id
      * @param int    $position
      */

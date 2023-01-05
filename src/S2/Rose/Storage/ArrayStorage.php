@@ -91,7 +91,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
                 foreach ($this->indexSingleKeywords[$word] as $id => $type) {
                     $externalId = $this->externalIdFromInternalId($id);
                     if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
-                        $result[$word]->add($externalId, $type);
+                        $result[$word]->add($externalId, $type, $this->getTocSize($instanceId), $this->fulltextProxy->countByWord($word));
                     }
                 }
             }

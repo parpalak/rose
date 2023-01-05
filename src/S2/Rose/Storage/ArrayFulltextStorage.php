@@ -63,6 +63,18 @@ class ArrayFulltextStorage implements FulltextProxyInterface
     /**
      * {@inheritdoc}
      */
+    public function countByWord($word)
+    {
+        if (!isset($this->fulltextIndex[$word])) {
+            return 0;
+        }
+
+        return count($this->fulltextIndex[$word]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function addWord($word, $id, $position)
     {
         $word = (string)$word;
