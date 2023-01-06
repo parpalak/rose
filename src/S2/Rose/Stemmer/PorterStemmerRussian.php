@@ -224,10 +224,10 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
         'экзамен'  => '',
         'экзамена' => 'экзамен',
         'экзамены' => 'экзамен',
-
-        'метро' => '',
-        'кино'  => '',
-        'фото'  => '',
+        'массив'   => '',
+        'метро'    => '',
+        'кино'     => '',
+        'фото'     => '',
 
         'один'   => '',
         'одного' => 'один',
@@ -238,6 +238,9 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
         'одна'  => '',
         'одной' => 'одна',
         'одну'  => 'одна',
+
+        'татьяна' => 'татьян',
+        'татьяны' => 'татьян',
 
         'он'   => '',
         'его'  => 'он',
