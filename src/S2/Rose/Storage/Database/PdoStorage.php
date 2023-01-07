@@ -257,29 +257,19 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     {
         $data = $this->repository->getTocEntries(['ids' => $externalIds]);
 
-        $result = [];
-        foreach ($data as $row) {
-            $date = null;
-            if (isset($row['added_at'])) {
-                try {
-                    $date = new \DateTime($row['added_at']);
-                } catch (\Exception $e) {
-                }
-            }
+        return $this->transformDataToTocEntries($data);
+    }
 
-            $tocEntry = new TocEntry(
-                $row['title'],
-                $row['description'],
-                $date,
-                $row['url'],
-                $row['hash']
-            );
-            $tocEntry->setInternalId($row['id']);
+    /**
+     * @param string $titlePrefix
+     *
+     * @return TocEntryWithExternalId[]
+     */
+    public function getTocByTitlePrefix($titlePrefix)
+    {
+        $data = $this->repository->getTocEntries(['title' => $titlePrefix]);
 
-            $result[] = new TocEntryWithExternalId($tocEntry, $this->getExternalIdFromRow($row));
-        }
-
-        return $result;
+        return $this->transformDataToTocEntries($data);
     }
 
     /**
@@ -444,5 +434,37 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     private function getExternalIdFromRow($row)
     {
         return new ExternalId($row['external_id'], $row['instance_id'] > 0 ? $row['instance_id'] : null);
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return TocEntryWithExternalId[]
+     */
+    private function transformDataToTocEntries(array $data)
+    {
+        $result = [];
+        foreach ($data as $row) {
+            $date = null;
+            if (isset($row['added_at'])) {
+                try {
+                    $date = new \DateTime($row['added_at']);
+                } catch (\Exception $e) {
+                }
+            }
+
+            $tocEntry = new TocEntry(
+                $row['title'],
+                $row['description'],
+                $date,
+                $row['url'],
+                $row['hash']
+            );
+            $tocEntry->setInternalId($row['id']);
+
+            $result[] = new TocEntryWithExternalId($tocEntry, $this->getExternalIdFromRow($row));
+        }
+
+        return $result;
     }
 }
