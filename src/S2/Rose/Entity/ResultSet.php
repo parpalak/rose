@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
@@ -7,89 +7,37 @@
 namespace S2\Rose\Entity;
 
 use S2\Rose\Exception\ImmutableException;
-use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Helper\ProfileHelper;
 
 class ResultSet
 {
-    /**
-     * @var int
-     */
-    protected $limit;
-
-    /**
-     * @var int
-     */
-    protected $offset;
-
-    /**
-     * @var bool
-     */
-    protected $isDebug;
-
-    /**
-     * @var int
-     */
-    protected $startedAt;
-
-    /**
-     * @var array
-     */
-    protected $data = [];
-
-    /**
-     * @var array
-     */
-    protected $profilePoints = [];
-
-    /**
-     * @var bool
-     */
-    protected $isFrozen = false;
+    protected ?int $limit;
+    protected int $offset;
+    protected bool $isDebug;
+    protected float $startedAt;
+    protected array $data = [];
+    protected array $profilePoints = [];
+    protected bool $isFrozen = false;
 
     /**
      * @var ResultItem[]
      */
-    protected $items = [];
+    protected array $items = [];
 
     /**
      * Result cache
-     *
-     * @var array
      */
-    protected $sortedRelevance;
-
-    /**
-     * Relevance corrections
-     *
-     * @var array
-     */
-    protected $externalRelevanceRatios = [];
+    protected ?array $sortedRelevance = null;
 
     /**
      * Positions of found words
-     *
-     * @var array
      */
-    protected $positions = [];
+    protected array $positions = [];
+    protected string $highlightTemplate = '<i>%s</i>';
+    protected ResultTrace $trace;
 
-    /**
-     * @var string
-     */
-    protected $highlightTemplate = '<i>%s</i>';
-
-    /**
-     * @var ResultTrace
-     */
-    protected $trace;
-
-    /**
-     * @param int  $limit
-     * @param int  $offset
-     * @param bool $isDebug
-     */
-    public function __construct($limit = null, $offset = 0, $isDebug = false)
+    public function __construct(int $limit = null, int $offset = 0, bool $isDebug = false)
     {
         $this->limit   = $limit;
         $this->offset  = $offset;
@@ -100,57 +48,38 @@ class ResultSet
         $this->trace = new ResultTrace();
     }
 
-    /**
-     * @param string $message
-     */
-    public function addProfilePoint($message)
+    public function addProfilePoint(string $message): void
     {
         if (!$this->isDebug) {
             return;
         }
 
-        $this->profilePoints[] = ProfileHelper::getProfilePoint($message, -$this->startedAt + ($this->startedAt = microtime(1)));
+        $this->profilePoints[] = ProfileHelper::getProfilePoint($message, -$this->startedAt + ($this->startedAt = microtime(true)));
     }
 
-    /**
-     * @return array
-     */
-    public function getProfilePoints()
+    public function getProfilePoints(): array
     {
         $this->isFrozen = true;
 
         return $this->profilePoints;
     }
 
-    /**
-     * @param string $highlightTemplate
-     *
-     * @return $this
-     */
-    public function setHighlightTemplate($highlightTemplate)
+    public function setHighlightTemplate(string $highlightTemplate): self
     {
         $this->highlightTemplate = $highlightTemplate;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getHighlightTemplate()
+    public function getHighlightTemplate(): string
     {
         return $this->highlightTemplate;
     }
 
     /**
-     * @param string        $word
-     * @param ExternalId    $externalId
-     * @param float[]|array $weights
-     * @param int[]         $positions
-     *
      * @throws ImmutableException
      */
-    public function addWordWeight($word, ExternalId $externalId, array $weights, array $positions = [])
+    public function addWordWeight(string $word, ExternalId $externalId, array $weights, array $positions = []): void
     {
         if ($this->isFrozen) {
             throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
@@ -176,15 +105,9 @@ class ResultSet
     }
 
     /**
-     * @param string     $word1
-     * @param string     $word2
-     * @param ExternalId $externalId
-     * @param float      $weight
-     * @param int        $distance
-     *
      * @throws ImmutableException
      */
-    public function addNeighbourWeight($word1, $word2, ExternalId $externalId, $weight, $distance)
+    public function addNeighbourWeight(string $word1, string $word2, ExternalId $externalId, float $weight, int $distance): void
     {
         if ($this->isFrozen) {
             throw new ImmutableException('One cannot mutate a search result after obtaining its content.');
@@ -198,39 +121,9 @@ class ResultSet
     }
 
     /**
-     * @param ExternalId $externalId
-     * @param float      $ratio
-     *
-     * @throws ImmutableException
-     * @throws UnknownIdException
-     */
-    public function setRelevanceRatio(ExternalId $externalId, $ratio)
-    {
-        if (!is_numeric($ratio)) {
-            throw new InvalidArgumentException(sprintf('Ratio must be a float value. "%s" given.', print_r($ratio, true)));
-        }
-
-        if (!$this->isFrozen) {
-            throw new ImmutableException('One cannot provide external relevance ratios before freezing the result set.');
-        }
-
-        if ($this->sortedRelevance !== null) {
-            throw new ImmutableException('One cannot set relevance ratios after sorting the result set.');
-        }
-
-        $serializedExtId = $externalId->toString();
-        if (!isset($this->data[$serializedExtId])) {
-            throw UnknownIdException::createResultMissingExternalId($externalId);
-        }
-
-        $this->externalRelevanceRatios[$serializedExtId] = $ratio;
-    }
-
-    /**
-     * @return array
      * @throws ImmutableException
      */
-    public function getSortedRelevanceByExternalId()
+    public function getSortedRelevanceByExternalId(): array
     {
         if (!$this->isFrozen) {
             throw new ImmutableException('One cannot read a result before freezing it.');
@@ -243,8 +136,8 @@ class ResultSet
         $this->sortedRelevance = [];
         foreach ($this->data as $serializedExtId => $stat) {
             $relevance = array_sum($stat);
-            if (isset($this->externalRelevanceRatios[$serializedExtId])) {
-                $relevance *= $this->externalRelevanceRatios[$serializedExtId];
+            if (isset($this->items[$serializedExtId])) {
+                $relevance *= $this->items[$serializedExtId]->getRelevanceRatio();
             }
             $this->sortedRelevance[$serializedExtId] = $relevance;
         }
@@ -253,7 +146,7 @@ class ResultSet
         arsort($this->sortedRelevance);
 
         if ($this->limit > 0) {
-            $this->sortedRelevance = array_slice(
+            $this->sortedRelevance = \array_slice(
                 $this->sortedRelevance,
                 $this->offset,
                 $this->limit
@@ -266,7 +159,7 @@ class ResultSet
     /**
      * @throws ImmutableException
      */
-    public function removeDataWithoutToc()
+    public function removeDataWithoutToc(): void
     {
         if ($this->sortedRelevance !== null) {
             throw new ImmutableException('One cannot remove results after sorting the result set.');
@@ -278,7 +171,6 @@ class ResultSet
                 // Remove it from the result set.
                 unset(
                     $this->data[$serializedExtId],
-                    $this->externalRelevanceRatios[$serializedExtId],
                     $this->items[$serializedExtId],
                     $this->positions[$serializedExtId]
                 );
@@ -287,10 +179,9 @@ class ResultSet
     }
 
     /**
-     * @return array
      * @throws ImmutableException
      */
-    public function getFoundWordPositionsByExternalId()
+    public function getFoundWordPositionsByExternalId(): array
     {
         if (!$this->isFrozen) {
             throw new ImmutableException('One cannot read a result before freezing it.');
@@ -301,17 +192,15 @@ class ResultSet
 
     /**
      * Finishes the process of building the ResultSet.
-     *
-     * @return $this;
      */
-    public function freeze()
+    public function freeze(): self
     {
         $this->isFrozen = true;
 
         return $this;
     }
 
-    public function attachToc(TocEntryWithExternalId $tocEntryWithExternalId)
+    public function attachToc(TocEntryWithExternalId $tocEntryWithExternalId): void
     {
         $tocEntry   = $tocEntryWithExternalId->getTocEntry();
         $externalId = $tocEntryWithExternalId->getExternalId();
@@ -323,17 +212,15 @@ class ResultSet
             $tocEntry->getDescription(),
             $tocEntry->getDate(),
             $tocEntry->getUrl(),
+            $tocEntry->getRelevanceRatio(),
             $this->highlightTemplate
         );
     }
 
     /**
-     * @param ExternalId $externalId
-     * @param Snippet    $snippet
-     *
      * @throws UnknownIdException
      */
-    public function attachSnippet(ExternalId $externalId, Snippet $snippet)
+    public function attachSnippet(ExternalId $externalId, Snippet $snippet): void
     {
         $serializedExtId = $externalId->toString();
         if (!isset($this->items[$serializedExtId])) {
@@ -346,7 +233,7 @@ class ResultSet
      * @return ResultItem[]
      * @throws ImmutableException
      */
-    public function getItems()
+    public function getItems(): array
     {
         $relevanceArray = $this->getSortedRelevanceByExternalId();
 
@@ -372,10 +259,9 @@ class ResultSet
     }
 
     /**
-     * @return ExternalIdCollection
      * @throws ImmutableException
      */
-    public function getFoundExternalIds()
+    public function getFoundExternalIds(): ExternalIdCollection
     {
         if (!$this->isFrozen) {
             throw new ImmutableException('One cannot read a result before freezing it.');
@@ -385,20 +271,18 @@ class ResultSet
     }
 
     /**
-     * @return ExternalIdCollection
      * @throws ImmutableException
      */
-    public function getSortedExternalIds()
+    public function getSortedExternalIds(): ExternalIdCollection
     {
         return ExternalIdCollection::fromStringArray(array_keys($this->getSortedRelevanceByExternalId()));
     }
 
     /**
-     * @return array
      * @throws UnknownIdException
      * @throws ImmutableException
      */
-    public function getTrace()
+    public function getTrace(): array
     {
         if (!$this->isFrozen) {
             throw new ImmutableException('One cannot obtain a trace before freezing the result set.');
@@ -418,8 +302,8 @@ class ResultSet
                 'relevance' => $relevance,
             ];
 
-            if (isset($this->externalRelevanceRatios[$serializedExtId])) {
-                $result[$serializedExtId]['externalRelevanceRatio'] = $this->externalRelevanceRatios[$serializedExtId];
+            if (isset($this->items[$serializedExtId])) {
+                $result[$serializedExtId]['externalRelevanceRatio'] = $this->items[$serializedExtId]->getRelevanceRatio();
             }
 
             $result[$serializedExtId]['trace'] = $traceArray[$serializedExtId];
@@ -429,10 +313,9 @@ class ResultSet
     }
 
     /**
-     * @return int
      * @throws ImmutableException
      */
-    public function getTotalCount()
+    public function getTotalCount(): int
     {
         if (!$this->isFrozen) {
             throw new ImmutableException('One cannot obtain a trace before freezing the result set.');
@@ -442,10 +325,9 @@ class ResultSet
     }
 
     /**
-     * @return array
      * @throws UnknownIdException
      */
-    public function getRelevanceByStemsFromId(ExternalId $externalId)
+    public function getRelevanceByStemsFromId(ExternalId $externalId): array
     {
         $serializedExtId = $externalId->toString();
         if (!isset($this->data[$serializedExtId])) {

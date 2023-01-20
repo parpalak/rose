@@ -48,7 +48,13 @@ class StemmerTest extends Unit
     {
     }
 
-    public function testStem()
+    public function testRegexes(): void
+    {
+        $this->assertEquals('ухмыля', $this->russianStemmer->stemWord('ухмылявшись'));
+        $this->assertEquals('доб', $this->russianStemmer->stemWord('добившись'));
+    }
+
+    public function testStem(): void
     {
         $this->assertEquals('ухмыляться', $this->englishStemmer->stemWord('ухмыляться'));
         $this->assertEquals('ухмыля', $this->russianStemmer->stemWord('ухмыляться'));

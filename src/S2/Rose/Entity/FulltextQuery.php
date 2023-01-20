@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2017 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,26 +8,20 @@ namespace S2\Rose\Entity;
 
 use S2\Rose\Stemmer\StemmerInterface;
 
-/**
- * Class FulltextQuery
- */
 class FulltextQuery
 {
     /**
      * @var string[]
      */
-    protected $words = [];
+    protected array $words = [];
 
     /**
      * @var array|string[]
      */
-    protected $additionalStems = [];
+    protected array $additionalStems = [];
 
     /**
-     * FulltextQuery constructor.
-     *
-     * @param string[]         $words
-     * @param StemmerInterface $stemmer
+     * @param string[] $words
      */
     public function __construct(array $words, StemmerInterface $stemmer)
     {
@@ -35,22 +29,11 @@ class FulltextQuery
         $this->extractStems($stemmer);
     }
 
-    /**
-     * @return int
-     */
-    public function getCount()
-    {
-        return count($this->words);
-    }
-
-    /**
-     * @param StemmerInterface $stemmer
-     */
-    protected function extractStems(StemmerInterface $stemmer)
+    protected function extractStems(StemmerInterface $stemmer): void
     {
         foreach ($this->words as $i => $word) {
             $stemWord = $stemmer->stemWord($word);
-            if ($stemWord != $word) {
+            if ($stemWord !== $word) {
                 $this->additionalStems[$i] = $stemWord;
             }
         }
@@ -59,15 +42,12 @@ class FulltextQuery
     /**
      * @return string[]
      */
-    public function getWordsWithStems()
+    public function getWordsWithStems(): array
     {
         return array_merge($this->words, $this->additionalStems);
     }
 
-    /**
-     * @return WordPositionContainer
-     */
-    public function toWordPositionContainer()
+    public function toWordPositionContainer(): WordPositionContainer
     {
         $container = new WordPositionContainer();
 

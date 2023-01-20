@@ -156,7 +156,7 @@ class Query
             }
         }
 
-        $words = StringHelper::removeLongWords($words);
+        StringHelper::removeLongWords($words);
 
         // Fix keys
         // $words = array_values($words); // <- moved to helper

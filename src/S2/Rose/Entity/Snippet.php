@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2016-2017 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,98 +8,64 @@ namespace S2\Rose\Entity;
 
 class Snippet
 {
-    const SNIPPET_LINE_COUNT = 3;
+    private const SNIPPET_LINE_COUNT = 3;
 
-    /**
-     * @var string
-     */
-    protected $lineSeparator = '... ';
+    protected string $lineSeparator = '... ';
 
     /**
      * @var SnippetLine[]
      */
-    protected $snippetLines = [];
+    protected array $snippetLines = [];
+    protected array $snippetLineWeights = [];
 
-    /**
-     * @var array
-     */
-    protected $snippetLineWeights = [];
+    protected string $textIntroduction = '';
 
-    /**
-     * @var string
-     */
-    protected $textIntroduction = '';
+    protected int $foundWordCount = 0;
 
-    /**
-     * @var int
-     */
-    protected $foundWordCount = 0;
+    protected string $highlightTemplate;
+    private array $snippetMinWordPositions = [];
+    private array $snippetMaxWordPositions = [];
 
-    /**
-     * @var string
-     */
-    protected $highlightTemplate;
-
-    /**
-     * @param string $textIntroduction
-     * @param int    $foundWordNum
-     * @param string $highlightTemplate
-     */
-    public function __construct($textIntroduction, $foundWordNum, $highlightTemplate)
+    public function __construct(string $textIntroduction, int $foundWordNum, string $highlightTemplate)
     {
         $this->textIntroduction  = $textIntroduction;
         $this->foundWordCount    = $foundWordNum;
         $this->highlightTemplate = $highlightTemplate;
     }
 
-    /**
-     * @param string $lineSeparator
-     *
-     * @return $this
-     */
-    public function setLineSeparator($lineSeparator)
+    public function setLineSeparator(string $lineSeparator): self
     {
         $this->lineSeparator = $lineSeparator;
 
         return $this;
     }
 
-    /**
-     * @param int         $linePosition
-     * @param SnippetLine $snippetLine
-     *
-     * @return $this
-     */
-    public function attachSnippetLine($linePosition, SnippetLine $snippetLine)
+    public function attachSnippetLine(int $minWordPosition, int $maxWordPosition, SnippetLine $snippetLine): self
     {
-        $this->snippetLines[$linePosition]       = $snippetLine;
-        $this->snippetLineWeights[$linePosition] = $snippetLine->getRelevance();
+        $this->snippetLines[]            = $snippetLine;
+        $this->snippetLineWeights[]      = $snippetLine->getRelevance();
+        $this->snippetMinWordPositions[] = $minWordPosition;
+        $this->snippetMaxWordPositions[] = $maxWordPosition;
 
         return $this;
     }
 
     /**
+     * TODO why not to delete?
+     *
      * @return SnippetLine[]
      */
-    public function getSnippetLines()
+    public function getSnippetLines(): array
     {
         return $this->snippetLines;
     }
 
-    /**
-     * @return string
-     */
-    public function getTextIntroduction()
+    public function getTextIntroduction(): string
     {
         return $this->textIntroduction;
     }
 
-    /**
-     * @param float $acceptableRelevance
-     *
-     * @return string
-     */
-    public function toString($acceptableRelevance = 0.6)
+    public function toString(float $acceptableRelevance = 0.6): ?string
     {
         $stat = [];
         foreach ($this->snippetLines as $index => $snippetLine) {
@@ -127,35 +93,34 @@ class Snippet
         ksort($slice);
 
         $resultSnippetLines = [];
-        foreach ($slice as $position => $weight) {
-            $resultSnippetLines[$position] = $this->snippetLines[$position];
+        foreach ($slice as $idx => $weight) {
+            $resultSnippetLines[$idx] = $this->snippetLines[$idx];
         }
 
         if ($this->calcLinesRelevance($resultSnippetLines) < $acceptableRelevance) {
             return null;
         }
 
-        $snippetStr = $this->implodeLines($resultSnippetLines);
-
-        return $snippetStr;
+        return $this->implodeLines($resultSnippetLines);
     }
 
     /**
-     * @param SnippetLine[] $snippetLines
+     * @param array|SnippetLine[] $snippetLines
      *
      * @return string
      */
-    private function implodeLines(array $snippetLines)
+    private function implodeLines(array $snippetLines): string
     {
-        $result           = '';
-        $previousPosition = -1;
+        $result              = '';
+        $previousMaxPosition = -1;
 
         $foundStrings = [];
-        foreach ($snippetLines as $position => $snippetLine) {
+        foreach ($snippetLines as $index => $snippetLine) {
             $lineStr = $snippetLine->getHighlighted($this->highlightTemplate);
             $lineStr = trim($lineStr);
 
             // Cleaning up unbalanced quotation marks
+            /** @noinspection NotOptimalRegularExpressionsInspection */
             $lineStr = preg_replace('#«(.*?)»#Ss', '&laquo;\\1&raquo;', $lineStr);
             $lineStr = str_replace(['&quot;', '«', '»'], ['"', ''], $lineStr);
             if (substr_count($lineStr, '"') % 2) {
@@ -168,15 +133,15 @@ class Snippet
             }
             $foundStrings[$lineStr] = 1;
 
-            if ($previousPosition == -1) {
+            if ($previousMaxPosition === -1) {
                 $result = $lineStr;
             } else {
-                $result .= ($previousPosition + 1 == $position ? ' ' : $this->lineSeparator) . $lineStr;
+                $result .= ($previousMaxPosition + 1 === $this->snippetMinWordPositions[$index] ? ' ' : $this->lineSeparator) . $lineStr;
             }
-            $previousPosition = $position;
+            $previousMaxPosition = $this->snippetMaxWordPositions[$index];
         }
 
-        if ($this->lineSeparator == '... ') {
+        if ($this->lineSeparator === '... ') {
             $result = str_replace('.... ', '... ', $result);
         }
 
@@ -184,7 +149,7 @@ class Snippet
     }
 
     /**
-     * @param SnippetLine[] $snippetLines
+     * @param array|SnippetLine[] $snippetLines
      *
      * @return float|int
      */
@@ -195,7 +160,7 @@ class Snippet
         }
 
         $foundWords = [];
-        foreach ($snippetLines as $position => $snippetLine) {
+        foreach ($snippetLines as $snippetLine) {
             foreach ($snippetLine->getFoundWords() as $word) {
                 $foundWords[$word] = 1;
             }

@@ -19,18 +19,6 @@ jobs:
           - '8.1'
         include:
           -
-            operating_system: 'ubuntu-18.04'
-            php_versions: 5.6
-          -
-            operating_system: 'ubuntu-18.04'
-            php_versions: 7.1
-          -
-            operating_system: 'ubuntu-18.04'
-            php_versions: 7.2
-          -
-            operating_system: 'ubuntu-18.04'
-            php_versions: 7.3
-          -
             operating_system: 'ubuntu-22.04'
             php_versions: 8.1
           -
@@ -60,4 +48,7 @@ jobs:
           mysql -e 'SELECT version();' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
 
       - name: Run test cases
-        run: php bin/codecept run
+        run: php bin/codecept run --skip-group profile
+
+      - name: Run profiling
+        run: php bin/codecept run -g profile -d

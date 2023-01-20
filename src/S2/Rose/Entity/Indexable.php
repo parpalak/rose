@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,194 +8,131 @@ namespace S2\Rose\Entity;
 
 class Indexable
 {
-    /**
-     * @var ExternalId
-     */
-    protected $externalId;
+    protected ExternalId $externalId;
+    protected string $title = '';
+    protected string $content = '';
+    protected string $keywords = '';
+    protected string $description = '';
+    protected ?\DateTime $date = null;
+    protected string $url = '';
+    protected float $relevanceRatio = 1.0;
 
-    /**
-     * @var string
-     */
-    protected $title = '';
-
-    /**
-     * @var string
-     */
-    protected $content = '';
-
-    /**
-     * @var string
-     */
-    protected $keywords = '';
-
-    /**
-     * @var string
-     */
-    protected $description = '';
-
-    /**
-     * @var \DateTime
-     */
-    protected $date;
-
-    /**
-     * @var string
-     */
-    protected $url = '';
-
-    /**
-     * @param string   $id
-     * @param string   $title
-     * @param string   $content
-     * @param int|null $instanceId
-     */
-    public function __construct($id, $title, $content, $instanceId = null)
+    public function __construct(string $id, string $title, string $content, ?int $instanceId = null)
     {
         $this->externalId = new ExternalId($id, $instanceId);
         $this->title      = $title;
         $this->content    = $content;
     }
 
-    /**
-     * @return ExternalId
-     */
-    public function getExternalId()
+    public function getExternalId(): ExternalId
     {
         return $this->externalId;
     }
 
-    /**
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * @param string $title
-     *
-     * @return Indexable
-     */
-    public function setTitle($title)
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getContent()
+    public function getContent(): string
     {
         return $this->content;
     }
 
-    /**
-     * @param string $content
-     *
-     * @return Indexable
-     */
-    public function setContent($content)
+    public function setContent(string $content): self
     {
         $this->content = $content;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getKeywords()
+    public function getKeywords(): string
     {
         return $this->keywords;
     }
 
-    /**
-     * @param string $keywords
-     *
-     * @return Indexable
-     */
-    public function setKeywords($keywords)
+    public function setKeywords(string $keywords): self
     {
         $this->keywords = $keywords;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    /**
-     * @param string $description
-     *
-     * @return Indexable
-     */
-    public function setDescription($description)
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
         return $this;
     }
 
-    /**
-     * @return \DateTime
-     */
-    public function getDate()
+    public function getDate(): ?\DateTime
     {
         return $this->date;
     }
 
-    /**
-     * @param \DateTime $date
-     *
-     * @return Indexable
-     */
-    public function setDate(\DateTime $date = null)
+    public function setDate(\DateTime $date = null): self
     {
         $this->date = $date;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getUrl()
+    public function getUrl(): string
     {
         return $this->url;
     }
 
-    /**
-     * @param string $url
-     *
-     * @return Indexable
-     */
-    public function setUrl($url)
+    public function setUrl(string $url): self
     {
         $this->url = $url;
 
         return $this;
     }
 
-    /**
-     * @return TocEntry
-     */
-    public function toTocEntry()
+    public function getRelevanceRatio(): float
     {
-        return new TocEntry($this->getTitle(), $this->getDescription(), $this->getDate(), $this->getUrl(), $this->calcHash());
+        return $this->relevanceRatio;
     }
 
-    /**
-     * @return string
-     */
-    public function calcHash()
+    public function setRelevanceRatio(float $relevanceRatio): self
+    {
+        if ($relevanceRatio < 0.001) {
+            throw new \DomainException('Relevance ratio must not be less than 0.001.');
+        }
+        if ($relevanceRatio > 9999) {
+            throw new \DomainException('Relevance ratio must not be greater than 9999.');
+        }
+
+        $this->relevanceRatio = $relevanceRatio;
+
+        return $this;
+    }
+
+    public function toTocEntry(): TocEntry
+    {
+        return new TocEntry(
+            $this->getTitle(),
+            $this->getDescription(),
+            $this->getDate(),
+            $this->getUrl(),
+            $this->getRelevanceRatio(),
+            $this->calcHash()
+        );
+    }
+
+    public function calcHash(): string
     {
         return md5(serialize([
             $this->getTitle(),

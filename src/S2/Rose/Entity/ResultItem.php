@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
@@ -13,73 +13,30 @@ use S2\Rose\Stemmer\StemmerInterface;
 
 class ResultItem
 {
-    /**
-     * @var string
-     */
-    protected $id;
+    protected string $id;
+    protected ?int $instanceId;
+    protected string $title = '';
+    protected string $description = '';
+    protected ?\DateTime $date;
+    protected string $url = '';
+    protected float $relevanceRatio;
+    protected float $relevance = 0.0;
+    protected ?Snippet $snippet = null;
+    protected string $highlightTemplate;
+    protected array $foundWords = [];
 
     /**
-     * @var int|null
-     */
-    protected $instanceId;
-
-    /**
-     * @var string
-     */
-    protected $title = '';
-
-    /**
-     * @var string
-     */
-    protected $description = '';
-
-    /**
-     * @var \DateTime|null
-     */
-    protected $date;
-
-    /**
-     * @var string
-     */
-    protected $url = '';
-
-    /**
-     * @var float
-     */
-    protected $relevance = 0.0;
-
-    /**
-     * @var Snippet
-     */
-    protected $snippet;
-
-    /**
-     * @var string
-     */
-    protected $highlightTemplate;
-
-    /**
-     * @var string[]
-     */
-    protected $foundWords = [];
-
-    /**
-     * @param string    $id Id in external system
-     * @param int|null  $instanceId
-     * @param string    $title
-     * @param string    $description
-     * @param \DateTime $date
-     * @param string    $url
-     * @param string    $highlightTemplate
+     * @param string $id Id in external system
      */
     public function __construct(
-        $id,
-        $instanceId,
-        $title,
-        $description,
-        \DateTime $date = null,
-        $url,
-        $highlightTemplate
+        string     $id,
+        ?int       $instanceId,
+        string     $title,
+        string     $description,
+        ?\DateTime $date,
+        string     $url,
+        float      $relevanceRatio,
+        string     $highlightTemplate
     ) {
         $this->id                = $id;
         $this->instanceId        = $instanceId;
@@ -87,95 +44,67 @@ class ResultItem
         $this->description       = $description;
         $this->date              = $date;
         $this->url               = $url;
+        $this->relevanceRatio    = $relevanceRatio;
         $this->highlightTemplate = $highlightTemplate;
     }
 
-    /**
-     * @param Snippet $snippet
-     *
-     * @return $this
-     */
-    public function setSnippet($snippet)
+    public function setSnippet(Snippet $snippet): self
     {
         $this->snippet = $snippet;
 
         return $this;
     }
 
-    /**
-     * @param float $relevance
-     *
-     * @return $this
-     */
-    public function setRelevance($relevance)
+    public function setRelevance(float $relevance): self
     {
         $this->relevance = $relevance;
 
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getId()
+    public function getId(): string
     {
         return $this->id;
     }
 
-    /**
-     * @return int|null
-     */
-    public function getInstanceId()
+    public function getInstanceId(): ?int
     {
         return $this->instanceId;
     }
 
-    /**
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    /**
-     * @return \DateTime
-     */
-    public function getDate()
+    public function getDate(): ?\DateTime
     {
         return $this->date;
     }
 
-    /**
-     * @return string
-     */
-    public function getUrl()
+    public function getUrl(): string
     {
         return $this->url;
     }
 
-    /**
-     * @return float
-     */
-    public function getRelevance()
+    public function getRelevanceRatio(): float
+    {
+        return $this->relevanceRatio;
+    }
+
+    public function getRelevance(): float
     {
         return $this->relevance;
     }
 
-    /**
-     * @return string
-     */
-    public function getSnippet()
+    public function getSnippet(): string
     {
-        if (!$this->snippet) {
+        if ($this->snippet === null) {
             return $this->description;
         }
 
@@ -192,7 +121,7 @@ class ResultItem
      *
      * @return $this
      */
-    public function setFoundWords(array $words)
+    public function setFoundWords(array $words): self
     {
         $this->foundWords = $words;
 
@@ -207,9 +136,9 @@ class ResultItem
      * @return string
      *
      * @throws RuntimeException
-     * @see \S2\Rose\SnippetBuilder::buildSnippet for dublicated logic
+     * @see \S2\Rose\Snippet\SnippetBuilder::buildSnippet for dublicated logic
      */
-    public function getHighlightedTitle(StemmerInterface $stemmer)
+    public function getHighlightedTitle(StemmerInterface $stemmer): string
     {
         $template = $this->highlightTemplate;
 
@@ -217,11 +146,11 @@ class ResultItem
             throw new InvalidArgumentException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
-        $joinedStems = $this->foundWords;
+        $stems = $this->foundWords;
         if ($stemmer instanceof IrregularWordsStemmerInterface) {
-            $joinedStems = array_merge($joinedStems, $stemmer->irregularWordsFromStems($this->foundWords));
+            $stems = array_merge($stems, $stemmer->irregularWordsFromStems($this->foundWords));
         }
-        $joinedStems = implode('|', $joinedStems);
+        $joinedStems = implode('|', $stems);
         $joinedStems = str_replace('е', '[её]', $joinedStems);
 
         // Check the text for the query words
@@ -240,7 +169,7 @@ class ResultItem
             $stemmedWord    = $stemmer->stemWord($word);
 
             // Ignore entry if the word stem differs from needed ones
-            if (!$stemEqualsWord && !in_array($stemmedWord, $this->foundWords, true)) {
+            if (!$stemEqualsWord && !\in_array($stemmedWord, $this->foundWords, true)) {
                 continue;
             }
 
@@ -250,7 +179,7 @@ class ResultItem
         $snippetLine = new SnippetLine(
             $this->title,
             array_keys($foundWords),
-            count($foundWords)
+            \count($foundWords)
         );
 
         return $snippetLine->getHighlighted($template);

@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
@@ -11,20 +11,10 @@ use S2\Rose\Finder;
 
 class KeywordIndexContent
 {
-    protected $data = [];
+    protected array $data = [];
 
-    /**
-     * @param ExternalId $externalId
-     * @param int        $type
-     * @param int|null   $tocSize
-     * @param int|null   $foundTocEntriesNum
-     *
-     * @return self
-     */
-    public function add(ExternalId $externalId, $type, $tocSize = null, $foundTocEntriesNum = null)
+    public function add(ExternalId $externalId, int $type, ?int $tocSize = null, ?int $foundTocEntriesNum = null): KeywordIndexContent
     {
-        $type = (int)$type;
-
         // Make unique (see comment in usages).
         // Title is more important than usual keywords.
 
@@ -41,10 +31,10 @@ class KeywordIndexContent
         return $this;
     }
 
-    public function iterate(\Closure $callback)
+    public function iterate(\Closure $callback): void
     {
         foreach ($this->data as $params) {
-            call_user_func_array($callback, $params);
+            $callback(...$params);
         }
     }
 }

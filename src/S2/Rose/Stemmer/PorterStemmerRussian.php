@@ -324,10 +324,12 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
     /**
      * {@inheritdoc}
      */
-    public function stemWord($word)
+    public function stemWord(string $word, bool $normalize = true): string
     {
-        $word = \mb_strtolower($word);
-        $word = \str_replace('ё', 'е', $word);
+        if ($normalize) {
+            $word = \mb_strtolower($word);
+            $word = \str_replace('ё', 'е', $word);
+        }
 
         if (isset($this->cache[$word])) {
             return $this->cache[$word];
@@ -407,7 +409,7 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
     /**
      * {@inheritdoc}
      */
-    protected function getIrregularWords()
+    protected function getIrregularWords(): array
     {
         return self::$irregularWords;
     }

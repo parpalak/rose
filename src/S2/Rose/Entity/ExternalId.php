@@ -1,8 +1,6 @@
-<?php
-/** @noinspection CallableParameterUseCaseInTypeContextInspection */
-
+<?php declare(strict_types=1);
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -12,30 +10,16 @@ use S2\Rose\Exception\InvalidArgumentException;
 
 class ExternalId
 {
-    /**
-     * @var string
-     */
-    protected $id;
+    protected string $id;
+    protected ?int $instanceId;
 
     /**
-     * @var int|null
+     * @param string|int|float $id
      */
-    protected $instanceId;
-
-    /**
-     * @param string   $id
-     * @param int|null $instanceId
-     */
-    public function __construct($id, $instanceId = null)
+    public function __construct($id, ?int $instanceId = null)
     {
-        if ($instanceId !== null) {
-            if (!is_numeric($instanceId)) {
-                throw new InvalidArgumentException('Instance id must be int.');
-            }
-
-            if (!($instanceId > 0)) {
-                throw new InvalidArgumentException('Instance id must be positive.');
-            }
+        if (($instanceId !== null) && !($instanceId > 0)) {
+            throw new InvalidArgumentException('Instance id must be positive.');
         }
 
         if (!is_string($id) && !is_int($id) && !is_float($id)) {
@@ -46,50 +30,29 @@ class ExternalId
         $this->instanceId = $instanceId;
     }
 
-    /**
-     * @return string
-     */
-    public function getId()
+    public function getId(): string
     {
         return $this->id;
     }
 
-    /**
-     * @return int|null
-     */
-    public function getInstanceId()
+    public function getInstanceId(): ?int
     {
         return $this->instanceId;
     }
 
-    /**
-     * @return string
-     */
-    public function toString()
+    public function toString(): string
     {
         return $this->instanceId . ':' . $this->id;
     }
 
-    public static function fromString($string)
+    public static function fromString(string $string): self
     {
-        if (!is_string($string)) {
-            throw new InvalidArgumentException(sprintf(
-                '%s expects a string argument. "%s" given.',
-                __METHOD__,
-                is_object($string) ? get_class($string) : gettype($string)
-            ));
-        }
         $data = explode(':', $string, 2);
 
         return new static($data[1], $data[0] !== '' ? (int)$data[0] : null);
     }
 
-    /**
-     * @param ExternalId $id
-     *
-     * @return bool
-     */
-    public function equals(ExternalId $id)
+    public function equals(self $id): bool
     {
         return $id->toString() === $this->toString();
     }

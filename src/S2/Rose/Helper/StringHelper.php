@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,17 +8,30 @@ namespace S2\Rose\Helper;
 
 class StringHelper
 {
-    /**
-     * @param array $words
-     *
-     * @return string[]
-     */
-    public static function removeLongWords(array $words)
+    public static function removeLongWords(array &$words): void
     {
-        return array_values(array_filter($words, static function ($word) {
+        $removed = false;
+        foreach ($words as $k => $word) {
             $len = mb_strlen($word);
 
-            return $len > 0 && $len <= 100;
-        }));
+            if ($len > 100 || $len === 0) {
+                unset($words[$k]);
+                $removed = true;
+            }
+        }
+        if ($removed) {
+            $words = array_values($words);
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function sentencesFromText(string $text): array
+    {
+        // TODO improve algorithm
+        $substrings = preg_split('#[.?!]\K([ \n\t]+)#S', $text);
+
+        return $substrings;
     }
 }

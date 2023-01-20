@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpUnhandledExceptionInspection */
+<?php /** @noinspection SqlDialectInspection */
+/** @noinspection PhpUnhandledExceptionInspection */
 /** @noinspection PhpComposerExtensionStubsInspection */
 
 /**
@@ -53,10 +54,10 @@ class PdoStorageTest extends Unit
         $externalId1 = new ExternalId('id_1', 1);
         $externalId2 = new ExternalId('id_2', 2);
 
-        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
         $storage->addEntryToToc($tocEntry1, $externalId1);
 
-        $tocEntry2 = new TocEntry('', '', new \DateTime('2014-05-28'), '', 'pokjhgtyuio');
+        $tocEntry2 = new TocEntry('', '', new \DateTime('2014-05-28'), '', 1, 'pokjhgtyuio');
         $storage->addEntryToToc($tocEntry2, $externalId2);
 
         $storage->addToFulltext([1 => 'word1', 2 => 'word2'], $externalId1);
@@ -92,7 +93,7 @@ class PdoStorageTest extends Unit
         $this->assertEquals($tocEntry2->getHash(), $entry->getHash());
 
         // Test updating
-        $tocEntry3 = new TocEntry('', '', null, '', 'jhg678o');
+        $tocEntry3 = new TocEntry('', '', null, '', 1, 'jhg678o');
         $storage->addEntryToToc($tocEntry3, $externalId2);
 
         $entry = $storage->getTocByExternalId($externalId2);
@@ -146,14 +147,14 @@ class PdoStorageTest extends Unit
         $externalId = new ExternalId('id_1');
 
         // Indexing
-        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
         $storage->addEntryToToc($tocEntry1, $externalId);
 
         // Race condition
-        $tocEntry1mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '9654321');
+        $tocEntry1mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1,'9654321');
         $storage2->addEntryToToc($tocEntry1mod, $externalId);
 
-        $tocEntry2mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '111111');
+        $tocEntry2mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '111111');
         $storage->addEntryToToc($tocEntry2mod, $externalId);
 
         $this->assertEquals('111111', $storage2->getTocByExternalId($externalId)->getHash());
@@ -164,13 +165,13 @@ class PdoStorageTest extends Unit
         $storage = new PdoStorage($this->pdo, 'test_');
         $storage->erase();
 
-        $tocEntry = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+        $tocEntry = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
         $storage->addEntryToToc($tocEntry, new ExternalId('id_1'));
 
-        $tocEntry2 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+        $tocEntry2 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
         $storage->addEntryToToc($tocEntry2, new ExternalId('id_2'));
 
-        $tocEntry3 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+        $tocEntry3 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
         $storage->addEntryToToc($tocEntry3, new ExternalId('id_3'));
 
         $storage->addToSingleKeywordIndex('type1', new ExternalId('id_1'), 1);
@@ -207,7 +208,7 @@ class PdoStorageTest extends Unit
         $storage->erase();
 
         $storage->addEntryToToc(
-            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', 1, '123456789'),
             new ExternalId('id_1')
         );
         $storage->addToFulltext(['Flugel', 'Shlomo', 'Tormented'], new ExternalId('id_1'));
@@ -222,12 +223,12 @@ class PdoStorageTest extends Unit
         $storage->erase();
 
         $storage->addEntryToToc(
-            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', 1, '123456789'),
             new ExternalId('id_1')
         );
 
         $storage->addEntryToToc(
-            new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', '987654321'),
+            new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', 1, '987654321'),
             new ExternalId('id_2')
         );
 
@@ -273,7 +274,7 @@ class PdoStorageTest extends Unit
 
         $storage->startTransaction();
         $storage->addEntryToToc(
-            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', 1, '123456789'),
             new ExternalId('id_1')
         );
         $storage->addToFulltext(['word1', 'word2', 'word3'], new ExternalId('id_1'));
@@ -281,7 +282,7 @@ class PdoStorageTest extends Unit
         $storage2 = new PdoStorage($pdo2, 'test_tr_');
         $storage2->startTransaction();
         $storage2->addEntryToToc(
-            new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', 'qwerty'),
+            new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', 1, 'qwerty'),
             new ExternalId('id_2')
         );
         $storage2->addToFulltext(['word1', 'word5'], new ExternalId('id_2'));
@@ -299,7 +300,7 @@ class PdoStorageTest extends Unit
         $storage->erase();
 
         $storage->addEntryToToc(
-            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', '123456789'),
+            new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', 1, '123456789'),
             new ExternalId('id_1')
         );
 
@@ -313,7 +314,7 @@ class PdoStorageTest extends Unit
         $this->expectException(EmptyIndexException::class);
 
         $storage   = new PdoStorage($this->pdo, 'non_existent_');
-        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', '123456789');
+        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
         $storage->addEntryToToc($tocEntry1, new ExternalId('id_1'));
     }
 

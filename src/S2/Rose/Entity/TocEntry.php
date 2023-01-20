@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -37,21 +37,16 @@ class TocEntry
      * @var string
      */
     protected $hash;
+    private float $relevanceRatio;
 
-    /**
-     * @param string    $title
-     * @param string    $description
-     * @param \DateTime $date
-     * @param string    $url
-     * @param string    $hash
-     */
-    public function __construct($title, $description, \DateTime $date = null, $url, $hash)
+    public function __construct(string $title, string $description, ?\DateTime $date = null, string $url, float $relevanceRatio, string $hash)
     {
-        $this->title       = $title;
-        $this->description = $description;
-        $this->date        = $date;
-        $this->url         = $url;
-        $this->hash        = $hash;
+        $this->title          = $title;
+        $this->description    = $description;
+        $this->date           = $date;
+        $this->url            = $url;
+        $this->relevanceRatio = $relevanceRatio;
+        $this->hash           = $hash;
     }
 
     /**
@@ -84,6 +79,11 @@ class TocEntry
     public function getUrl()
     {
         return $this->url;
+    }
+
+    public function getRelevanceRatio(): float
+    {
+        return $this->relevanceRatio;
     }
 
     /**

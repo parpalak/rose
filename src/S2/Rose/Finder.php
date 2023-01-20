@@ -9,64 +9,110 @@
 namespace S2\Rose;
 
 use S2\Rose\Entity\ExternalId;
+use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\FulltextQuery;
 use S2\Rose\Entity\FulltextResult;
 use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Exception\ImmutableException;
+use S2\Rose\Exception\LogicException;
+use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Exception\UnknownKeywordTypeException;
+use S2\Rose\Snippet\SnippetBuilder;
 use S2\Rose\Stemmer\StemmerInterface;
+use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\StorageReadInterface;
 
 class Finder
 {
-    const TYPE_TITLE = 1;
-    const TYPE_KEYWORD = 2;
+    public const TYPE_TITLE   = 1;
+    public const TYPE_KEYWORD = 2;
 
-    /**
-     * @var StorageReadInterface
-     */
-    protected $storage;
+    protected StorageReadInterface $storage;
+    protected StemmerInterface $stemmer;
+    protected ?string $highlightTemplate = null;
+    protected ?string $snippetLineSeparator = null;
 
-    /**
-     * @var StemmerInterface
-     */
-    protected $stemmer;
-
-    /**
-     * @var string
-     */
-    protected $highlightTemplate;
-
-    /**
-     * @param StorageReadInterface $storage
-     * @param StemmerInterface     $stemmer
-     */
     public function __construct(StorageReadInterface $storage, StemmerInterface $stemmer)
     {
         $this->storage = $storage;
         $this->stemmer = $stemmer;
     }
 
-    /**
-     * @param string $highlightTemplate
-     *
-     * @return $this
-     */
-    public function setHighlightTemplate($highlightTemplate)
+    public function setHighlightTemplate(string $highlightTemplate): self
     {
         $this->highlightTemplate = $highlightTemplate;
 
         return $this;
     }
 
+    public function setSnippetLineSeparator(string $snippetLineSeparator): self
+    {
+        $this->snippetLineSeparator = $snippetLineSeparator;
+
+        return $this;
+    }
+
     /**
-     * @param int $type
-     *
+     * @throws ImmutableException
+     */
+    public function find(Query $query, bool $isDebug = false): ResultSet
+    {
+        $resultSet = new ResultSet($query->getLimit(), $query->getOffset(), $isDebug);
+        if ($this->highlightTemplate !== null) {
+            $resultSet->setHighlightTemplate($this->highlightTemplate);
+        }
+
+        $rawWords     = $query->valueToArray();
+        $cleanedQuery = implode(' ', $rawWords);
+        $resultSet->addProfilePoint('Input cleanup');
+
+        if (\count($rawWords) > 1) {
+            $this->findSpacedKeywords($cleanedQuery, $query->getInstanceId(), $resultSet);
+            $resultSet->addProfilePoint('Keywords with space');
+        }
+
+        if (\count($rawWords) > 0) {
+            $this->findSimpleKeywords($rawWords, $query->getInstanceId(), $resultSet);
+            $resultSet->addProfilePoint('Simple keywords');
+
+            $this->findFulltext($rawWords, $query->getInstanceId(), $resultSet);
+            $resultSet->addProfilePoint('Fulltext search');
+        }
+
+        $resultSet->freeze();
+
+        $foundExternalIds = $resultSet->getFoundExternalIds();
+        foreach ($this->storage->getTocByExternalIds($foundExternalIds) as $tocEntryWithExternalId) {
+            $resultSet->attachToc($tocEntryWithExternalId);
+        }
+
+        $resultSet->addProfilePoint('Fetch TOC');
+
+        $resultSet->removeDataWithoutToc();
+
+        $relevanceByExternalIds = $resultSet->getSortedRelevanceByExternalId();
+
+        if (\count($relevanceByExternalIds) > 0) {
+            $this->buildSnippets($relevanceByExternalIds, $resultSet);
+        }
+
+        return $resultSet;
+    }
+
+    /**
+     * Ignore frequent words encountering in indexed items.
+     */
+    public static function fulltextRateExcludeNum(int $tocSize): int
+    {
+        return max($tocSize * 0.5, 20);
+    }
+
+    /**
      * @return int[]|array
      * @throws UnknownKeywordTypeException
      */
-    protected static function getKeywordWeight($type)
+    protected static function getKeywordWeight(int $type): array
     {
         if ($type === self::TYPE_KEYWORD) {
             return ['keyword' => 15];
@@ -80,25 +126,9 @@ class Finder
     }
 
     /**
-     * Ignore frequent words encountering in indexed items.
-     *
-     * @param $tocSize
-     *
-     * @return mixed
-     */
-    public static function fulltextRateExcludeNum($tocSize)
-    {
-        return max($tocSize * 0.5, 20);
-    }
-
-    /**
-     * @param array     $words
-     * @param int|null  $instanceId
-     * @param ResultSet $resultSet
-     *
      * @throws ImmutableException
      */
-    protected function findFulltext(array $words, $instanceId, ResultSet $resultSet)
+    protected function findFulltext(array $words, ?int $instanceId, ResultSet $resultSet): void
     {
         $fulltextQuery        = new FulltextQuery($words, $this->stemmer);
         $fulltextIndexContent = $this->storage->fulltextResultByWords($fulltextQuery->getWordsWithStems(), $instanceId);
@@ -112,11 +142,9 @@ class Finder
     }
 
     /**
-     * @param string[]  $words
-     * @param int|null  $instanceId
-     * @param ResultSet $result
+     * @param string[] $words
      */
-    protected function findSimpleKeywords($words, $instanceId, ResultSet $result)
+    protected function findSimpleKeywords(array $words, ?int $instanceId, ResultSet $result): void
     {
         $wordsWithStems = $words;
         foreach ($words as $word) {
@@ -135,12 +163,7 @@ class Finder
         }
     }
 
-    /**
-     * @param string    $string
-     * @param int|null  $instanceId
-     * @param ResultSet $result
-     */
-    protected function findSpacedKeywords($string, $instanceId, ResultSet $result)
+    protected function findSpacedKeywords(string $string, ?int $instanceId, ResultSet $result): void
     {
         $content = $this->storage->getMultipleKeywordIndexByString($string, $instanceId);
         $content->iterate(static function (ExternalId $externalId, $type) use ($string, $result) {
@@ -148,46 +171,36 @@ class Finder
         });
     }
 
-    /**
-     * @param Query $query
-     * @param bool  $isDebug
-     *
-     * @return ResultSet
-     * @throws ImmutableException
-     */
-    public function find(Query $query, $isDebug = false)
+    public function buildSnippets(array $relevanceByExternalIds, ResultSet $resultSet): void
     {
-        $resultSet = new ResultSet($query->getLimit(), $query->getOffset(), $isDebug);
-        if ($this->highlightTemplate !== null) {
-            $resultSet->setHighlightTemplate($this->highlightTemplate);
+        $snippetQuery = new SnippetQuery(ExternalIdCollection::fromStringArray(array_keys($relevanceByExternalIds)));
+        try {
+            $foundWordPositionsByExternalId = $resultSet->getFoundWordPositionsByExternalId();
+        } catch (ImmutableException $e) {
+            throw new LogicException($e->getMessage(), 0, $e);
+        }
+        foreach ($foundWordPositionsByExternalId as $serializedExtId => $wordsInfo) {
+            if (!isset($relevanceByExternalIds[$serializedExtId])) {
+                // Out of limit and offset scope, no need to fetch snippets.
+                continue;
+            }
+            $externalId   = ExternalId::fromString($serializedExtId);
+            $allPositions = array_merge(...array_values($wordsInfo));
+            $snippetQuery->attach($externalId, $allPositions);
+        }
+        $resultSet->addProfilePoint('Snippets: make query');
+
+        $snippetResult = $this->storage->getSnippets($snippetQuery);
+
+        $resultSet->addProfilePoint('Snippets: obtaining');
+
+        $sb = new SnippetBuilder($this->stemmer, $this->snippetLineSeparator);
+        try {
+            $sb->attachSnippets($resultSet, $snippetResult);
+        } catch (ImmutableException|UnknownIdException $e) {
+            throw new LogicException($e->getMessage(), 0, $e);
         }
 
-        $rawWords     = $query->valueToArray();
-        $cleanedQuery = implode(' ', $rawWords);
-        $resultSet->addProfilePoint('Input cleanup');
-
-        if (count($rawWords) > 1) {
-            $this->findSpacedKeywords($cleanedQuery, $query->getInstanceId(), $resultSet);
-            $resultSet->addProfilePoint('Keywords with space');
-        }
-
-        if (count($rawWords) > 0) {
-            $this->findSimpleKeywords($rawWords, $query->getInstanceId(), $resultSet);
-            $resultSet->addProfilePoint('Simple keywords');
-
-            $this->findFulltext($rawWords, $query->getInstanceId(), $resultSet);
-            $resultSet->addProfilePoint('Fulltext search');
-        }
-
-        $resultSet->freeze();
-
-        $foundExternalIds = $resultSet->getFoundExternalIds();
-        foreach ($this->storage->getTocByExternalIds($foundExternalIds) as $tocEntryWithExternalId) {
-            $resultSet->attachToc($tocEntryWithExternalId);
-        }
-
-        $resultSet->removeDataWithoutToc();
-
-        return $resultSet;
+        $resultSet->addProfilePoint('Snippets: building');
     }
 }

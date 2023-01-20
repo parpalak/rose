@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,13 +8,7 @@ namespace S2\Rose\Helper;
 
 class ProfileHelper
 {
-    /**
-     * @param string $message
-     * @param float  $duration
-     *
-     * @return array
-     */
-    public static function getProfilePoint($message, $duration)
+    public static function getProfilePoint(string $message, float $duration): array
     {
         return [
             'message'           => $message,
@@ -24,12 +18,7 @@ class ProfileHelper
         ];
     }
 
-    /**
-     * @param array $point
-     *
-     * @return string
-     */
-    public static function formatProfilePoint(array $point)
+    public static function formatProfilePoint(array $point): string
     {
         $point['message']           = str_pad($point['message'], 25, ' ', STR_PAD_RIGHT);
         $point['duration']          = str_pad(number_format($point['duration'] * 1000.0, 2, '.', ' ') . ' ms', 20, ' ', STR_PAD_LEFT);

@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -11,5 +11,5 @@ interface StorageEraseInterface
     /**
      * Drops and creates index storage.
      */
-    public function erase();
+    public function erase(): void;
 }

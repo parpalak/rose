@@ -1,12 +1,13 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Storage;
 
 use S2\Rose\Entity\ExternalId;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
 
 interface StorageWriteInterface
@@ -64,10 +65,9 @@ interface StorageWriteInterface
     public function removeFromToc(ExternalId $externalId);
 
     /**
-     * @param int        $wordCount
-     * @param ExternalId $externalId
-     *
-     * @return void
+     * Save some additional info about indexing items
      */
-    public function addMetadata($wordCount, ExternalId $externalId);
+    public function addMetadata(int $wordCount, ExternalId $externalId): void;
+
+    public function addSnippets(ExternalId $externalId, SnippetSource ...$snippets): void;
 }

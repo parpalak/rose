@@ -8,10 +8,15 @@
 
 namespace S2\Rose;
 
+use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
+use S2\Rose\Entity\ContentWithMetadata;
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownException;
+use S2\Rose\Extractor\DefaultExtractorFactory;
+use S2\Rose\Extractor\ExtractorInterface;
 use S2\Rose\Helper\StringHelper;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Exception\EmptyIndexException;
@@ -21,52 +26,37 @@ use S2\Rose\Storage\TransactionalStorageInterface;
 
 class Indexer
 {
-    /**
-     * @var StorageWriteInterface
-     */
-    protected $storage;
+    use LoggerAwareTrait;
 
-    /**
-     * @var StemmerInterface
-     */
-    protected $stemmer;
+    protected StorageWriteInterface $storage;
+    protected StemmerInterface $stemmer;
+    protected ExtractorInterface $extractor;
+    private bool $autoErase = false;
 
-    /**
-     * @var bool
-     */
-    private $autoErase = false;
-
-    /**
-     * @param StorageWriteInterface $storage
-     * @param StemmerInterface      $stemmer
-     */
-    public function __construct(StorageWriteInterface $storage, StemmerInterface $stemmer)
-    {
-        $this->storage = $storage;
-        $this->stemmer = $stemmer;
+    public function __construct(
+        StorageWriteInterface $storage,
+        StemmerInterface      $stemmer,
+        ?ExtractorInterface   $extractor = null,
+        ?LoggerInterface      $logger = null
+    ) {
+        $this->storage   = $storage;
+        $this->stemmer   = $stemmer;
+        $this->extractor = $extractor ?? DefaultExtractorFactory::create();
+        $this->logger    = $logger;
     }
 
     /**
      * Cleaning up an HTML string.
-     *
-     * @param string $content
-     * @param string $allowedSymbols
-     *
-     * @return string
      */
-    public static function strFromHtml($content, $allowedSymbols = '')
+    public static function titleStrFromHtml(string $content, string $allowedSymbols = ''): string
     {
-        // Prevents word concatenation like this: "something.</p><p>Something else"
-        $content = str_replace('<', ' <', $content);
-        $content = preg_replace('#<(script|style)[^>]*?>.*?</\\1>#si', '', $content);
-        $content = strip_tags($content);
-
         $content = mb_strtolower($content);
         $content = str_replace(['&nbsp;', "\xc2\xa0"], ' ', $content);
+        /** @var string $content */
         $content = preg_replace('#&[^;]{1,20};#', '', $content);
 
         // We allow letters, digits and some punctuation: ".,-"
-        $content = preg_replace('#[^\\-.,0-9\\p{L}\\^_' . $allowedSymbols . ']+#u', ' ', $content);
+        $content = preg_replace('#[^\\-.,0-9\\p{L}^_' . $allowedSymbols . ']+#u', ' ', $content);
 
         // These punctuation characters are meant to be inside words and numbers.
         // We'll remove trailing characters when splitting the words.
@@ -76,24 +66,17 @@ class Indexer
     }
 
     /**
-     * @param string $contents
-     *
      * @return string[]
      */
-    protected static function arrayFromStr($contents)
+    protected static function arrayFromStr(string $contents): array
     {
         $words = preg_split('#[\\-.,]*?[ ]+#S', $contents);
-        $words = StringHelper::removeLongWords($words);
+        StringHelper::removeLongWords($words);
 
         return $words;
     }
 
-    /**
-     * @param string     $word
-     * @param ExternalId $externalId
-     * @param int        $type
-     */
-    protected function addKeywordToIndex($word, ExternalId $externalId, $type)
+    protected function addKeywordToIndex(string $word, ExternalId $externalId, int $type): void
     {
         if ($word === '') {
             return;
@@ -108,13 +91,7 @@ class Indexer
         }
     }
 
-    /**
-     * @param ExternalId $externalId
-     * @param string     $title
-     * @param string     $content
-     * @param string     $keywords
-     */
-    protected function addToIndex(ExternalId $externalId, $title, $content, $keywords)
+    protected function addToIndex(ExternalId $externalId, string $title, ContentWithMetadata $content, string $keywords): void
     {
         // Processing title
         foreach (self::arrayFromStr($title) as $titleWord) {
@@ -127,10 +104,10 @@ class Indexer
         }
 
         // Fulltext index
-        // Remove russian ё from the fulltext index
-        $words = self::arrayFromStr(str_replace('ё', 'е',
-            $content . ' ' . str_replace(', ', ' ', $keywords)
-        ));
+
+        $sentenceCollection = $content->getSentenceMap()->toSentenceCollection();
+        $words              = $sentenceCollection->getWordsArray();
+        $words              = array_merge($words, self::arrayFromStr(str_replace(', ', ' ', $keywords)));
 
         $subWords = [];
 
@@ -140,13 +117,13 @@ class Indexer
                 continue;
             }
 
-            $stemmedWord = $this->stemmer->stemWord($word);
+            $stemmedWord = $this->stemmer->stemWord($word, false);
 
             // If the word contains punctuation marks like hyphen, add a variant without it
             if (false !== strpbrk($stemmedWord, '-.,')) {
                 foreach (preg_split('#[\-.,]#', $word) as $k => $subWord) {
                     if ($subWord) {
-                        $subWords[(string)($i + 0.001 * $k)] = $this->stemmer->stemWord($subWord);
+                        $subWords[(string)($i + 0.001 * ($k + 1))] = $this->stemmer->stemWord($subWord, false);
                     }
                 }
             }
@@ -155,15 +132,12 @@ class Indexer
         }
         unset($word);
 
-        $this->storage->addMetadata(count($words), $externalId);
+        $this->storage->addMetadata(\count($words), $externalId);
+        $this->storage->addSnippets($externalId, ...$sentenceCollection->getSnippetSources());
         $this->storage->addToFulltext(array_merge($words, $subWords), $externalId);
     }
 
-    /**
-     * @param string   $id
-     * @param int|null $instanceId
-     */
-    public function removeById($id, $instanceId)
+    public function removeById(string $id, ?int $instanceId): void
     {
         $externalId = new ExternalId($id, $instanceId);
         $this->storage->removeFromIndex($externalId);
@@ -171,12 +145,10 @@ class Indexer
     }
 
     /**
-     * @param Indexable $indexable
-     *
      * @throws RuntimeException
      * @throws UnknownException
      */
-    public function index(Indexable $indexable)
+    public function index(Indexable $indexable): void
     {
         try {
             $this->doIndex($indexable);
@@ -190,21 +162,16 @@ class Indexer
         }
     }
 
-    /**
-     * @param bool $autoErase
-     */
-    public function setAutoErase($autoErase)
+    public function setAutoErase(bool $autoErase): void
     {
         $this->autoErase = $autoErase;
     }
 
     /**
-     * @param Indexable $indexable
-     *
      * @throws RuntimeException
      * @throws UnknownException
      */
-    protected function doIndex(Indexable $indexable)
+    protected function doIndex(Indexable $indexable): void
     {
         if ($this->storage instanceof TransactionalStorageInterface) {
             $this->storage->startTransaction();
@@ -218,10 +185,23 @@ class Indexer
 
             if (!$oldTocEntry || $oldTocEntry->getHash() !== $indexable->calcHash()) {
                 $this->storage->removeFromIndex($externalId);
+
+                $extractionResult = $this->extractor->extract($indexable->getContent());
+                $extractionErrors = $extractionResult->getErrors();
+                if ($this->logger && $extractionErrors->hasErrors()) {
+                    $this->logger->warning(sprintf(
+                        'Found warnings on indexing "%s" (id="%s", instance="%s", url="%s")',
+                        $indexable->getTitle(),
+                        $indexable->getExternalId()->getId(),
+                        $indexable->getExternalId()->getInstanceId() ?? '',
+                        $indexable->getUrl()
+                    ), $extractionErrors->getFormattedLines());
+                }
+
                 $this->addToIndex(
                     $externalId,
-                    self::strFromHtml($indexable->getTitle()),
-                    self::strFromHtml($indexable->getContent()),
+                    self::titleStrFromHtml($indexable->getTitle()),
+                    $extractionResult->getContentWithMetadata(),
                     $indexable->getKeywords()
                 );
             }

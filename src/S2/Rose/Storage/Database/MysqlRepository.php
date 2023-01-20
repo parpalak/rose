@@ -1,9 +1,11 @@
-<?php
+<?php /** @noinspection OneTimeUseVariablesInspection */
+/** @noinspection PhpUnnecessaryLocalVariableInspection */
+/** @noinspection SqlNoDataSourceInspection */
 /** @noinspection SqlDialectInspection */
-/** @noinspection SqlResolve */
 /** @noinspection PhpComposerExtensionStubsInspection */
+
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -11,49 +13,42 @@ namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownException;
+use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 
 class MysqlRepository
 {
-    const TOC                    = 'toc';
-    const WORD                   = 'word';
-    const METADATA               = 'metadata';
-    const FULLTEXT_INDEX         = 'fulltext_index';
-    const KEYWORD_INDEX          = 'keyword_index';
-    const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
+    public const TOC                    = 'toc';
+    public const WORD                   = 'word';
+    public const METADATA               = 'metadata';
+    public const SNIPPET                = 'snippet';
+    public const FULLTEXT_INDEX         = 'fulltext_index';
+    public const KEYWORD_INDEX          = 'keyword_index';
+    public const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
 
-    const KEYLEN              = 255;
-    const UTF8MB4_KEYLEN      = 191;
-    const DEFAULT_TABLE_NAMES = [
+    private const KEYLEN              = 255;
+    private const UTF8MB4_KEYLEN      = 191;
+    private const DEFAULT_TABLE_NAMES = [
         self::TOC                    => 'toc',
         self::WORD                   => 'word',
         self::METADATA               => 'metadata',
+        self::SNIPPET                => 'snippet',
         self::FULLTEXT_INDEX         => 'fulltext_index',
         self::KEYWORD_INDEX          => 'keyword_index',
         self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
     ];
 
-    /**
-     * @var \PDO
-     */
-    protected $pdo;
+    protected \PDO $pdo;
+    protected string $prefix;
+    protected array $options;
 
-    /**
-     * @var string
-     */
-    protected $prefix;
-
-    /**
-     * @var array
-     */
-    protected $options;
-
-    public function __construct(\PDO $pdo, $prefix = '', array $options = [])
+    public function __construct(\PDO $pdo, string $prefix = '', array $options = [])
     {
         $this->pdo     = $pdo;
         $this->prefix  = $prefix;
@@ -64,7 +59,7 @@ class MysqlRepository
      * @throws InvalidEnvironmentException
      * @throws UnknownException
      */
-    public function erase()
+    public function erase(): void
     {
         $charset = $this->pdo->query('SELECT @@character_set_connection')->fetchColumn();
         if ($charset !== 'utf8mb4') {
@@ -106,7 +101,7 @@ class MysqlRepository
      *
      * @throws RuntimeException
      */
-    public function insertWords(array $words)
+    public function insertWords(array $words): void
     {
         $partWords = self::getPartWords($words);
 
@@ -134,18 +129,17 @@ class MysqlRepository
     /**
      * @param string[] $words
      *
-     * @return array
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function findIdsByWords(array $words)
+    public function findIdsByWords(array $words): array
     {
         $partWords = self::getPartWords($words);
 
         $sql = '
 			SELECT name, id
 			FROM ' . $this->getTableName(self::WORD) . ' AS w
-			WHERE name IN (' . implode(',', array_fill(0, count($partWords), '?')) . ')
+			WHERE name IN (' . implode(',', array_fill(0, \count($partWords), '?')) . ')
 		';
 
         try {
@@ -166,8 +160,8 @@ class MysqlRepository
 
         $result = [];
         foreach ($partWords as $fullWord => $partWord) {
-            if (isset($data[$partWords[$fullWord]])) {
-                $result[$fullWord] = $data[$partWords[$fullWord]];
+            if (isset($data[$partWord])) {
+                $result[$fullWord] = $data[$partWord];
             }
         }
 
@@ -175,13 +169,9 @@ class MysqlRepository
     }
 
     /**
-     * @param array $words
-     * @param array $wordIds
-     * @param int   $internalId
-     *
      * @throws UnknownException
      */
-    public function insertFulltext(array $words, array $wordIds, $internalId)
+    public function insertFulltext(array $words, array $wordIds, int $internalId): void
     {
         $data = [];
         foreach ($words as $position => $word) {
@@ -189,13 +179,16 @@ class MysqlRepository
             $data[$key][] = (int)$position;
         }
 
-        $sqlParts = [];
+        if (\count($data) === 0) {
+            return;
+        }
+        $sqlParts = '';
         foreach ($data as $wordId => $positions) {
-            $sqlParts[] = $wordId . ',' . $internalId . ',' . $this->pdo->quote(implode(',', $positions));
+            $sqlParts .= ($sqlParts !== '' ? ',' : '') . '(' . $wordId . ',' . $internalId . ',\'' . implode(',', $positions) . '\')';
         }
 
         $sql = 'INSERT INTO ' . $this->getTableName(self::FULLTEXT_INDEX)
-            . ' (word_id, toc_id, positions) VALUES ( ' . implode('),(', $sqlParts). ')';
+            . ' (word_id, toc_id, positions) VALUES ' . $sqlParts;
 
         try {
             $this->pdo->exec($sql);
@@ -210,14 +203,10 @@ class MysqlRepository
 
 
     /**
-     * @param array    $words
-     * @param int|null $instanceId
-     *
-     * @return array
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function findFulltextByWords(array $words, $instanceId = null)
+    public function findFulltextByWords(array $words, int $instanceId = null): array
     {
         $sql = '
 			SELECT w.name AS word, t.external_id, t.instance_id, f.positions, COALESCE(m.word_count, 0) AS word_count
@@ -225,7 +214,7 @@ class MysqlRepository
 			JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
 			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id
 			LEFT JOIN ' . $this->getTableName(self::METADATA) . ' AS m ON t.id = m.toc_id
-			WHERE w.name IN (' . implode(',', array_fill(0, count($words), '?')) . ')
+			WHERE w.name IN (' . implode(',', array_fill(0, \count($words), '?')) . ')
 		';
 
         $parameters = $words;
@@ -263,15 +252,12 @@ class MysqlRepository
 
     /**
      * @param string[] $words
-     * @param int      $internalId
-     * @param int      $type
-     * @param string   $tableKey
      */
-    public function insertKeywords(array $words, $internalId, $type, $tableKey)
+    public function insertKeywords(array $words, int $internalId, int $type, string $tableKey): void
     {
         $data = [];
         foreach ($words as $keyword) {// Ready for bulk insert
-            $data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . ((int)$type);
+            $data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . $type;
         }
 
         $sql = 'INSERT INTO ' . $this->getTableName($tableKey) . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
@@ -279,27 +265,49 @@ class MysqlRepository
     }
 
     /**
-     * @param int $wordCount
-     * @param int $internalId
-     *
-     * @return void
+     * @throws UnknownException
      */
-    public function insertMetadata($wordCount, $internalId)
+    public function insertMetadata(int $wordCount, int $internalId): void
     {
-        $data = ((int)$wordCount) . ',' . $internalId;
-        $sql  = 'INSERT INTO ' . $this->getTableName(self::METADATA) . ' (word_count, toc_id) VALUES ( ' . $data . ')';
-        $this->pdo->exec($sql);
+        $st = $this->pdo->prepare('INSERT INTO ' . $this->getTableName(self::METADATA) . ' (word_count, toc_id) VALUES (?, ?)');
+        try {
+            $st->execute([$wordCount, $internalId]);
+        } catch (\PDOException $e) {
+            throw new UnknownException(sprintf(
+                'Unknown exception "%s" occurred while inserting metadata: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
+    }
+
+    public function insertSnippets(int $internalId, SnippetSource ...$snippetInfo): void
+    {
+        $data = array_map(fn(SnippetSource $s) => $s->getMinPosition() . ','
+            . $s->getMaxPosition() . ','
+            . $this->pdo->quote($s->getText()) . ','
+            . $internalId, $snippetInfo);
+
+        $sql = 'INSERT INTO ' . $this->getTableName(self::SNIPPET)
+            . ' (min_word_pos, max_word_pos, snippet, toc_id) VALUES ( ' . implode('),(', $data) . ')';
+        try {
+            $this->pdo->exec($sql);
+        } catch (\PDOException $e) {
+            throw new UnknownException(sprintf(
+                'Unknown exception "%s" occurred while inserting snippets: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
     }
 
     /**
      * @param string[] $words
-     * @param int|null $instanceId
      *
-     * @return array
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function findSingleKeywordIndex(array $words, $instanceId)
+    public function findSingleKeywordIndex(array $words, ?int $instanceId): array
     {
         $usageSql = '
             SELECT COUNT(DISTINCT f.toc_id)
@@ -307,7 +315,7 @@ class MysqlRepository
             JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
             ' . (
             $instanceId !== null
-                ? 'JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id AND t.instance_id = ' . (int)$instanceId . ' '
+                ? 'JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id AND t.instance_id = ' . $instanceId . ' '
                 : ''
             ) . ' WHERE k.keyword = w.name';
 
@@ -320,7 +328,7 @@ class MysqlRepository
 				(' . $usageSql . ') AS usage_num
 			FROM ' . $this->getTableName(self::KEYWORD_INDEX) . ' AS k
 			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = k.toc_id
-			WHERE k.keyword IN (' . implode(',', array_fill(0, count($words), '?')) . ')
+			WHERE k.keyword IN (' . implode(',', array_fill(0, \count($words), '?')) . ')
 		';
 
         $parameters = $words;
@@ -349,14 +357,10 @@ class MysqlRepository
     }
 
     /**
-     * @param string   $string
-     * @param int|null $instanceId
-     *
-     * @return array
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function findMultipleKeywordIndex($string, $instanceId)
+    public function findMultipleKeywordIndex(string $string, ?int $instanceId): array
     {
         $sql = '
 			SELECT t.external_id, t.instance_id, k.type
@@ -391,13 +395,67 @@ class MysqlRepository
         return $data;
     }
 
+    public function getSnippets(SnippetQuery $snippetQuery): array
+    {
+        $internalIds   = $this->selectInternalIds(...$snippetQuery->getExternalIds());
+        $orWhere       = [];
+        $fallbackWhere = [];
+        $snippetQuery->iterate(function (ExternalId $externalId, ?array $positions) use ($internalIds, &$orWhere, &$fallbackWhere) {
+            // Add a first sentence to snippets if there are no matched snippets.
+            $fallbackWhere[] = 's.toc_id = ' . $internalIds[$externalId->toString()];
+            if (\count($positions ?? []) === 0) {
+                // Seems like fallback snippets must be fetched here. But fulltext index can contain
+                // some "fantom" entries with positions out of scope (e.g. keywords).
+                // In that case there will be no snippets returned. So now the fallback snippets are fetched anyway.
+                return;
+            }
+
+            $orWhere[] = 's.toc_id = ' . $internalIds[$externalId->toString()] . ' AND ('
+                . implode(' OR ', array_map(
+                    static fn(int $pos) => sprintf('s.min_word_pos <= %1$s AND s.max_word_pos >= %1$s', $pos),
+                    $positions
+                ))
+                . ')';
+        });
+
+        if (\count($orWhere) === 0) {
+            return [];
+        }
+
+        $sql = '(SELECT s.*
+			FROM ' . $this->getTableName(self::SNIPPET) . ' AS s
+			WHERE ' . implode(' OR ', $orWhere) . '
+			)';
+
+        foreach ($fallbackWhere as $fallbackWhereItem) {
+            $sql .= ' UNION (
+                SELECT s.*
+                FROM ' . $this->getTableName(self::SNIPPET) . ' AS s
+                WHERE ' . $fallbackWhereItem . '
+                ORDER BY s.max_word_pos
+                LIMIT 2
+			)';
+        }
+
+        $sql .= ' ORDER BY toc_id, max_word_pos';
+
+        $statement = $this->pdo->query($sql);
+
+        $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        $externalIds = array_flip($internalIds);
+        foreach ($data as &$row) {
+            $row['externalId'] = ExternalId::fromString($externalIds[$row['toc_id']]);
+        }
+
+        return $data;
+    }
+
     /**
-     * @param ExternalId $externalId
-     *
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function removeFromIndex(ExternalId $externalId)
+    public function removeFromIndex(ExternalId $externalId): void
     {
         $tocId = $this->selectInternalId($externalId);
         if ($tocId === null) {
@@ -416,6 +474,9 @@ class MysqlRepository
 
             $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::METADATA) . ' WHERE toc_id = ?');
             $st->execute([$tocId]);
+
+            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::SNIPPET) . ' WHERE toc_id = ?');
+            $st->execute([$tocId]);
         } catch (\PDOException $e) {
             if (1412 === (int)$e->errorInfo[1]) {
                 throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
@@ -432,29 +493,27 @@ class MysqlRepository
     }
 
     /**
-     * @param TocEntry   $entry
-     * @param ExternalId $externalId
-     *
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function addToToc(TocEntry $entry, ExternalId $externalId)
+    public function addToToc(TocEntry $entry, ExternalId $externalId): void
     {
         $sql = 'INSERT INTO ' . $this->getTableName(self::TOC) .
-            ' (external_id, instance_id, title, description, added_at, url, hash)' .
-            ' VALUES (:external_id, :instance_id, :title, :description, :added_at, :url, :hash)' .
-            ' ON DUPLICATE KEY UPDATE title = :title, description = :description, added_at = :added_at, url = :url, hash = :hash';
+            ' (external_id, instance_id, title, description, added_at, url, relevance_ratio, hash)' .
+            ' VALUES (:external_id, :instance_id, :title, :description, :added_at, :url, :relevance_ratio, :hash)' .
+            ' ON DUPLICATE KEY UPDATE title = :title, description = :description, added_at = :added_at, url = :url, relevance_ratio = :relevance_ratio, hash = :hash';
 
         try {
             $statement = $this->pdo->prepare($sql);
             $statement->execute([
-                'external_id' => $externalId->getId(),
-                'instance_id' => (int)$externalId->getInstanceId(),
-                'title'       => $entry->getTitle(),
-                'description' => $entry->getDescription(),
-                'added_at'    => $entry->getFormattedDate(),
-                'url'         => $entry->getUrl(),
-                'hash'        => $entry->getHash(),
+                'external_id'     => $externalId->getId(),
+                'instance_id'     => (int)$externalId->getInstanceId(),
+                'title'           => $entry->getTitle(),
+                'description'     => $entry->getDescription(),
+                'added_at'        => $entry->getFormattedDate(),
+                'url'             => $entry->getUrl(),
+                'relevance_ratio' => $entry->getRelevanceRatio(),
+                'hash'            => $entry->getHash(),
             ]);
         } catch (\PDOException $e) {
             if ($e->getCode() === '42S02') {
@@ -473,13 +532,10 @@ class MysqlRepository
     }
 
     /**
-     * @param array $criteria
-     *
-     * @return array
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function getTocEntries(array $criteria = [])
+    public function getTocEntries(array $criteria = []): array
     {
         try {
             if (isset($criteria['title'])) {
@@ -497,13 +553,13 @@ class MysqlRepository
                     throw new InvalidArgumentException('Ids must be an ExternalIdCollection.');
                 }
                 $ids = $criteria['ids']->toArray();
-                if (count($ids) === 0) {
+                if (\count($ids) === 0) {
                     return [];
                 }
                 $sql = '
 					SELECT *
 					FROM ' . $this->getTableName(self::TOC) . ' AS t
-					WHERE (t.external_id, t.instance_id) IN (' . implode(',', array_fill(0, count($ids), '(?, ?)')) . ')';
+					WHERE (t.external_id, t.instance_id) IN (' . implode(',', array_fill(0, \count($ids), '(?, ?)')) . ')';
 
                 $statement = $this->pdo->prepare($sql);
                 $params    = [];
@@ -526,17 +582,14 @@ class MysqlRepository
             ), 0, $e);
         }
 
-        return $statement->fetchAll();
+        return $statement->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
-     * @param int|null $instanceId
-     *
-     * @return int
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function getTocSize($instanceId)
+    public function getTocSize(?int $instanceId): int
     {
         $sql = 'SELECT count(*) FROM ' . $this->getTableName(self::TOC);
         if ($instanceId !== null) {
@@ -563,12 +616,10 @@ class MysqlRepository
     }
 
     /**
-     * @param ExternalId $externalId
-     *
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function removeFromToc(ExternalId $externalId)
+    public function removeFromToc(ExternalId $externalId): void
     {
         $sql = '
 			DELETE FROM ' . $this->getTableName(self::TOC) . '
@@ -591,13 +642,10 @@ class MysqlRepository
     }
 
     /**
-     * @param ExternalId $externalId
-     *
-     * @return int|null
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function selectInternalId(ExternalId $externalId)
+    public function selectInternalId(ExternalId $externalId): ?int
     {
         $sql = 'SELECT id FROM ' . $this->getTableName(self::TOC) . ' WHERE external_id = ? AND instance_id = ?';
 
@@ -621,10 +669,47 @@ class MysqlRepository
         return $internalId;
     }
 
+    public function selectInternalIds(ExternalId ...$externalIds): array
+    {
+        $sql = '
+            SELECT id, external_id, instance_id
+            FROM ' . $this->getTableName(self::TOC) . ' AS t
+            WHERE (t.external_id, t.instance_id) IN (' . implode(',', array_fill(0, \count($externalIds), '(?, ?)')) . ')';
+
+        $params = [];
+        foreach ($externalIds as $id) {
+            $params[] = $id->getId();
+            $params[] = (int)$id->getInstanceId();
+        }
+        try {
+            $statement = $this->pdo->prepare($sql);
+            $statement->execute($params);
+
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '42S02') {
+                throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+            }
+            throw new UnknownException(sprintf(
+                'Unknown exception with code "%s" occurred while removing from index: "%s"',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
+
+        $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        $result = [];
+        foreach ($data as $row) {
+            $result[$this->getExternalIdFromRow($row)->toString()] = $row['id'];
+        }
+
+        return $result;
+    }
+
     /**
      * @throws UnknownException
      */
-    public function startTransaction()
+    public function startTransaction(): void
     {
         try {
             $this->pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
@@ -641,7 +726,7 @@ class MysqlRepository
     /**
      * @throws UnknownException
      */
-    public function commitTransaction()
+    public function commitTransaction(): void
     {
         try {
             $this->pdo->commit();
@@ -657,7 +742,7 @@ class MysqlRepository
     /**
      * @throws UnknownException
      */
-    public function rollbackTransaction()
+    public function rollbackTransaction(): void
     {
         try {
             $this->pdo->rollBack();
@@ -671,10 +756,9 @@ class MysqlRepository
     }
 
     /**
-     * @return array
      * @throws EmptyIndexException
      */
-    public function getIndexStat()
+    public function getIndexStat(): array
     {
         $tableNames = array_map(function ($s) {
             return $this->pdo->quote($this->getTableName($s));
@@ -700,12 +784,7 @@ class MysqlRepository
         ];
     }
 
-    /**
-     * @param string $key
-     *
-     * @return string
-     */
-    private function getTableName($key)
+    private function getTableName(string $key): string
     {
         if (!isset($this->options[$key])) {
             throw new InvalidArgumentException(sprintf('Unknown table "%s"', $key));
@@ -716,13 +795,8 @@ class MysqlRepository
 
     /**
      * @see http://stackoverflow.com/questions/3683746/escaping-mysql-wild-cards
-     *
-     * @param string $s
-     * @param string $e
-     *
-     * @return mixed
      */
-    private function escapeLike($s, $e)
+    private function escapeLike(string $s, string $e): string
     {
         return str_replace([$e, '_', '%'], [$e . $e, $e . '_', $e . '%'], $s);
     }
@@ -734,7 +808,7 @@ class MysqlRepository
      *
      * @return string[]
      */
-    public static function getPartWords(array $words)
+    public static function getPartWords(array $words): array
     {
         $partWords = [];
         foreach ($words as $fullWord) {
@@ -744,11 +818,7 @@ class MysqlRepository
         return $partWords;
     }
 
-    /**
-     * @param string $charset
-     * @param int    $keyLen
-     */
-    private function dropAndCreateTables($charset, $keyLen)
+    private function dropAndCreateTables(string $charset, int $keyLen): void
     {
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
@@ -759,6 +829,7 @@ class MysqlRepository
 			description TEXT NOT NULL,
 			added_at DATETIME NULL,
 			url TEXT NOT NULL,
+			relevance_ratio DECIMAL(4,3) NOT NULL,
 			hash VARCHAR(80) NOT NULL DEFAULT "",
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (instance_id, external_id(' . $keyLen . '))
@@ -770,6 +841,15 @@ class MysqlRepository
 			word_count INT(11) UNSIGNED NOT NULL,
 			PRIMARY KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
+        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::SNIPPET) . ' (
+			toc_id INT(11) UNSIGNED NOT NULL,
+			max_word_pos INT(11) UNSIGNED NOT NULL,
+			min_word_pos INT(11) UNSIGNED NOT NULL,
+			snippet LONGTEXT NOT NULL,
+			PRIMARY KEY (toc_id, max_word_pos)
+		) ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4 ENGINE=InnoDB CHARACTER SET ' . $charset);
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
@@ -805,5 +885,10 @@ class MysqlRepository
 			KEY (keyword(' . $keyLen . ')),
 			KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+    }
+
+    private function getExternalIdFromRow(array $row): ExternalId
+    {
+        return new ExternalId($row['external_id'], $row['instance_id'] > 0 ? $row['instance_id'] : null);
     }
 }

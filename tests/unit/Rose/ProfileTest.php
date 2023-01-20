@@ -9,13 +9,11 @@
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Rose\Entity\ExternalContent;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
 use S2\Rose\Finder;
 use S2\Rose\Helper\ProfileHelper;
 use S2\Rose\Indexer;
-use S2\Rose\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Storage\Database\PdoStorage;
@@ -186,16 +184,6 @@ class ProfileTest extends Unit
 
         $result = $finder->find(new Query('захотел разговаривать'), true);
 
-        $snippetBuilder = new SnippetBuilder($stemmer);
-        $snippetBuilder->attachSnippets($result, function (array $ids) {
-            $result = new ExternalContent();
-            foreach ($ids as $id) {
-                $result->attach($id, file_get_contents(__DIR__ . '/../../Resource/data/' . $id->getId()));
-            }
-
-            return $result;
-        });
-
         foreach (array_merge($indexProfilePoints, $loadingProfilePoints, $result->getProfilePoints()) as $point) {
             codecept_debug(ProfileHelper::formatProfilePoint($point));
         }
@@ -251,17 +239,6 @@ class ProfileTest extends Unit
         $indexProfilePoints[] = ProfileHelper::getProfilePoint('Finder initialization', -$start + ($start = microtime(true)));
 
         $result = $finder->find(new Query('захотел разговаривать'), true);
-
-        $snippetBuilder = new SnippetBuilder($stemmer);
-
-        $snippetBuilder->attachSnippets($result, static function (array $ids) {
-            $result = new ExternalContent();
-            foreach ($ids as $id) {
-                $result->attach($id, file_get_contents(__DIR__ . '/../../Resource/data/' . $id->getId()));
-            }
-
-            return $result;
-        });
 
         foreach (array_merge($indexProfilePoints, $result->getProfilePoints()) as $point) {
             codecept_debug(ProfileHelper::formatProfilePoint($point));

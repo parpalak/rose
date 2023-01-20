@@ -44,55 +44,6 @@ class ResultSetTest extends Unit
         $this->assertEquals(33, $data[':id_23']);
     }
 
-    public function testSetRelevanceInvalidExternalId()
-    {
-        $this->expectException(UnknownIdException::class);
-        $result = $this->prepareResult(new ResultSet());
-        $result->setRelevanceRatio(new ExternalId('not_found'), 2);
-    }
-
-    public function testSetRelevanceInvalidRatio()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $result = $this->prepareResult(new ResultSet());
-        $result->setRelevanceRatio(new ExternalId('id_10'), ['not a number']);
-    }
-
-    public function testSetRelevance()
-    {
-        $result           = $this->prepareResult(new ResultSet(2));
-        $foundExternalIds = $result->getFoundExternalIds()->toArray();
-        $this->assertCount(30, $foundExternalIds);
-        $this->assertEquals('id_29', $foundExternalIds[0]->getId());
-        $this->assertEquals('id_10', $foundExternalIds[19]->getId());
-
-        $result->setRelevanceRatio(new ExternalId('id_10'), 2.7);
-        $result->setRelevanceRatio(new ExternalId('id_29'), '1.1');
-
-        $data = $result->getSortedRelevanceByExternalId();
-
-        $this->assertCount(2, $data);
-        $this->assertEquals(':id_10', array_keys($data)[0]);
-        $this->assertEquals((10 + 10) * 2.7, $data[':id_10']);
-        $this->assertEquals((10 + 29) * 1.1, $data[':id_29']);
-    }
-
-    public function testNoSetRelevanceAfterSorting()
-    {
-        $this->expectException(ImmutableException::class);
-        $this->expectExceptionMessage('One cannot set relevance ratios after sorting the result set.');
-
-        $result           = $this->prepareResult(new ResultSet(2));
-        $foundExternalIds = $result->getFoundExternalIds()->toArray();
-        $this->assertEquals('id_10', $foundExternalIds[19]->getId());
-
-        $result->setRelevanceRatio(new ExternalId('id_10'), 2.72);
-
-        $data = $result->getSortedRelevanceByExternalId();
-
-        $result->setRelevanceRatio(new ExternalId('id_10'), 3.14);
-    }
-
     public function testEmpty()
     {
         $resultSet = new ResultSet();
@@ -112,7 +63,7 @@ class ResultSetTest extends Unit
     {
         $this->expectException(UnknownIdException::class);
         $resultSet = new ResultSet();
-        $resultSet->attachSnippet(new ExternalId('not found'), new Snippet('', '', '<i>%s</i>'));
+        $resultSet->attachSnippet(new ExternalId('not found'), new Snippet('', 0, '<i>%s</i>'));
     }
 
     public function testNotFrozenGetFoundExternalIds()
@@ -120,13 +71,6 @@ class ResultSetTest extends Unit
         $this->expectException(ImmutableException::class);
         $resultSet = new ResultSet();
         $resultSet->getFoundExternalIds();
-    }
-
-    public function testNotFrozenSetRelevanceRatio()
-    {
-        $this->expectException(ImmutableException::class);
-        $resultSet = new ResultSet();
-        $resultSet->setRelevanceRatio(new ExternalId('not found'), 2);
     }
 
     public function testNotFrozenGetFoundWordsByExternalId()

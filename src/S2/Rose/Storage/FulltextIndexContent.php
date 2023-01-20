@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2017-2020 Roman Parpalak
+ * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -11,37 +11,31 @@ use S2\Rose\Entity\WordPositionContainer;
 
 class FulltextIndexContent
 {
-    protected $dataByWord = [];
-    protected $dataByExternalId = [];
+    protected array $dataByWord = [];
+    protected array $dataByExternalId = [];
 
-    /**
-     * @param string     $word
-     * @param ExternalId $externalId
-     * @param int        $position
-     * @param int        $wordCount
-     */
-    public function add($word, ExternalId $externalId, $position, $wordCount = 0)
+    public function add(string $word, ExternalId $externalId, array $positions, int $wordCount = 0): void
     {
         $serializedExtId = $externalId->toString();
 
-        $this->dataByExternalId[$serializedExtId][$word][] = $position;
+        $this->dataByExternalId[$serializedExtId][$word] = $positions;
 
         // TODO refactor this data transformation
         $this->dataByWord[$word][$serializedExtId]['extId']     = $externalId;
         $this->dataByWord[$word][$serializedExtId]['wordCount'] = $wordCount;
-        $this->dataByWord[$word][$serializedExtId]['pos'][]     = $position;
+        $this->dataByWord[$word][$serializedExtId]['pos']       = $positions;
     }
 
     /**
      * @return array|int[][][]
      * @deprecated TODO refactor this data transformation
      */
-    public function toArray()
+    public function toArray(): array
     {
         return $this->dataByWord;
     }
 
-    public function iterateWordPositions(\Closure $callback)
+    public function iterateWordPositions(\Closure $callback): void
     {
         foreach ($this->dataByExternalId as $serializedExtId => $data) {
             $callback(ExternalId::fromString($serializedExtId), new WordPositionContainer($data));

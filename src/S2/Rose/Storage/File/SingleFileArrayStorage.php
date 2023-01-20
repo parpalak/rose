@@ -90,6 +90,7 @@ class SingleFileArrayStorage extends ArrayStorage
         // $data      = substr($data, $end + 1);
         $this->toc = unserialize($my_data) ?: [];
 
+
         if ($isDebug) {
             $return[] = ProfileHelper::getProfilePoint('Unserializing index', -$start_time + ($start_time = microtime(true)));
         }

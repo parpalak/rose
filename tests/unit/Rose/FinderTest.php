@@ -16,6 +16,8 @@ use S2\Rose\Entity\TocEntry;
 use S2\Rose\Entity\TocEntryWithExternalId;
 use S2\Rose\Finder;
 use S2\Rose\Stemmer\PorterStemmerRussian;
+use S2\Rose\Storage\Dto\SnippetQuery;
+use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\FulltextIndexContent;
 use S2\Rose\Storage\KeywordIndexContent;
 use S2\Rose\Storage\StorageReadInterface;
@@ -25,8 +27,9 @@ use S2\Rose\Storage\StorageReadInterface;
  */
 class FinderTest extends Unit
 {
-    public function testIgnoreFrequentWordsInFulltext()
+    public function testIgnoreFrequentWordsInFulltext(): void
     {
+        $storedSnippetQuery = null;
         /** @var StorageReadInterface $storage */
         $storage = Stub::makeEmpty(StorageReadInterface::class, [
             'getMultipleKeywordIndexByString' => static function ($word) {
@@ -39,44 +42,35 @@ class FinderTest extends Unit
                 $result = new FulltextIndexContent();
                 foreach ($words as $k => $word) {
                     if ($word === 'find') {
-                        $result->add($word, new ExternalId('id_3'), 1);
-                        $result->add($word, new ExternalId('id_2'), 10);
-                        $result->add($word, new ExternalId('id_2'), 20);
+                        $result->add($word, new ExternalId('id_3'), [1]);
+                        $result->add($word, new ExternalId('id_2'), [10, 20]);
                     }
                     if ($word === 'and') {
-                        $result->add($word, new ExternalId('id_1'), 4);
-                        $result->add($word, new ExternalId('id_1'), 8);
+                        $result->add($word, new ExternalId('id_1'), [4, 8]);
+                        $result->add($word, new ExternalId('id_2'), [7, 11, 34]);
+                        $result->add($word, new ExternalId('id_3'), [28, 65]);
+                        $result->add($word, new ExternalId('id_4'), [45, 9]);
 
-                        $result->add($word, new ExternalId('id_2'), 7);
-                        $result->add($word, new ExternalId('id_2'), 11);
-                        $result->add($word, new ExternalId('id_2'), 34);
-
-                        $result->add($word, new ExternalId('id_3'), 28);
-                        $result->add($word, new ExternalId('id_3'), 65);
-
-                        $result->add($word, new ExternalId('id_4'), 45);
-                        $result->add($word, new ExternalId('id_4'), 9);
-
-                        $result->add($word, new ExternalId('id_5'), 1);
-                        $result->add($word, new ExternalId('id_6'), 1);
-                        $result->add($word, new ExternalId('id_7'), 1);
-                        $result->add($word, new ExternalId('id_8'), 1);
-                        $result->add($word, new ExternalId('id_9'), 1);
-                        $result->add($word, new ExternalId('id_10'), 1);
-                        $result->add($word, new ExternalId('id_11'), 1);
-                        $result->add($word, new ExternalId('id_12'), 1);
-                        $result->add($word, new ExternalId('id_13'), 1);
-                        $result->add($word, new ExternalId('id_14'), 1);
-                        $result->add($word, new ExternalId('id_15'), 1);
-                        $result->add($word, new ExternalId('id_16'), 1);
-                        $result->add($word, new ExternalId('id_17'), 1);
-                        $result->add($word, new ExternalId('id_18'), 1);
-                        $result->add($word, new ExternalId('id_19'), 1);
-                        $result->add($word, new ExternalId('id_20'), 1);
-                        $result->add($word, new ExternalId('id_21'), 1);
+                        $result->add($word, new ExternalId('id_5'), [1]);
+                        $result->add($word, new ExternalId('id_6'), [1]);
+                        $result->add($word, new ExternalId('id_7'), [1]);
+                        $result->add($word, new ExternalId('id_8'), [1]);
+                        $result->add($word, new ExternalId('id_9'), [1]);
+                        $result->add($word, new ExternalId('id_10'), [1]);
+                        $result->add($word, new ExternalId('id_11'), [1]);
+                        $result->add($word, new ExternalId('id_12'), [1]);
+                        $result->add($word, new ExternalId('id_13'), [1]);
+                        $result->add($word, new ExternalId('id_14'), [1]);
+                        $result->add($word, new ExternalId('id_15'), [1]);
+                        $result->add($word, new ExternalId('id_16'), [1]);
+                        $result->add($word, new ExternalId('id_17'), [1]);
+                        $result->add($word, new ExternalId('id_18'), [1]);
+                        $result->add($word, new ExternalId('id_19'), [1]);
+                        $result->add($word, new ExternalId('id_20'), [1]);
+                        $result->add($word, new ExternalId('id_21'), [1]);
                     }
                     if ($word === 'replace') {
-                        $result->add($word, new ExternalId('id_2'), 12);
+                        $result->add($word, new ExternalId('id_2'), [12]);
                     }
 
                     unset($words[$k]);
@@ -107,11 +101,15 @@ class FinderTest extends Unit
             'getTocByExternalIds'             => static function (ExternalIdCollection $ids) {
                 return array_map(static function (ExternalId $id) {
                     return new TocEntryWithExternalId(
-                        new TocEntry('Title ' . $id->getId(), '', null, 'url_' . $id->getId(), 'hash_' . $id->getId()),
+                        new TocEntry('Title ' . $id->getId(), '', null, 'url_' . $id->getId(), 1, 'hash_' . $id->getId()),
                         $id
                     );
                 }, $ids->toArray());
             },
+            'getSnippets'                     => function (SnippetQuery $snippetQuery) use (&$storedSnippetQuery): SnippetResult {
+                $storedSnippetQuery = $snippetQuery;
+                return new SnippetResult();
+            }
         ]);
 
         $stemmer   = new PorterStemmerRussian();
@@ -128,5 +126,11 @@ class FinderTest extends Unit
         $this->assertEquals([10, 20], $weights[':id_2']['find']);
         $this->assertEquals([12], $weights[':id_2']['replace']);
         $this->assertEquals([1], $weights[':id_3']['find']);
+
+        $query2 = new Query('find and replace');
+        $query2->setLimit(10);
+        $resultSet2 = $finder->find($query2);
+        $this->assertCount(10, $resultSet2->getItems());
+        $this->assertCount(10, $storedSnippetQuery->getExternalIds());
     }
 }

@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -13,7 +13,7 @@ class ExternalIdCollection
     /**
      * @var ExternalId[]
      */
-    private $externalIds;
+    private array $externalIds;
 
     /**
      * @param ExternalId[] $externalIds
@@ -31,10 +31,8 @@ class ExternalIdCollection
 
     /**
      * @param string[] $serializedExternalIds
-     *
-     * @return ExternalIdCollection
      */
-    public static function fromStringArray(array $serializedExternalIds)
+    public static function fromStringArray(array $serializedExternalIds): self
     {
         return new self(array_map(static function ($serializedExtId) {
             return ExternalId::fromString($serializedExtId);
@@ -44,7 +42,7 @@ class ExternalIdCollection
     /**
      * @return ExternalId[]
      */
-    public function toArray()
+    public function toArray(): array
     {
         return $this->externalIds;
     }

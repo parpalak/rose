@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -8,6 +8,8 @@ namespace S2\Rose\Storage;
 
 use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\TocEntryWithExternalId;
+use S2\Rose\Storage\Dto\SnippetResult;
+use S2\Rose\Storage\Dto\SnippetQuery;
 
 interface StorageReadInterface
 {
@@ -48,6 +50,8 @@ interface StorageReadInterface
      * @return TocEntryWithExternalId[]
      */
     public function getTocByExternalIds(ExternalIdCollection $externalIds);
+
+    public function getSnippets(SnippetQuery $snippetQuery): SnippetResult;
 
     /**
      * @param int|null $instanceId

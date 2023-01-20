@@ -8,10 +8,14 @@ namespace S2\Rose\Storage;
 
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Entity\TocEntryWithExternalId;
+use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Finder;
+use S2\Rose\Storage\Dto\SnippetResult;
+use S2\Rose\Storage\Dto\SnippetQuery;
 
 abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterface
 {
@@ -69,9 +73,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
                     continue;
                 }
                 if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
-                    foreach ($positions as $position) {
-                        $result->add($word, $externalId, $position, isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0);
-                    }
+                    $result->add($word, $externalId, $positions, isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0);
                 }
             }
         }
@@ -118,6 +120,28 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
                 }
             }
         }
+
+        return $result;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getSnippets(SnippetQuery $snippetQuery): SnippetResult
+    {
+        $result = new SnippetResult();
+        $snippetQuery->iterate(function (ExternalId $externalId, array $positions) use ($result) {
+            $fallbackCount = 0;
+            foreach ($this->metadata[$this->internalIdFromExternalId($externalId)]['snippets'] ?? [] as $snippetSource) {
+                if (!$snippetSource instanceof SnippetSource) {
+                    throw new LogicException('Snippets must be stored as array of SnippetSource.');
+                }
+                if ($fallbackCount < 2 || $snippetSource->coversOneOfPositions($positions)) {
+                    $result->attach($externalId, $snippetSource);
+                    $fallbackCount ++;
+                }
+            }
+        });
 
         return $result;
     }
@@ -239,9 +263,20 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
      * {@inheritdoc}
      * @throws UnknownIdException
      */
-    public function addMetadata($wordCount, ExternalId $externalId)
+    public function addMetadata(int $wordCount, ExternalId $externalId): void
     {
         $this->metadata[$this->internalIdFromExternalId($externalId)]['wordCount'] = $wordCount;
+    }
+
+    /**
+     * @throws UnknownIdException
+     */
+    public function addSnippets(ExternalId $externalId, SnippetSource ...$snippets): void
+    {
+        if (\count($snippets) === 0) {
+            return;
+        }
+        $this->metadata[$this->internalIdFromExternalId($externalId)]['snippets'] = $snippets;
     }
 
     /**

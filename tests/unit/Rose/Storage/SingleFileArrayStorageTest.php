@@ -37,11 +37,11 @@ class SingleFileArrayStorageTest extends Unit
         $storage->load();
 
         $storage->addEntryToToc(
-            new TocEntry('test title 1', '', new \DateTime(), '', '4567890lkjhgfd'),
+            new TocEntry('test title 1', '', new \DateTime(), '', 1, '4567890lkjhgfd'),
             new ExternalId('test_id_1')
         );
         $storage->addEntryToToc(
-            new TocEntry('test title 2', '', new \DateTime(), '', 'edfghj8765rfg'),
+            new TocEntry('test title 2', '', new \DateTime(), '', 1, 'edfghj8765rfg'),
             new ExternalId('test_id_2')
         );
 

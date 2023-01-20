@@ -10,11 +10,14 @@ namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Entity\TocEntryWithExternalId;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Storage\Dto\SnippetQuery;
+use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
@@ -73,7 +76,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws InvalidEnvironmentException
      * @throws UnknownException
      */
-    public function erase()
+    public function erase(): void
     {
         $this->mapping->clear();
         $this->cachedWordIds = [];
@@ -97,9 +100,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $data = $this->repository->findFulltextByWords($words, $instanceId);
 
         foreach ($data as $row) {
-            foreach ($row['positions'] as $position) {
-                $result->add($row['word'], $this->getExternalIdFromRow($row), $position, $row['word_count']);
-            }
+            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['positions'], $row['word_count']);
         }
 
         return $result;
@@ -112,8 +113,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
     {
-        $data      = $this->repository->findSingleKeywordIndex($words, $instanceId);
-        $tocSize   = $this->getTocSize($instanceId);
+        $data    = $this->repository->findSingleKeywordIndex($words, $instanceId);
+        $tocSize = $this->getTocSize($instanceId);
 
         /** @var KeywordIndexContent[]|array $result */
         $result = [];
@@ -141,6 +142,21 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $result = new KeywordIndexContent();
         foreach ($data as $row) {
             $result->add($this->getExternalIdFromRow($row), $row['type']);
+        }
+
+        return $result;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getSnippets(SnippetQuery $snippetQuery): SnippetResult
+    {
+        $data = $this->repository->getSnippets($snippetQuery);
+
+        $result = new SnippetResult();
+        foreach ($data as $row) {
+            $result->attach($row['externalId'], new SnippetSource($row['snippet'], $row['min_word_pos'], $row['max_word_pos']));
         }
 
         return $result;
@@ -209,11 +225,26 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * {@inheritdoc}
      *
      * @throws UnknownIdException
+     * @throws UnknownException
      */
-    public function addMetadata($wordCount, ExternalId $externalId)
+    public function addMetadata(int $wordCount, ExternalId $externalId): void
     {
         $internalId = $this->getInternalIdFromExternalId($externalId);
         $this->repository->insertMetadata($wordCount, $internalId);
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @throws UnknownIdException
+     */
+    public function addSnippets(ExternalId $externalId, SnippetSource ...$snippets): void
+    {
+        if (\count($snippets) === 0) {
+            return;
+        }
+        $internalId = $this->getInternalIdFromExternalId($externalId);
+        $this->repository->insertSnippets($internalId, ...$snippets);
     }
 
     /**
@@ -344,6 +375,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     {
         return $this->repository->getIndexStat();
     }
+
     /**
      * TODO move to another class
      *
@@ -426,12 +458,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         return $id;
     }
 
-    /**
-     * @param array $row
-     *
-     * @return ExternalId
-     */
-    private function getExternalIdFromRow($row)
+    private function getExternalIdFromRow(array $row): ExternalId
     {
         return new ExternalId($row['external_id'], $row['instance_id'] > 0 ? $row['instance_id'] : null);
     }
@@ -458,6 +485,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
                 $row['description'],
                 $date,
                 $row['url'],
+                (float)$row['relevance_ratio'],
                 $row['hash']
             );
             $tocEntry->setInternalId($row['id']);

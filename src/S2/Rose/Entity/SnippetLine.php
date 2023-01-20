@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @copyright 2017-2023 Roman Parpalak
  * @license   MIT
@@ -10,39 +10,25 @@ use S2\Rose\Exception\RuntimeException;
 
 class SnippetLine
 {
-    const STORE_MARKER = "\r";
+    private const STORE_MARKER = "\r";
 
     /**
      * @var string[]
      */
-    protected $foundWords = [];
+    protected array $foundWords;
 
-    /**
-     * @var string
-     */
-    protected $line = '';
+    protected string $line;
 
-    /**
-     * @var float
-     */
-    protected $relevance = 0;
+    protected float $relevance = 0;
 
-    /**
-     * @var string|null
-     */
-    protected $lineWithoutEntities;
+    protected ?string $lineWithoutEntities = null;
 
     /**
      * @var string[]
      */
-    protected $storedEntities;
+    protected array $storedEntities = [];
 
-    /**
-     * @param string   $line
-     * @param string[] $foundWords
-     * @param float    $relevance
-     */
-    public function __construct($line, array $foundWords, $relevance)
+    public function __construct(string $line, array $foundWords, float $relevance)
     {
         $this->line       = $line;
         $this->foundWords = $foundWords;
@@ -60,55 +46,42 @@ class SnippetLine
     /**
      * @return string[]
      */
-    public function getFoundWords()
+    public function getFoundWords(): array
     {
         return $this->foundWords;
     }
 
-    /**
-     * @return string
-     */
-    public function getLine()
+    public function getLine(): string
     {
         return $this->line;
     }
 
     /**
-     * @param string $highlightTemplate
-     *
-     * @return string
-     *
      * @throws RuntimeException
      */
-    public function getHighlighted($highlightTemplate)
+    public function getHighlighted(string $highlightTemplate): string
     {
         if (strpos($highlightTemplate, '%s') === false) {
             throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
-        if (count($this->foundWords) === 0) {
+        if (\count($this->foundWords) === 0) {
             return $this->line;
         }
 
         $line = $this->getLineWithoutEntities();
 
+        /** @noinspection RegExpUnnecessaryNonCapturingGroup */
         $replacedLine = preg_replace_callback(
             '#\b(?:' . implode('|', $this->foundWords) . ')(?:\s+(?:' . implode('|', $this->foundWords) . '))*\b#su',
-            function ($matches) use ($highlightTemplate) {
-                return sprintf($highlightTemplate, $matches[0]);
-            },
-            $line,
-            -1,
-            $count
+            static fn($matches) => sprintf($highlightTemplate, $matches[0]),
+            $line
         );
 
         return $this->restoreEntities($replacedLine);
     }
 
-    /**
-     * @return string
-     */
-    protected function getLineWithoutEntities()
+    protected function getLineWithoutEntities(): string
     {
         if ($this->lineWithoutEntities !== null) {
             return $this->lineWithoutEntities;
@@ -117,30 +90,22 @@ class SnippetLine
         // Remove substrings that are not store markers
         $this->lineWithoutEntities = str_replace(self::STORE_MARKER, '', $this->line);
 
-        $storedEntities = [];
-        $storeMarker    = self::STORE_MARKER;
+        $this->lineWithoutEntities = htmlspecialchars($this->lineWithoutEntities);
 
         $this->lineWithoutEntities = preg_replace_callback(
             '#&(\\#[1-9]\d{1,3}|[A-Za-z][0-9A-Za-z]+);#',
-            function (array $matches) use (&$storedEntities, $storeMarker) {
-                $storedEntities[] = $matches[0];
+            function (array $matches) {
+                $this->storedEntities[] = $matches[0];
 
-                return $storeMarker;
+                return self::STORE_MARKER;
             },
-            $this->line
+            $this->lineWithoutEntities
         );
-
-        $this->storedEntities = $storedEntities;
 
         return $this->lineWithoutEntities;
     }
 
-    /**
-     * @param string $line
-     *
-     * @return string
-     */
-    protected function restoreEntities($line)
+    protected function restoreEntities(string $line): string
     {
         $i = 0;
         while (true) {

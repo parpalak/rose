@@ -9,13 +9,12 @@
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Rose\Entity\ExternalContent;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultItem;
 use S2\Rose\Finder;
 use S2\Rose\Indexer;
-use S2\Rose\SnippetBuilder;
+use S2\Rose\Snippet\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Database\PdoStorage;
@@ -79,6 +78,7 @@ class SnippetBuilderTest extends Unit
      * @dataProvider indexableProvider
      *
      * @param Indexable[] $indexables
+     *
      * @throws \Exception
      */
     public function testSnippets(array $indexables)
@@ -87,21 +87,7 @@ class SnippetBuilderTest extends Unit
             $this->indexer->index($indexable);
         }
 
-        $snippetCallbackProvider = static function (array $ids) use ($indexables) {
-            $result = new ExternalContent();
-            foreach ($indexables as $indexable) {
-                foreach ($ids as $id) {
-                    if ($indexable->getExternalId()->equals($id)) {
-                        $result->attach($id, $indexable->getContent());
-                    }
-                }
-            }
-
-            return $result;
-        };
-
         $resultSet = $this->finder->find(new Query('механическая природа'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
         $this->assertEquals(
             'Если пренебречь малыми величинами, то видно, что <i>механическая природа</i> устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
@@ -110,7 +96,6 @@ class SnippetBuilderTest extends Unit
 
         // Check if highlighting works with different upper and lower cases.
         $resultSet = $this->finder->find(new Query('если пренебречь'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
         $this->assertEquals(
             PHP_MAJOR_VERSION >= 7
@@ -121,7 +106,6 @@ class SnippetBuilderTest extends Unit
 
         // Check line separators
         $resultSet = $this->finder->find(new Query('если'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertEquals(
             PHP_MAJOR_VERSION >= 7
                 ? '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр... Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа.'
@@ -129,9 +113,8 @@ class SnippetBuilderTest extends Unit
             $resultSet->getItems()[0]->getSnippet()
         );
 
+        $this->finder->setSnippetLineSeparator(' &middot; ');
         $resultSet = $this->finder->find(new Query('если'));
-        $this->snippetBuilder->setSnippetLineSeparator(' &middot; ');
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertEquals(
             PHP_MAJOR_VERSION >= 7
                 ? '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки. &middot; В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр. &middot; Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа.'
@@ -141,7 +124,6 @@ class SnippetBuilderTest extends Unit
 
         // Highlighting 'мне' as a word found by stem 'я'
         $resultSet = $this->finder->find(new Query('Мне не душно'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertEquals(
             '<i>Мне не душно</i>',
             $resultSet->getItems()[0]->getHighlightedTitle($this->stemmer)
@@ -154,12 +136,11 @@ class SnippetBuilderTest extends Unit
 
         // Highlighting 'ё'
         $resultSet = $this->finder->find(new Query('твердыми'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
         $this->assertSimilar(
             [
                 'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
-                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.'
+                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
             ],
             array_map(static function (ResultItem $item) {
                 return $item->getSnippet();
@@ -167,7 +148,6 @@ class SnippetBuilderTest extends Unit
         );
 
         $resultSet = $this->finder->find(new Query('твёрдая'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
         $this->assertSimilar(
             [
@@ -180,7 +160,6 @@ class SnippetBuilderTest extends Unit
         );
 
         $resultSet = $this->finder->find(new Query('артемий'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
 
         $this->assertSimilar(
             [
@@ -203,7 +182,6 @@ class SnippetBuilderTest extends Unit
         );
 
         $resultSet = $this->finder->find(new Query('1 защита xss gt'));
-        $this->snippetBuilder->attachSnippets($resultSet, $snippetCallbackProvider);
         $this->assertEquals(
             'Еще <i>1</i> раз проверим, как <i>gt</i> работает <i>защита</i> против &lt;script&gt;alert();&lt;/script&gt; <i>xss</i>-уязвимостей.',
             $resultSet->getItems()[0]->getSnippet()
@@ -242,9 +220,19 @@ div {
 }
 </style>
 
-<p>Внешнее кольцо позволяет пренебречь колебаниями корпуса, хотя развития этого в любом случае требует угол крена, поэтому энергия гироскопического маятника на неподвижной оси остаётся неизменной. Если основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки. Артемий как абсолютно твёрдое тело заставляет иначе взглянуть на то, что такое объект. В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, если добавить устойчивый гиротахометр. Система координат, несмотря на внешние воздействия, трансформирует силовой трёхосный гироскопический стабилизатор.</p>
+<div class="index-skip">
+<p>Не должно проиндексироваться.</p>
+</div>
 
-<p>Ошибка астатически даёт более простую систему дифференциальных уравнений, если исключить небольшой угол тангажа. Если пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет пренебречь колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.</p>
+<p><img src="1.jpg" width="300" height="200">Внешнее кольцо позволяет пренебречь колебаниями корпуса, хотя развития этого в любом случае требует угол крена, поэтому энергия гироскопического маятника на неподвижной оси остаётся неизменной. Если основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки. Артемий как абсолютно твёрдое тело заставляет иначе взглянуть на то, что такое объект. В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, если добавить устойчивый гиротахометр. Система координат, несмотря на внешние воздействия, трансформирует силовой трёхосный гироскопический стабилизатор.</p>
+
+<p><img src="2.jpg" width="300" height="200">
+
+<blockquote>А это цитата, ее тоже надо индексировать.</blockquote>
+
+<img src="3.jpg" width="300" height="200">
+
+<p>Ошибка <i>астатически</i> даёт более простую систему дифференциальных уравнений, если исключить небольшой угол тангажа. Если пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет пренебречь колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.</p>
 
 <p>Уравнение возмущенного движения поступательно характеризует подвижный объект. Прецессия гироскопа косвенно интегрирует нестационарный вектор угловой скорости, изменяя направление движения. Угловая скорость, обобщая изложенное, неподвижно не входит своими составляющими, что очевидно, в силы нормальных реакций связей, так же как и кожух. Динамическое уравнение Эйлера, в силу третьего закона Ньютона, вращательно связывает ньютонометр, не забывая о том, что интенсивность диссипативных сил, характеризующаяся величиной коэффициента D, должна лежать в определённых пределах. Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>'),
             new Indexable('id_4', 'Мне не душно', 'Я просто не ощущаю уровень углекислого газа в воздухе. Меня не устраивает.'),

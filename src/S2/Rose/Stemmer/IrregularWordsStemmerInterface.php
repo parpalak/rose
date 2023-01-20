@@ -1,6 +1,6 @@
-<?php
+<?php declare(strict_types=1);
 /**
- * @copyright 2020 Roman Parpalak
+ * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -13,5 +13,5 @@ interface IrregularWordsStemmerInterface
      *
      * @return string[]
      */
-    public function irregularWordsFromStems(array $stems);
+    public function irregularWordsFromStems(array $stems): array;
 }

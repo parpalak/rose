@@ -2,20 +2,17 @@
 /** @noinspection PhpComposerExtensionStubsInspection */
 
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use S2\Rose\Entity\ExternalContent;
-use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
 use S2\Rose\Finder;
 use S2\Rose\Indexer;
-use S2\Rose\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Storage\Database\MysqlRepository;
@@ -30,7 +27,7 @@ use S2\Rose\Storage\StorageWriteInterface;
  */
 class IntegrationTest extends Unit
 {
-    const TEST_FILE_NUM = 17;
+    public const TEST_FILE_NUM = 17;
 
     /**
      * @return string
@@ -55,10 +52,10 @@ class IntegrationTest extends Unit
      * @throws \Exception
      */
     public function testFeatures(
-        array $indexables,
-        StorageReadInterface $readStorage,
+        array                 $indexables,
+        StorageReadInterface  $readStorage,
         StorageWriteInterface $writeStorage
-    ) {
+    ): void {
         $stemmer = new PorterStemmerRussian(new PorterStemmerEnglish());
         $indexer = new Indexer($writeStorage, $stemmer);
 
@@ -80,21 +77,7 @@ class IntegrationTest extends Unit
         if ($readStorage instanceof SingleFileArrayStorage) {
             $readStorage->load();
         }
-        $finder         = new Finder($readStorage, $stemmer);
-        $snippetBuilder = new SnippetBuilder($stemmer);
-
-        $snippetCallbackProvider = static function (array $ids) use ($indexables) {
-            $result = new ExternalContent();
-            foreach ($indexables as $indexable) {
-                foreach ($ids as $id) {
-                    if ($indexable->getExternalId()->equals($id)) {
-                        $result->attach($id, $indexable->getContent());
-                    }
-                }
-            }
-
-            return $result;
-        };
+        $finder = new Finder($readStorage, $stemmer);
 
         // Query 1
         $resultSet1 = $finder->find(new Query('snippets'));
@@ -103,37 +86,34 @@ class IntegrationTest extends Unit
         // Query 2
         $resultSet2 = $finder->find(new Query('content'));
 
-        $this->assertEquals(['20:id_2' => 1.3251865179653566, '20:id_1' => 0.12778564557899275, '10:id_1' =>  0.08569157515491249], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals([
+            '20:id_2' => 4.1610856664112195,
+            '20:id_1' => 0.12778564557899275,
+            '10:id_1' => 0.08569157515491249,
+        ], $resultSet2->getSortedRelevanceByExternalId());
 
         $items = $resultSet2->getItems();
         $this->assertEquals('id_1', $items[2]->getId());
         $this->assertEquals('10', $items[2]->getInstanceId());
-        $this->assertEquals('Description can be used in snippets', $items[2]->getSnippet());
-
-        $snippetBuilder->attachSnippets($resultSet2, $snippetCallbackProvider);
-
-        $items = $resultSet2->getItems();
-
         $this->assertEquals('Test page title', $items[2]->getTitle());
         $this->assertEquals('url1', $items[2]->getUrl());
         $this->assertEquals('Description can be used in snippets', $items[2]->getDescription());
         $this->assertEquals(new \DateTime('2016-08-24 00:00:00'), $items[2]->getDate());
-        $this->assertEquals( 0.08569157515491249, $items[2]->getRelevance());
+        $this->assertEquals(0.08569157515491249, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
-        $this->assertEquals(1.3251865179653566, $items[0]->getRelevance());
-        $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet());
+        $this->assertEquals(4.1610856664112195, $items[0]->getRelevance());
+        $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
 
         $resultSet2 = $finder->find(new Query('content'));
-        $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 3.14);
 
-        $this->assertEquals(['20:id_2' => 1.3251865179653566, '10:id_1' => 0.26907154598642524, '20:id_1' => 0.12778564557899275], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 4.1610856664112195, '10:id_1' => 0.08569157515491249, '20:id_1' => 0.12778564557899275], $resultSet2->getSortedRelevanceByExternalId());
 
         $resultSet2 = $finder->find(new Query('content'));
-        $resultSet2->setRelevanceRatio(new ExternalId('id_1', 10), 1000);
+
         $resultItems = $resultSet2->getItems();
         $this->assertCount(3, $resultItems);
-        $this->assertEquals(85.69157515491248, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
+        $this->assertEquals(4.1610856664112195, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
 
         $resultSet2 = $finder->find(new Query('title'));
         $this->assertEquals('id_1', $resultSet2->getItems()[0]->getId());
@@ -153,19 +133,16 @@ class IntegrationTest extends Unit
 
         // Query 3
         $resultSet3 = $finder->find(new Query('сущность Plus'));
-        $snippetBuilder->attachSnippets($resultSet3, $snippetCallbackProvider);
         $this->assertEquals('id_3', $resultSet3->getItems()[0]->getId());
         $this->assertEquals(
-            'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде &plus;. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
+            'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде + и &amp;<i>plus</i>;. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
             $resultSet3->getItems()[0]->getSnippet()
         );
-        $this->assertEquals(7.557967139988488, $resultSet3->getItems()[0]->getRelevance());
+        $this->assertEquals(18.30871796292043, $resultSet3->getItems()[0]->getRelevance());
 
         // Query 4
         $resultSet4 = $finder->find(new Query('эпл'));
         $this->assertCount(1, $resultSet4->getItems());
-
-        $snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
         $this->assertEquals('id_3', $resultSet4->getItems()[0]->getId());
         $this->assertEquals(
             'Например, красно-черный, <i>эпл</i>-вотчем, и другие интересные комбинации.',
@@ -176,8 +153,6 @@ class IntegrationTest extends Unit
         $resultSet4   = $finder->find(new Query('красный заголовку'));
         $resultItems4 = $resultSet4->getItems();
         $this->assertCount(1, $resultItems4);
-
-        $snippetBuilder->attachSnippets($resultSet4, $snippetCallbackProvider);
         $this->assertEquals('id_3', $resultSet4->getItems()[0]->getId());
         $this->assertEquals(
             'Например, <b>красно</b>-черный, эпл-вотчем, и другие интересные комбинации.',
@@ -188,7 +163,7 @@ class IntegrationTest extends Unit
             'Русский текст. <b>Красным заголовком</b>',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
-        $this->assertEquals(44.895569405379796, $resultSet4->getItems()[0]->getRelevance());
+        $this->assertEquals(44.89947331141201, $resultSet4->getItems()[0]->getRelevance());
 
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));
@@ -202,7 +177,7 @@ class IntegrationTest extends Unit
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(55.02261191427482 , $resultSet6->getItems()[0]->getRelevance());
+        $this->assertEquals(55.03627558538758, $resultSet6->getItems()[0]->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));
@@ -213,7 +188,6 @@ class IntegrationTest extends Unit
 
         // Query 8
         $resultSet8 = $finder->find(new Query('ціна'));
-        $snippetBuilder->attachSnippets($resultSet8, $snippetCallbackProvider);
         $this->assertEquals(
             'Например, в украинском есть слово <b>ціна</b>.',
             $resultSet8->getItems()[0]->getSnippet()
@@ -221,32 +195,34 @@ class IntegrationTest extends Unit
 
         // Query 9
         $resultSet9 = $finder->find(new Query('7.0'));
-        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
         $this->assertEquals(
             'Я не помню Windows 3.1, но помню Turbo Pascal <b>7.0</b>.',
             $resultSet9->getItems()[0]->getSnippet()
         );
 
         $resultSet9 = $finder->find(new Query('7'));
-        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
         $this->assertEquals(
             'В 1,<b>7</b> раз больше... Я не помню Windows 3.1, но помню Turbo Pascal <b>7</b>.0. Надо отдельно посмотреть, что ищется по одной цифре <b>7</b>...',
             $resultSet9->getItems()[0]->getSnippet()
         );
 
         $resultSet9 = $finder->find(new Query('Windows 3'));
-        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
         $this->assertEquals(
             'Я не помню <b>Windows 3</b>.1, но помню Turbo Pascal 7.0.',
             $resultSet9->getItems()[0]->getSnippet()
         );
 
         $resultSet9 = $finder->find(new Query('Windows 3.1'));
-        $snippetBuilder->attachSnippets($resultSet9, $snippetCallbackProvider);
         $this->assertEquals(
             'Я не помню <b>Windows 3.1</b>, но помню Turbo Pascal 7.0.',
             $resultSet9->getItems()[0]->getSnippet()
         );
+
+        // Query 10
+        $resultSet10 = $finder->find(new Query('singlekeyword'));
+        $this->assertCount(1, $resultSet10->getItems());
+        $this->assertEquals('Description can be used in snippets', $resultSet10->getItems()[0]->getSnippet(), 'No snippets due to keyword match, description is used.');
+
     }
 
     /**
@@ -259,8 +235,8 @@ class IntegrationTest extends Unit
      * @throws \RuntimeException
      */
     public function testParallelIndexingAndSearching(
-        array $indexables,
-        StorageReadInterface $readStorage,
+        array                 $indexables,
+        StorageReadInterface  $readStorage,
         StorageWriteInterface $writeStorage
     ) {
         $stemmer = new PorterStemmerRussian();
@@ -357,14 +333,16 @@ class IntegrationTest extends Unit
                 ->setDescription('')
                 ->setDate(new \DateTime('2016-08-20 00:00:00'))
                 ->setUrl('any string')
+                ->setRelevanceRatio(3.14)
             ,
-            (new Indexable('id_3', 'Русский текст. Красным заголовком', '<p>Для проверки работы нужно написать побольше слов. В 1,7 раз больше. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации. Встречаются и другие знаки препинания, например, цифры. Я не помню Windows 3.1, но помню Turbo Pascal 7.0. Надо отдельно посмотреть, что ищется по одной цифре 7... Учитель не должен допускать такого...</p><p>А еще текст бывает на других языках. Например, в украинском есть слово ціна.</p>', 20))
+            (new Indexable('id_3', 'Русский текст. Красным заголовком', '<p>Для проверки работы нужно написать побольше слов. В 1,7 раз больше. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus; и &amp;plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации. Встречаются и другие знаки препинания, например, цифры. Я не помню Windows 3.1, но помню Turbo Pascal 7.0. Надо отдельно посмотреть, что ищется по одной цифре 7... Учитель не должен допускать такого...</p><p>А еще текст бывает на других языках. Например, в украинском есть слово ціна.</p>', 20))
                 ->setKeywords('ключевые слова')
                 ->setDescription('')
                 ->setDate(new \DateTime('2016-08-22 00:00:00'))
                 ->setUrl('/якобы.урл')
             ,
-            (new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have changed the content.', 10)) // overwrite the previous one
+            // overwrite the previous one
+            (new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have changed the content.', 10))
                 ->setKeywords('singlekeyword, multiple keywords')
                 ->setDescription('Description can be used in snippets')
                 ->setDate(new \DateTime('2016-08-24 00:00:00'))
