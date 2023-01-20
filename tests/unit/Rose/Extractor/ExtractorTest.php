@@ -7,6 +7,7 @@
 namespace S2\Rose\Test\Extractor;
 
 use Codeception\Test\Unit;
+use S2\Rose\Extractor\ExtractorInterface;
 use S2\Rose\Extractor\HtmlDom\DomExtractor;
 use S2\Rose\Extractor\HtmlRegex\RegexExtractor;
 
@@ -50,6 +51,17 @@ class ExtractorTest extends Unit
         if ($s !== null) {
             self::assertEquals($s, $sentenceMap->toSentenceCollection()->getWordsArray());
         }
+    }
+
+    /**
+     * @dataProvider htmlSentenceProvider
+     */
+    public function testSentenceBreaking(ExtractorInterface $extractor, string $htmlText, array $sentences): void
+    {
+        $extractionResult = $extractor->extract($htmlText);
+        $sentenceMap      = $extractionResult->getContentWithMetadata()->getSentenceMap();
+
+        self::assertEquals($sentences, $sentenceMap->toSentenceCollection()->toArray());
     }
 
     public function htmlTextProvider(): array
@@ -113,6 +125,60 @@ div {
 <p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>',
                 'Должно проиндексироваться. Внешнее кольцо позволяет пренебречь. А это цитата, ее тоже надо индексировать. В цитате могут быть абзацы. Ошибка астатически даёт более простую систему. Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
             ],
+        ];
+    }
+
+    public function htmlSentenceProvider(): array
+    {
+        $source = '<p><span class="index-skip">00:11</span> Почему моим словам стоит доверять: 13 лет опыта<br />
+<span class="index-skip">00:42</span> Собирался рассказать о понятии формата давно<br />
+<span class="index-skip">01:11</span> Для затравки: чем плохи выпадайки в вебе, пример личного кабинета интернет-банка<br />
+<span class="index-skip">03:28</span> Понятие формата<br />
+<span class="index-skip">04:56</span> Пример 1: формат веба и формат окон настройки старых операционных систем (сравнение из <a href="https://habr.com/ru/post/143386/">старой статьи на хабре</a>)<br />
+<span class="index-skip">08:03</span> <a href="https://habr.com/ru/post/143386/#comment_4805232">Комментарий к статье</a>, обращающийся к понятию формата<br />
+<span class="index-skip">10:42</span> OS/2 умер<br />
+<span class="index-skip">12:09</span> Окно настройки - почему такое? Ограничение 1: физический размер экранов<br />
+<span class="index-skip">14:24</span> Ограничение 2: размер видеопамяти<br />
+<span class="index-skip">15:26</span> Ограничение 3: частота обновления<br />
+<span class="index-skip">18:53</span> Ограничение 4: работа без драйверов<br />
+<span class="index-skip">19:54</span> 640*480 - естественное ограничение в конце 90-х<br />
+<span class="index-skip">20:58</span> Особенности формата веба<br />
+<span class="index-skip">22:47</span> Сравнивать надо функциональность<br />
+<span class="index-skip">25:28</span> Бессмысленность претензий к вебу<br />
+<span class="index-skip">26:52</span> Эволюция интерфейса настройки Windows<br />
+<span class="index-skip">32:28</span> Пример 2: Одностраничные приложения<br />
+<span class="index-skip">33:54</span> Админка моего движка как пример одностраничного приложения<br />
+<span class="index-skip">37:25</span> Как бы сейчас спроектировал интерфейс админки<br />
+<span class="index-skip">41:42</span> Обсуждаем извлеченные уроки и дизайн выпадайки из личного кабинета интернет-банка<br />
+<span class="index-skip">46:17</span> Итог</p>';
+
+        $sentences = [
+            'Почему моим словам стоит доверять: 13 лет опыта',
+            'Собирался рассказать о понятии формата давно',
+            'Для затравки: чем плохи выпадайки в вебе, пример личного кабинета интернет-банка',
+            'Понятие формата',
+            'Пример 1: формат веба и формат окон настройки старых операционных систем (сравнение из старой статьи на хабре)',
+            'Комментарий к статье, обращающийся к понятию формата',
+            'OS/2 умер',
+            'Окно настройки - почему такое? Ограничение 1: физический размер экранов',
+            'Ограничение 2: размер видеопамяти',
+            'Ограничение 3: частота обновления',
+            'Ограничение 4: работа без драйверов',
+            '640*480 - естественное ограничение в конце 90-х',
+            'Особенности формата веба',
+            'Сравнивать надо функциональность',
+            'Бессмысленность претензий к вебу',
+            'Эволюция интерфейса настройки Windows',
+            'Пример 2: Одностраничные приложения',
+            'Админка моего движка как пример одностраничного приложения',
+            'Как бы сейчас спроектировал интерфейс админки',
+            'Обсуждаем извлеченные уроки и дизайн выпадайки из личного кабинета интернет-банка',
+            'Итог',
+        ];
+
+        return [
+            [new DomExtractor(), $source, $sentences],
+            [new RegexExtractor(), $source, $sentences],
         ];
     }
 }

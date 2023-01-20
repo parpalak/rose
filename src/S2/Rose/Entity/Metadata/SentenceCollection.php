@@ -24,7 +24,7 @@ class SentenceCollection
     public function attach(string $text): void
     {
         $this->cachedWords = null;
-        $this->sentences[] = preg_replace('#\\s+#', ' ', $text);
+        $this->sentences[] = trim(preg_replace('#\\s+#', ' ', $text));
     }
 
     public function getText(): string
@@ -92,7 +92,7 @@ class SentenceCollection
     /**
      * @return string[]
      */
-    private static function breakIntoWords(string $content): array
+    public static function breakIntoWords(string $content): array
     {
         // We allow letters, digits and some punctuation: ".,-"
         $content = preg_replace('#[^\\-.,0-9\\p{L}^_]+#u', ' ', $content);

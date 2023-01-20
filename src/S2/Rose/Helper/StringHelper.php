@@ -30,7 +30,7 @@ class StringHelper
     public static function sentencesFromText(string $text): array
     {
         // TODO improve algorithm
-        $substrings = preg_split('#[.?!]\K([ \n\t]+)#S', $text);
+        $substrings = preg_split('#[.?!]\K([ \n\t\r]+)#S', $text);
 
         return $substrings;
     }

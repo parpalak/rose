@@ -14,21 +14,17 @@ use S2\Rose\Extractor\ExtractorInterface;
 
 class RegexExtractor implements ExtractorInterface
 {
-    private const LINE_SEPARATOR = "\r";
+    private const PARAGRAPH_SEPARATOR = "\n";
 
     public function extract(string $text): ExtractionResult
     {
-        $replaceFrom = [self::LINE_SEPARATOR];
-        $replaceTo   = [''];
+        $replaceFrom = [self::PARAGRAPH_SEPARATOR, SentenceMap::LINE_SEPARATOR, '<BR />', '<br />', '<BR>', '<br>',];
+        $replaceTo   = [' ', '', SentenceMap::LINE_SEPARATOR, SentenceMap::LINE_SEPARATOR, SentenceMap::LINE_SEPARATOR, SentenceMap::LINE_SEPARATOR];
 
         foreach ([
-                     '<br>',
                      '<hr>',
-                     '<br />',
                      '<hr />',
-                     '<BR>',
                      '<HR>',
-                     '<BR />',
                      '<HR />',
                      '<img ',
                      '<IMG ',
@@ -44,7 +40,7 @@ class RegexExtractor implements ExtractorInterface
                      '<P>', '<PRE>', '<BLOCKQUOTE>', '<LI>',
                  ] as $tag) {
             $replaceFrom[] = $tag;
-            $replaceTo[]   = self::LINE_SEPARATOR . $tag;
+            $replaceTo[]   = self::PARAGRAPH_SEPARATOR . $tag;
         }
         foreach ([
                      '</h1>', '</h2>', '</h3>', '</h4>', '</h5>', '</h6>',
@@ -53,7 +49,7 @@ class RegexExtractor implements ExtractorInterface
                      '</P>', '</PRE>', '</BLOCKQUOTE>', '</LI>',
                  ] as $tag) {
             $replaceFrom[] = $tag;
-            $replaceTo[]   = $tag . self::LINE_SEPARATOR;
+            $replaceTo[]   = $tag . self::PARAGRAPH_SEPARATOR;
         }
 
         $text = str_replace($replaceFrom, $replaceTo, $text);
@@ -61,7 +57,7 @@ class RegexExtractor implements ExtractorInterface
         $text = preg_replace('#<(script|style)[^>]*?>.*?</\\1>#si', '', $text);
         $text = preg_replace('#<([a-z]+) [^>]*?index-skip[^>]*?>.*?</\\1>#si', '', $text);
 
-        $paragraphs = explode(self::LINE_SEPARATOR, $text);
+        $paragraphs = explode(self::PARAGRAPH_SEPARATOR, $text);
         $texts      = array_map(static fn(string $string) => trim(strip_tags($string)), $paragraphs); // TODO allow some formatting
         $texts      = array_filter($texts);
 

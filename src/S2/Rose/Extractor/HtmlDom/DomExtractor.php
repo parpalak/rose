@@ -8,6 +8,7 @@ namespace S2\Rose\Extractor\HtmlDom;
 
 use Psr\Log\LoggerAwareTrait;
 use Psr\Log\LoggerInterface;
+use S2\Rose\Entity\Metadata\SentenceMap;
 use S2\Rose\Extractor\ExtractionErrors;
 use S2\Rose\Extractor\ExtractionResult;
 use S2\Rose\Extractor\ExtractorInterface;
@@ -119,6 +120,9 @@ class DomExtractor implements ExtractorInterface
                     break;
 
                 case 'br':
+                    $domState->attachContent($domNode->getNodePath(), SentenceMap::LINE_SEPARATOR);
+                    return;
+
                 case 'hr':
                 case 'iframe':
                     // Force space
@@ -185,7 +189,7 @@ class DomExtractor implements ExtractorInterface
         // Seems like substituteEntities does not work.
         // $dom->substituteEntities = true;
         // Trying a workaround.
-        $text = str_replace('&', '&amp;', $text);
+        $text = str_replace(['&', SentenceMap::LINE_SEPARATOR], ['&amp;', ''], $text);
         $dom->loadHTML($text);
 
         return $dom;

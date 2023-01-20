@@ -10,6 +10,7 @@ use S2\Rose\Helper\StringHelper;
 
 class SentenceMap
 {
+    public const LINE_SEPARATOR = "\r";
     /**
      * [
      *    1 => [
@@ -48,6 +49,18 @@ class SentenceMap
         foreach ($this->paragraphs as $paragraph) {
             $text      = trim(implode('', $paragraph));
             $sentences = StringHelper::sentencesFromText($text);
+
+            if (($linesNum = 1 + substr_count($text, self::LINE_SEPARATOR)) > 3) {
+                $totalWordNum = \count(SentenceCollection::breakIntoWords($text));
+                $avgWordNumInSentences = 1.0 * $totalWordNum / \count($sentences);
+                $avgWordNumInLines = 1.0 * $totalWordNum / $linesNum;
+
+                if ($avgWordNumInSentences > 20 && $avgWordNumInLines > 3 && $avgWordNumInLines < 15) {
+                    // Heuristics for lines separated by <br>.
+                    // This branch is for lists like table of contents.
+                    $sentences = explode(self::LINE_SEPARATOR, $text);
+                }
+            }
 
             foreach ($sentences as $sentence) {
                 if ($sentence === '') {
