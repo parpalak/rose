@@ -223,6 +223,23 @@ class IntegrationTest extends Unit
         $this->assertCount(1, $resultSet10->getItems());
         $this->assertEquals('Description can be used in snippets', $resultSet10->getItems()[0]->getSnippet(), 'No snippets due to keyword match, description is used.');
 
+        // Query 11
+        $resultSet11 = $finder->find(new Query('images'));
+        $this->assertCount(1, $resultSet11->getItems());
+        $this->assertEquals('Nothing is here but <b>images</b>:', $resultSet11->getItems()[0]->getSnippet());
+        $img0 = $resultSet11->getItems()[0]->getImageCollection()->offsetGet(0);
+        $this->assertNotNull($img0);
+        $this->assertEquals('1.jpg', $img0->getSrc());
+        $this->assertEquals('10', $img0->getWidth());
+        $this->assertEquals('15', $img0->getHeight());
+        $this->assertEquals('', $img0->getAlt());
+
+        $img1 = $resultSet11->getItems()[0]->getImageCollection()->offsetGet(1);
+        $this->assertNotNull($img1);
+        $this->assertEquals('2.jpg', $img1->getSrc());
+        $this->assertEquals('20', $img1->getWidth());
+        $this->assertEquals('25', $img1->getHeight());
+        $this->assertEquals('Alternative text', $img1->getAlt());
     }
 
     /**
@@ -350,7 +367,7 @@ class IntegrationTest extends Unit
             ,
             (new Indexable('id_1', 'Another instance', 'The same id but another instance. Word "content" is present here. Twice: content.', 20))
             ,
-            (new Indexable('id_4', 'Another instance', 'Nothing is here.', 20))
+            (new Indexable('id_4', 'Another instance', 'Nothing is here but images: <img src="1.jpg" width="10" height="15"> <img src="2.jpg" width="20" height="25" alt="Alternative text" />', 20))
             ,
         ];
 

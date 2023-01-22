@@ -8,6 +8,7 @@ namespace S2\Rose\Extractor\HtmlDom;
 
 use S2\Rose\Entity\ContentWithMetadata;
 use S2\Rose\Entity\Metadata\Img;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SentenceMap;
 
 class DomState
@@ -53,8 +54,6 @@ class DomState
 
     public function toContentWithMetadata(): ContentWithMetadata
     {
-        return (new ContentWithMetadata($this->sentenceMap))
-            ->attachImages(...$this->images)
-        ;
+        return new ContentWithMetadata($this->sentenceMap, new ImgCollection(...$this->images));
     }
 }

@@ -6,6 +6,7 @@
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
@@ -21,6 +22,7 @@ class ResultItem
     protected string $url = '';
     protected float $relevanceRatio;
     protected float $relevance = 0.0;
+    protected ImgCollection $imgCollection;
     protected ?Snippet $snippet = null;
     protected string $highlightTemplate;
     protected array $foundWords = [];
@@ -29,14 +31,15 @@ class ResultItem
      * @param string $id Id in external system
      */
     public function __construct(
-        string     $id,
-        ?int       $instanceId,
-        string     $title,
-        string     $description,
-        ?\DateTime $date,
-        string     $url,
-        float      $relevanceRatio,
-        string     $highlightTemplate
+        string        $id,
+        ?int          $instanceId,
+        string        $title,
+        string        $description,
+        ?\DateTime    $date,
+        string        $url,
+        float         $relevanceRatio,
+        ImgCollection $imgCollection,
+        string        $highlightTemplate
     ) {
         $this->id                = $id;
         $this->instanceId        = $instanceId;
@@ -45,6 +48,7 @@ class ResultItem
         $this->date              = $date;
         $this->url               = $url;
         $this->relevanceRatio    = $relevanceRatio;
+        $this->imgCollection     = $imgCollection;
         $this->highlightTemplate = $highlightTemplate;
     }
 
@@ -183,5 +187,10 @@ class ResultItem
         );
 
         return $snippetLine->getHighlighted($template);
+    }
+
+    public function getImageCollection(): ImgCollection
+    {
+        return $this->imgCollection;
     }
 }

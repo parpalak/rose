@@ -6,7 +6,7 @@
 
 namespace S2\Rose\Entity\Metadata;
 
-class Img
+class Img implements \JsonSerializable
 {
     private string $src;
     private string $width;
@@ -19,5 +19,35 @@ class Img
         $this->width  = $width;
         $this->height = $height;
         $this->alt    = $alt;
+    }
+
+    public function getSrc(): string
+    {
+        return $this->src;
+    }
+
+    public function getWidth(): string
+    {
+        return $this->width;
+    }
+
+    public function getHeight(): string
+    {
+        return $this->height;
+    }
+
+    public function getAlt(): string
+    {
+        return $this->alt;
+    }
+
+    public static function fromArray(array $img): Img
+    {
+        return new self($img['src'], $img['width'], $img['height'], $img['alt']);
+    }
+
+    public function jsonSerialize()
+    {
+        return get_object_vars($this);
     }
 }

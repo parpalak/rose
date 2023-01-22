@@ -10,9 +10,10 @@ namespace S2\Rose\Storage\Database;
 
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
-use S2\Rose\Entity\TocEntryWithExternalId;
+use S2\Rose\Entity\TocEntryWithMetadata;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
@@ -227,10 +228,10 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownIdException
      * @throws UnknownException
      */
-    public function addMetadata(int $wordCount, ExternalId $externalId): void
+    public function addMetadata(ExternalId $externalId, int $wordCount, ImgCollection $imgCollection): void
     {
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $this->repository->insertMetadata($wordCount, $internalId);
+        $this->repository->insertMetadata($internalId, $wordCount, $imgCollection->toJson());
     }
 
     /**
@@ -294,7 +295,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     /**
      * @param string $titlePrefix
      *
-     * @return TocEntryWithExternalId[]
+     * @return TocEntryWithMetadata[]
      */
     public function getTocByTitlePrefix($titlePrefix)
     {
@@ -464,11 +465,10 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     }
 
     /**
-     * @param array $data
-     *
-     * @return TocEntryWithExternalId[]
+     * @return TocEntryWithMetadata[]
+     * @throws \JsonException
      */
-    private function transformDataToTocEntries(array $data)
+    private function transformDataToTocEntries(array $data): array
     {
         $result = [];
         foreach ($data as $row) {
@@ -490,7 +490,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             );
             $tocEntry->setInternalId($row['id']);
 
-            $result[] = new TocEntryWithExternalId($tocEntry, $this->getExternalIdFromRow($row));
+            $imgCollection = isset($row['images']) ? ImgCollection::createFromJson($row['images']) : new ImgCollection();
+            $result[]      = new TocEntryWithMetadata($tocEntry, $this->getExternalIdFromRow($row), $imgCollection);
         }
 
         return $result;

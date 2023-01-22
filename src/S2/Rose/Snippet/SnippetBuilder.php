@@ -32,7 +32,7 @@ class SnippetBuilder
      * @throws ImmutableException
      * @throws UnknownIdException
      */
-    public function  attachSnippets(ResultSet $result, SnippetResult $snippetResult): self
+    public function attachSnippets(ResultSet $result, SnippetResult $snippetResult): self
     {
         $foundWords = $result->getFoundWordPositionsByExternalId();
 

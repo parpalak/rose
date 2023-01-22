@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
@@ -8,38 +8,15 @@ namespace S2\Rose\Entity;
 
 class TocEntry
 {
-    /**
-     * @var
-     */
-    protected $internalId;
-
-    /**
-     * @var string
-     */
-    protected $title = '';
-
-    /**
-     * @var string
-     */
-    protected $description = '';
-
-    /**
-     * @var \DateTime
-     */
-    protected $date;
-
-    /**
-     * @var string
-     */
-    protected $url = '';
-
-    /**
-     * @var string
-     */
-    protected $hash;
+    protected ?int $internalId = null;
+    protected string $title = '';
+    protected string $description = '';
+    protected ?\DateTime $date;
+    protected string $url = '';
+    protected string $hash;
     private float $relevanceRatio;
 
-    public function __construct(string $title, string $description, ?\DateTime $date = null, string $url, float $relevanceRatio, string $hash)
+    public function __construct(string $title, string $description, ?\DateTime $date, string $url, float $relevanceRatio, string $hash)
     {
         $this->title          = $title;
         $this->description    = $description;
@@ -49,34 +26,22 @@ class TocEntry
         $this->hash           = $hash;
     }
 
-    /**
-     * @return string
-     */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * @return string
-     */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->description;
     }
 
-    /**
-     * @return \DateTime
-     */
-    public function getDate()
+    public function getDate(): ?\DateTime
     {
         return $this->date;
     }
 
-    /**
-     * @return string
-     */
-    public function getUrl()
+    public function getUrl(): string
     {
         return $this->url;
     }
@@ -86,39 +51,27 @@ class TocEntry
         return $this->relevanceRatio;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getInternalId()
+    public function getInternalId(): ?int
     {
         return $this->internalId;
     }
 
-    /**
-     * @return string
-     */
-    public function getHash()
+    public function getHash(): string
     {
         return $this->hash;
     }
 
     /**
-     * @param mixed $internalId TODO why mixed? Int?
-     *
-     * @return TocEntry
      * @deprecated Make immutable
      */
-    public function setInternalId($internalId)
+    public function setInternalId(int $internalId): self
     {
         $this->internalId = $internalId;
 
         return $this;
     }
 
-    /**
-     * @return string|null
-     */
-    public function getFormattedDate()
+    public function getFormattedDate(): ?string
     {
         return $this->date !== null ? $this->date->format('Y-m-d H:i:s') : null;
     }

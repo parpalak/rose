@@ -132,7 +132,7 @@ class Indexer
         }
         unset($word);
 
-        $this->storage->addMetadata(\count($words), $externalId);
+        $this->storage->addMetadata($externalId, \count($words), $content->getImageCollection());
         $this->storage->addSnippets($externalId, ...$sentenceCollection->getSnippetSources());
         $this->storage->addToFulltext(array_merge($words, $subWords), $externalId);
     }

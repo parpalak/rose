@@ -11,6 +11,7 @@
   "require": {
     "php": ">=7.4",
     "ext-dom": "*",
+    "ext-json": "*",
     "symfony/polyfill-mbstring": "^1.2",
     "psr/log": "^1.1"
   },

@@ -200,7 +200,7 @@ class ResultSet
         return $this;
     }
 
-    public function attachToc(TocEntryWithExternalId $tocEntryWithExternalId): void
+    public function attachToc(TocEntryWithMetadata $tocEntryWithExternalId): void
     {
         $tocEntry   = $tocEntryWithExternalId->getTocEntry();
         $externalId = $tocEntryWithExternalId->getExternalId();
@@ -213,6 +213,7 @@ class ResultSet
             $tocEntry->getDate(),
             $tocEntry->getUrl(),
             $tocEntry->getRelevanceRatio(),
+            $tocEntryWithExternalId->getImgCollection(),
             $this->highlightTemplate
         );
     }

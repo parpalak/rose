@@ -7,6 +7,7 @@
 namespace S2\Rose\Extractor\HtmlRegex;
 
 use S2\Rose\Entity\ContentWithMetadata;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SentenceMap;
 use S2\Rose\Extractor\ExtractionErrors;
 use S2\Rose\Extractor\ExtractionResult;
@@ -66,7 +67,7 @@ class RegexExtractor implements ExtractorInterface
         $text = html_entity_decode($text, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5);
 
         return new ExtractionResult(
-            new ContentWithMetadata((new SentenceMap())->add(0, '', $text)),
+            new ContentWithMetadata((new SentenceMap())->add(0, '', $text), new ImgCollection()),
             new ExtractionErrors()
         );
     }

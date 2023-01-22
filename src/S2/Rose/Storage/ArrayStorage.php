@@ -8,14 +8,15 @@ namespace S2\Rose\Storage;
 
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
-use S2\Rose\Entity\TocEntryWithExternalId;
+use S2\Rose\Entity\TocEntryWithMetadata;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Finder;
-use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Dto\SnippetQuery;
+use S2\Rose\Storage\Dto\SnippetResult;
 
 abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterface
 {
@@ -138,7 +139,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
                 }
                 if ($fallbackCount < 2 || $snippetSource->coversOneOfPositions($positions)) {
                     $result->attach($externalId, $snippetSource);
-                    $fallbackCount ++;
+                    $fallbackCount++;
                 }
             }
         });
@@ -263,9 +264,11 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
      * {@inheritdoc}
      * @throws UnknownIdException
      */
-    public function addMetadata(int $wordCount, ExternalId $externalId): void
+    public function addMetadata(ExternalId $externalId, int $wordCount, ImgCollection $imgCollection): void
     {
-        $this->metadata[$this->internalIdFromExternalId($externalId)]['wordCount'] = $wordCount;
+        $internalId                               = $this->internalIdFromExternalId($externalId);
+        $this->metadata[$internalId]['wordCount'] = $wordCount;
+        $this->metadata[$internalId]['images']    = $imgCollection;
     }
 
     /**
@@ -288,7 +291,11 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
         foreach ($externalIds->toArray() as $externalId) {
             $serializedExtId = $externalId->toString();
             if (isset($this->toc[$serializedExtId])) {
-                $result[] = new TocEntryWithExternalId($this->toc[$serializedExtId], $externalId);
+                $result[] = new TocEntryWithMetadata(
+                    $this->toc[$serializedExtId],
+                    $externalId,
+                    $this->metadata[$this->toc[$serializedExtId]->getInternalId()]['images'] ?? new ImgCollection()
+                );
             }
         }
 

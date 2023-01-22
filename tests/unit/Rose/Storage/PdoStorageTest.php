@@ -90,6 +90,7 @@ class PdoStorageTest extends Unit
         ], $fulltextResult->toArray()['word2']);
 
         $entry = $storage->getTocByExternalId($externalId2);
+        $this->assertNotNull($entry);
         $this->assertEquals($tocEntry2->getHash(), $entry->getHash());
 
         // Test updating

@@ -11,9 +11,10 @@ use Codeception\Test\Unit;
 use Codeception\Util\Stub;
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Query;
 use S2\Rose\Entity\TocEntry;
-use S2\Rose\Entity\TocEntryWithExternalId;
+use S2\Rose\Entity\TocEntryWithMetadata;
 use S2\Rose\Finder;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Storage\Dto\SnippetQuery;
@@ -100,9 +101,10 @@ class FinderTest extends Unit
             },
             'getTocByExternalIds'             => static function (ExternalIdCollection $ids) {
                 return array_map(static function (ExternalId $id) {
-                    return new TocEntryWithExternalId(
+                    return new TocEntryWithMetadata(
                         new TocEntry('Title ' . $id->getId(), '', null, 'url_' . $id->getId(), 1, 'hash_' . $id->getId()),
-                        $id
+                        $id,
+                        new ImgCollection()
                     );
                 }, $ids->toArray());
             },

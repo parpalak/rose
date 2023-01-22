@@ -7,7 +7,7 @@
 namespace S2\Rose\Storage;
 
 use S2\Rose\Entity\ExternalIdCollection;
-use S2\Rose\Entity\TocEntryWithExternalId;
+use S2\Rose\Entity\TocEntryWithMetadata;
 use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Dto\SnippetQuery;
 
@@ -47,7 +47,7 @@ interface StorageReadInterface
     /**
      * @param ExternalIdCollection $externalIds
      *
-     * @return TocEntryWithExternalId[]
+     * @return TocEntryWithMetadata[]
      */
     public function getTocByExternalIds(ExternalIdCollection $externalIds);
 

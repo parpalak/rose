@@ -7,6 +7,7 @@
 namespace S2\Rose\Storage;
 
 use S2\Rose\Entity\ExternalId;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
 
@@ -67,7 +68,7 @@ interface StorageWriteInterface
     /**
      * Save some additional info about indexing items
      */
-    public function addMetadata(int $wordCount, ExternalId $externalId): void;
+    public function addMetadata(ExternalId $externalId, int $wordCount, ImgCollection $imgCollection): void;
 
     public function addSnippets(ExternalId $externalId, SnippetSource ...$snippets): void;
 }

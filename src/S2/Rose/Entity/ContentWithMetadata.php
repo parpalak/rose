@@ -6,32 +6,27 @@
 
 namespace S2\Rose\Entity;
 
-use S2\Rose\Entity\Metadata\Img;
+use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SentenceMap;
 
 class ContentWithMetadata
 {
     private SentenceMap $sentenceMap;
+    private ImgCollection $imageCollection;
 
-    /**
-     * @var Img[]
-     */
-    private array $images = [];
-
-    public function __construct(SentenceMap $sentenceMap)
+    public function __construct(SentenceMap $sentenceMap, ImgCollection $images)
     {
-        $this->sentenceMap = $sentenceMap;
-    }
-
-    public function attachImages(Img ...$images): self
-    {
-        $this->images = array_merge($this->images, $images);
-
-        return $this;
+        $this->sentenceMap     = $sentenceMap;
+        $this->imageCollection = $images;
     }
 
     public function getSentenceMap(): SentenceMap
     {
         return $this->sentenceMap;
+    }
+
+    public function getImageCollection(): ImgCollection
+    {
+        return $this->imageCollection;
     }
 }

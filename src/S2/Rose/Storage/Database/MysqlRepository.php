@@ -267,11 +267,11 @@ class MysqlRepository
     /**
      * @throws UnknownException
      */
-    public function insertMetadata(int $wordCount, int $internalId): void
+    public function insertMetadata(int $internalId, int $wordCount, string $imagesJson): void
     {
-        $st = $this->pdo->prepare('INSERT INTO ' . $this->getTableName(self::METADATA) . ' (word_count, toc_id) VALUES (?, ?)');
+        $st = $this->pdo->prepare('INSERT INTO ' . $this->getTableName(self::METADATA) . ' (toc_id, word_count, images) VALUES (?, ?, ?)');
         try {
-            $st->execute([$wordCount, $internalId]);
+            $st->execute([$internalId, $wordCount, $imagesJson]);
         } catch (\PDOException $e) {
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while inserting metadata: "%s".',
@@ -557,8 +557,9 @@ class MysqlRepository
                     return [];
                 }
                 $sql = '
-					SELECT *
+					SELECT t.*, m.*
 					FROM ' . $this->getTableName(self::TOC) . ' AS t
+					LEFT JOIN ' . $this->getTableName(self::METADATA) . ' AS m ON m.toc_id = t.id
 					WHERE (t.external_id, t.instance_id) IN (' . implode(',', array_fill(0, \count($ids), '(?, ?)')) . ')';
 
                 $statement = $this->pdo->prepare($sql);
@@ -839,6 +840,7 @@ class MysqlRepository
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
 			toc_id INT(11) UNSIGNED NOT NULL,
 			word_count INT(11) UNSIGNED NOT NULL,
+			images JSON NOT NULL,
 			PRIMARY KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
 
