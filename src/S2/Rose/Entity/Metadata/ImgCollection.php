@@ -6,13 +6,13 @@
 
 namespace S2\Rose\Entity\Metadata;
 
-class ImgCollection
+class ImgCollection extends \ArrayIterator
 {
     private array $images;
 
     public function __construct(Img ...$images)
     {
-        $this->images = $images;
+        parent::__construct($images);
     }
 
     /**
@@ -26,11 +26,6 @@ class ImgCollection
     public function toJson(): string
     {
         /** @noinspection PhpUnhandledExceptionInspection */
-        return json_encode($this->images, JSON_THROW_ON_ERROR);
-    }
-
-    public function offsetGet(int $int): ?Img
-    {
-        return $this->images[$int] ?? null;
+        return json_encode($this->getArrayCopy(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 }

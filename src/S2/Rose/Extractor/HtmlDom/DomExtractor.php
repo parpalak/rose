@@ -15,6 +15,10 @@ use S2\Rose\Extractor\ExtractorInterface;
 
 class DomExtractor implements ExtractorInterface
 {
+    private const NODE_SKIP   = 'node_skip';
+    private const NODE_BLOCK  = 'node_block';
+    private const NODE_INLINE = 'node_inline';
+
     use LoggerAwareTrait;
 
     public function __construct(?LoggerInterface $logger = null)
@@ -38,10 +42,10 @@ class DomExtractor implements ExtractorInterface
             libxml_use_internal_errors(true);
         }
 
-        $dom      = self::getDomDocument($text);
+        $dom      = static::getDomDocument($text);
         $domState = new DomState();
 
-        self::walkDomNode($dom->getElementsByTagName('body')[0], $domState, 0);
+        static::walkDomNode($dom->getElementsByTagName('body')[0], $domState, 0);
 
         $contentWithMetadata = $domState->toContentWithMetadata();
 
@@ -75,7 +79,7 @@ class DomExtractor implements ExtractorInterface
         return new ExtractionResult($contentWithMetadata, $extractorErrors);
     }
 
-    private static function walkDomNode(\DOMNode $domNode, DomState $domState, int $level): void
+    protected static function walkDomNode(\DOMNode $domNode, DomState $domState, int $level): void
     {
         if ($domNode instanceof \DOMText) {
             $domState->attachContent($domNode->getNodePath(), $domNode->textContent);
@@ -83,98 +87,32 @@ class DomExtractor implements ExtractorInterface
             return;
         }
 
-        $newParagraph = false;
+        $newBlock = false;
 
         if ($domNode instanceof \DOMElement) {
-            switch ($domNode->nodeName) {
-                case 'p':
-                case 'div':
-                case 'pre':
-                case 'li':
-                case 'ul':
-                case 'ol':
-                case 'h1':
-                case 'h2':
-                case 'h3':
-                case 'h4':
-                case 'h5':
-                case 'h6':
-                case 'table':
-                case 'td': // Does a new cell should be treated at least as a separate sentence? If no, remove this line
-                case 'blockquote':
-                case 'dd':
-                case 'dl':
-                case 'dt':
-                case 'menu':
-                case 'article':
-                case 'aside':
-                case 'details':
-                case 'figure':
-                case 'figcaption':
-                case 'footer':
-                case 'header':
-                case 'main':
-                case 'nav':
-                case 'section':
-                    $newParagraph = true;
-                    break;
-
-                case 'br':
-                    $domState->attachContent($domNode->getNodePath(), SentenceMap::LINE_SEPARATOR);
-                    return;
-
-                case 'hr':
-                case 'iframe':
-                    // Force space
-                    $domState->attachContent($domNode->getNodePath(), ' ');
-                    return;
-
-                case 'svg':
-                    $domState->attachImg(
-                        '', // TODO How to handle SVG? Save as data uri?
-                        $domNode->getAttribute('width'),
-                        $domNode->getAttribute('height'),
-                        ''
-                    );
-
-                    $domState->attachContent($domNode->getNodePath(), ' ');
-                    return;
-
-                case 'img':
-                    $domState->attachImg(
-                        $domNode->getAttribute('src'),
-                        $domNode->getAttribute('width'),
-                        $domNode->getAttribute('height'),
-                        $domNode->getAttribute('alt')
-                    );
-                    // TODO Add alt text?
-                    $domState->attachContent($domNode->getNodePath(), ' ');
-                    return;
-
-                case 'style':
-                case 'script':
-                    return;
-            }
-
-            if (strpos(' ' . $domNode->getAttribute('class') . ' ', ' index-skip ') !== false) {
+            $nodeType = static::processDomElement($domNode, $domState);
+            if ($nodeType === self::NODE_SKIP) {
                 return;
+            }
+            if ($nodeType === self::NODE_BLOCK) {
+                $newBlock = true;
             }
         }
 
-        if ($newParagraph) {
+        if ($newBlock) {
             $domState->startNewParagraph();
         }
 
         foreach ($domNode->childNodes as $childNode) {
-            self::walkDomNode($childNode, $domState, $level + 1);
+            static::walkDomNode($childNode, $domState, $level + 1);
         }
 
-        if ($newParagraph) {
+        if ($newBlock) {
             $domState->startNewParagraph();
         }
     }
 
-    private static function getDomDocument(string $text): \DOMDocument
+    protected static function getDomDocument(string $text): \DOMDocument
     {
         $dom = new \DOMDocument('1.0', 'UTF-8');
         if (strpos($text, '</html>') === false && strpos($text, '</body>') === false) {
@@ -193,5 +131,83 @@ class DomExtractor implements ExtractorInterface
         $dom->loadHTML($text);
 
         return $dom;
+    }
+
+    protected static function processDomElement(\DOMNode $domNode, DomState $domState): string
+    {
+        if (strpos(' ' . $domNode->getAttribute('class') . ' ', ' index-skip ') !== false) {
+            return self::NODE_SKIP;
+        }
+
+        switch ($domNode->nodeName) {
+            case 'p':
+            case 'div':
+            case 'pre':
+            case 'li':
+            case 'ul':
+            case 'ol':
+            case 'h1':
+            case 'h2':
+            case 'h3':
+            case 'h4':
+            case 'h5':
+            case 'h6':
+            case 'table':
+            case 'td': // Does a new cell should be treated at least as a separate sentence? If no, remove this line
+            case 'blockquote':
+            case 'dd':
+            case 'dl':
+            case 'dt':
+            case 'menu':
+            case 'article':
+            case 'aside':
+            case 'details':
+            case 'figure':
+            case 'figcaption':
+            case 'footer':
+            case 'header':
+            case 'main':
+            case 'nav':
+            case 'section':
+                return self::NODE_BLOCK;
+
+            case 'br':
+                $domState->attachContent($domNode->getNodePath(), SentenceMap::LINE_SEPARATOR);
+                return self::NODE_SKIP;
+
+            case 'hr':
+            case 'iframe':
+                // Force space
+                $domState->attachContent($domNode->getNodePath(), ' ');
+                return self::NODE_SKIP;
+
+            case 'svg':
+                $domState->attachImg(
+                    '', // TODO How to handle SVG? Save as data uri?
+                    $domNode->getAttribute('width'),
+                    $domNode->getAttribute('height'),
+                    ''
+                );
+
+                $domState->attachContent($domNode->getNodePath(), ' ');
+                return self::NODE_SKIP;
+
+            case 'img':
+                $domState->attachImg(
+                    $domNode->getAttribute('src'),
+                    $domNode->getAttribute('width'),
+                    $domNode->getAttribute('height'),
+                    $domNode->getAttribute('alt')
+                );
+                // TODO Add alt text?
+                $domState->attachContent($domNode->getNodePath(), ' ');
+                return self::NODE_SKIP;
+
+            case 'style':
+            case 'script':
+                return self::NODE_SKIP;
+        }
+
+        return self::NODE_INLINE;
     }
 }

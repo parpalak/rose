@@ -113,7 +113,7 @@ class SnippetBuilder
                 $snippetSource->getText(),
                 array_keys($foundWords),
                 array_sum(array_map(static function ($stem) use ($relevanceByStems) {
-                    return $relevanceByStems[$stem];
+                    return $relevanceByStems[$stem] ?? 0;
                 }, array_keys($foundStems)))
             );
 
