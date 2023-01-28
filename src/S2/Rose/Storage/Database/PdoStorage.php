@@ -341,6 +341,21 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     }
 
     /**
+     * @throws \JsonException
+     */
+    public function getSimilar(ExternalId $externalId): array
+    {
+        $data = $this->repository->getSimilar($externalId);
+
+        foreach ($data as &$row) {
+            [$tocWithMetadata] = $this->transformDataToTocEntries([$row]);
+            $row['tocWithMetadata'] = $tocWithMetadata;
+        }
+
+        return $data;
+    }
+
+    /**
      * {@inheritdoc}
      * @throws UnknownException
      */

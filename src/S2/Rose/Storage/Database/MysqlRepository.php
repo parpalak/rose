@@ -642,6 +642,65 @@ class MysqlRepository
         }
     }
 
+    public function getSimilar(ExternalId $externalId, int $limit = 10): array
+    {
+        $tocTable      = $this->getTableName(self::TOC);
+        $snippetTable  = $this->getTableName(self::SNIPPET);
+        $fulltextTable = $this->getTableName(self::FULLTEXT_INDEX);
+        $metadataTable = $this->getTableName(self::METADATA);
+
+        // Sorry for comments in Russian. Anyway I'm the one who will support it :)
+        $sql = "
+SELECT
+    relevance_info.*, -- информация из подзапроса
+    m.images, -- добавляем к ней информацию о картинках
+    t.*, -- добавляем к ней оглавление
+    -- и первые 2 предложения из текста
+    (SELECT snippet FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1) AS snippet,
+    (SELECT snippet FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1 OFFSET 1) AS snippet2
+FROM (
+    SELECT -- Перебираем все возможные заметки и вычисляем релевантность каждой для подбора рекомендаций
+        i.toc_id,
+        round(sum(
+            original_repeat + -- доп. 1 за каждый повтор слова в оригинальной заметке
+            exp( - abn/30.0 ) -- понижение веса у распространенных слов
+                * (1 + length(positions) - length(replace(positions, ',', ''))) -- повышение при повторе в рекомендуемой заметке, конструкция тождественна count(explode(',', positions))
+        ) * pow(m.word_count, -0.5), 3) AS relevance, -- тут нормировка на корень из размера рекомендуемой заметки. Не знаю, почему именно корень, но так рабоатет хорошо.
+        m.word_count,
+        GROUP_CONCAT(concat(w.name, ' ',  round(original_repeat + exp( -pow( (abn/30.0),1) )/1.0, 3)   )) AS names -- TODO remove debug
+    FROM {$fulltextTable} AS i
+        JOIN s2_search_idx_word AS w ON i.word_id = w.id -- TODO remove debug
+        JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) ON m.toc_id = i.toc_id
+    JOIN (
+        SELECT -- достаем информацию по словам из оригинальной заметки
+            word_id,
+            toc_id,
+            (SELECT count(*) FROM {$fulltextTable} WHERE word_id = x.word_id) AS abn, -- распространенность текущего слова по всем заметкам
+            length(positions) - length(replace(positions, ',', '')) AS original_repeat -- сколько раз слово повторяется в оригинальной заметке. Выше используется как доп. важность
+        FROM {$fulltextTable} AS x FORCE INDEX FOR JOIN(toc_id)
+        JOIN {$tocTable} AS t ON t.id = x.toc_id
+        WHERE t.external_id = :external_id AND t.instance_id = :instance_id
+            AND length(positions) - length(replace(positions, ',', '')) < 200 -- отсекаем слишком частые слова. Хотя 200 слишком завышенный порог, чтобы на что-то менять
+            -- AND length(positions) - length(replace(positions, ',', '')) >= 1 -- слово должно повторяться в оригинальной зметке минимум 2 раза  -- вместо этого придумал original_repeat
+        HAVING abn < 100 -- если слово встречается более чем в 100 заметках, выкидываем его, так как слишком частое. Помогает с производительностью
+    ) AS original_info ON original_info.word_id = i.word_id AND original_info.toc_id <> i.toc_id
+    GROUP BY 1
+    HAVING count(*) >= 4 -- количество общих слов, иначе отбрасываем // вот это тоже добавить в сортировку релевантности
+) AS relevance_info
+JOIN {$tocTable} AS t FORCE INDEX FOR JOIN(PRIMARY) on t.id = relevance_info.toc_id
+JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) on m.toc_id = t.id
+ORDER BY relevance DESC
+LIMIT :limit";
+        $st  = $this->pdo->prepare($sql);
+        $st->bindValue('external_id', $externalId->getId(), \PDO::PARAM_STR);
+        $st->bindValue('instance_id', (int)$externalId->getInstanceId(), \PDO::PARAM_INT);
+        $st->bindValue('limit', $limit, \PDO::PARAM_INT);
+        $st->execute();
+        $recommendations = $st->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $recommendations;
+    }
+
     /**
      * @throws EmptyIndexException
      * @throws UnknownException

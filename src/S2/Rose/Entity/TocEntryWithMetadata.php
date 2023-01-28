@@ -6,6 +6,7 @@
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Entity\Metadata\Img;
 use S2\Rose\Entity\Metadata\ImgCollection;
 
 class TocEntryWithMetadata
@@ -31,6 +32,9 @@ class TocEntryWithMetadata
         return $this->externalId;
     }
 
+    /**
+     * @return ImgCollection|Img[]
+     */
     public function getImgCollection(): ImgCollection
     {
         return $this->imgCollection;

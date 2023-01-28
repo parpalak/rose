@@ -50,4 +50,9 @@ class Img implements \JsonSerializable
     {
         return get_object_vars($this);
     }
+
+    public function hasNumericDimensions(): bool
+    {
+        return is_numeric($this->width) && is_numeric($this->height);
+    }
 }
