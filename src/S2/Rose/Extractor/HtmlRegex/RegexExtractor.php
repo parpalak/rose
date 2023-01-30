@@ -45,9 +45,9 @@ class RegexExtractor implements ExtractorInterface
         }
         foreach ([
                      '</h1>', '</h2>', '</h3>', '</h4>', '</h5>', '</h6>',
-                     '</p>', '</pre>', '</blockquote>', '</li>',
+                     '</p>', '</pre>', '</blockquote>', '</li>', '</td>',
                      '</H1>', '</H2>', '</H3>', '</H4>', '</H5>', '</H6>',
-                     '</P>', '</PRE>', '</BLOCKQUOTE>', '</LI>',
+                     '</P>', '</PRE>', '</BLOCKQUOTE>', '</LI>', '</TD>',
                  ] as $tag) {
             $replaceFrom[] = $tag;
             $replaceTo[]   = $tag . self::PARAGRAPH_SEPARATOR;

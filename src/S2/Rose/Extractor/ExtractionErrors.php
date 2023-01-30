@@ -13,7 +13,7 @@ class ExtractionErrors
      */
     private array $errors = [];
 
-    public function addError(string $message, string $code, int $line, int $column): self
+    public function addError(string $message, string $code, int $line, ?int $column = null): self
     {
         $this->errors[] = [
             'message' => $message,
@@ -44,7 +44,7 @@ class ExtractionErrors
         return array_map(static fn(array $error) => sprintf(
             "%s:%s %s (code=%s)",
             $error['line'],
-            $error['column'],
+            $error['column'] ?? '?',
             $error['message'],
             $error['code']
         ), $this->errors);

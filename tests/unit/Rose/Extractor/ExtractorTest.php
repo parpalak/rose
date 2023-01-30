@@ -76,6 +76,7 @@ class ExtractorTest extends Unit
             ['<P>One sentence.</P><p>Another<img src="1.png" alt="" />sentence.</p>', 'One sentence. Another sentence.'],
             ['<p>One sentence.</p>List:<ul><li>First</li>  <li> Second<p>and a half  </p></li></ul>', 'One sentence. List: First Second and a half'],
             ['<P><i>This</i> sentence is a little bit <em>longer. And</em> this is not.</p>', 'This sentence is a little bit longer. And this is not.'],
+            ['<p>This <table><tr><td>is broken</td><td>HTML.</td></tr></table>I <b>want <i>to</b> test a</i> real-word <img><unknown-tag>example</p>', 'This is broken HTML. I want to test a real-word example', ['this', 'is', 'broken', 'html', 'i', 'want', 'to', 'test', 'a', 'real-word', 'example']],
             [
                 '<P><i>This</i> sentence&nbsp;contains entities like &#43;, &plus;, &planck;, &amp;, &lt;, &quot;, &#8212;, &laquo;, &#x2603;, &#x1D306;, &#xA9;, &copy;. &amp;plus; is not an entity.</p>',
                 'This sentence contains entities like +, +, ℏ, &, <, ", —, «, ☃, 𝌆, ©, ©. &plus; is not an entity.',

@@ -31,6 +31,31 @@ class DomExtractor implements ExtractorInterface
         return class_exists(\DOMDocument::class);
     }
 
+    public static function processTextNode(\DOMText $domNode, DomState $domState, ExtractionErrors $extractionErrors, int $level): void
+    {
+        $textContent = $domNode->textContent;
+
+        if ($level <= 1 && trim($textContent) !== '') {
+            try {
+                $extractionErrors->addError(
+                    sprintf(
+                        'Found anonymous text block %s. Consider using <p> tag as a text container.',
+                        json_encode(
+                            mb_strlen($textContent) > 33 ? mb_substr($textContent, 0, 30) . '...' : $textContent,
+                            JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                        )
+                    ),
+                    'anon_text',
+                    $domNode->getLineNo()
+                );
+            } catch (\JsonException $e) {
+                throw new \LogicException('Impossible exception occurred.');
+            }
+        }
+
+        $domState->attachContent($domNode->getNodePath(), $textContent);
+    }
+
     /**
      * {@inheritdoc}
      * @noinspection PhpComposerExtensionStubsInspection
@@ -42,14 +67,13 @@ class DomExtractor implements ExtractorInterface
             libxml_use_internal_errors(true);
         }
 
-        $dom      = static::getDomDocument($text);
-        $domState = new DomState();
+        $dom              = static::getDomDocument($text);
+        $domState         = new DomState();
+        $extractionErrors = new ExtractionErrors();
 
-        static::walkDomNode($dom->getElementsByTagName('body')[0], $domState, 0);
+        static::walkDomNode($dom->getElementsByTagName('body')[0], $domState, $extractionErrors, 0);
 
         $contentWithMetadata = $domState->toContentWithMetadata();
-
-        $extractorErrors = new ExtractionErrors();
 
         $errors = libxml_get_errors();
         foreach ($errors as $error) {
@@ -68,7 +92,7 @@ class DomExtractor implements ExtractorInterface
                     }
                 case LIBXML_ERR_WARNING:
                 case LIBXML_ERR_ERROR:
-                    $extractorErrors->addLibXmlError($error);
+                    $extractionErrors->addLibXmlError($error);
             }
         }
 
@@ -76,13 +100,13 @@ class DomExtractor implements ExtractorInterface
             libxml_use_internal_errors(false);
         }
 
-        return new ExtractionResult($contentWithMetadata, $extractorErrors);
+        return new ExtractionResult($contentWithMetadata, $extractionErrors);
     }
 
-    protected static function walkDomNode(\DOMNode $domNode, DomState $domState, int $level): void
+    protected static function walkDomNode(\DOMNode $domNode, DomState $domState, ExtractionErrors $extractionErrors, int $level): void
     {
         if ($domNode instanceof \DOMText) {
-            $domState->attachContent($domNode->getNodePath(), $domNode->textContent);
+            self::processTextNode($domNode, $domState, $extractionErrors, $level);
 
             return;
         }
@@ -104,7 +128,7 @@ class DomExtractor implements ExtractorInterface
         }
 
         foreach ($domNode->childNodes as $childNode) {
-            static::walkDomNode($childNode, $domState, $level + 1);
+            static::walkDomNode($childNode, $domState, $extractionErrors, $level + 1);
         }
 
         if ($newBlock) {
