@@ -463,19 +463,19 @@ class MysqlRepository
         }
 
         try {
-            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' WHERE toc_id = ?');
+            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::FULLTEXT_INDEX)} WHERE toc_id = ?");
             $st->execute([$tocId]);
 
-            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::KEYWORD_INDEX) . ' WHERE toc_id = ?');
+            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::KEYWORD_INDEX)} WHERE toc_id = ?");
             $st->execute([$tocId]);
 
-            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' WHERE toc_id = ?');
+            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::KEYWORD_MULTIPLE_INDEX)} WHERE toc_id = ?");
             $st->execute([$tocId]);
 
-            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::METADATA) . ' WHERE toc_id = ?');
+            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::METADATA)} WHERE toc_id = ?");
             $st->execute([$tocId]);
 
-            $st = $this->pdo->prepare('DELETE FROM ' . $this->getTableName(self::SNIPPET) . ' WHERE toc_id = ?');
+            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::SNIPPET)} WHERE toc_id = ?");
             $st->execute([$tocId]);
         } catch (\PDOException $e) {
             if (1412 === (int)$e->errorInfo[1]) {
@@ -642,12 +642,15 @@ class MysqlRepository
         }
     }
 
-    public function getSimilar(ExternalId $externalId, int $limit = 10): array
+    public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $limit = 10): array
     {
         $tocTable      = $this->getTableName(self::TOC);
+        $wordTable     = $this->getTableName(self::WORD);
         $snippetTable  = $this->getTableName(self::SNIPPET);
         $fulltextTable = $this->getTableName(self::FULLTEXT_INDEX);
         $metadataTable = $this->getTableName(self::METADATA);
+
+        $where = $instanceId !== null ? 'WHERE t.instance_id = ' . $instanceId : '';
 
         // Sorry for comments in Russian. Anyway I'm the one who will support it :)
         $sql = "
@@ -669,7 +672,7 @@ FROM (
         m.word_count,
         GROUP_CONCAT(concat(w.name, ' ',  round(original_repeat + exp( -pow( (abn/30.0),1) )/1.0, 3)   )) AS names -- TODO remove debug
     FROM {$fulltextTable} AS i
-        JOIN s2_search_idx_word AS w ON i.word_id = w.id -- TODO remove debug
+        JOIN {$wordTable} AS w ON i.word_id = w.id -- TODO remove debug
         JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) ON m.toc_id = i.toc_id
     JOIN (
         SELECT -- достаем информацию по словам из оригинальной заметки
@@ -689,6 +692,7 @@ FROM (
 ) AS relevance_info
 JOIN {$tocTable} AS t FORCE INDEX FOR JOIN(PRIMARY) on t.id = relevance_info.toc_id
 JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) on m.toc_id = t.id
+{$where}
 ORDER BY relevance DESC
 LIMIT :limit";
         $st  = $this->pdo->prepare($sql);

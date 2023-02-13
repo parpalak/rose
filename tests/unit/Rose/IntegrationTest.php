@@ -9,8 +9,10 @@
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
+use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\Indexable;
 use S2\Rose\Entity\Query;
+use S2\Rose\Entity\TocEntryWithMetadata;
 use S2\Rose\Finder;
 use S2\Rose\Indexer;
 use S2\Rose\Stemmer\PorterStemmerEnglish;
@@ -240,6 +242,29 @@ class IntegrationTest extends Unit
         $this->assertEquals('20', $img1->getWidth());
         $this->assertEquals('25', $img1->getHeight());
         $this->assertEquals('Alternative text', $img1->getAlt());
+
+        if ($readStorage instanceof PdoStorage) {
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20));
+            $this->assertInstanceOf(TocEntryWithMetadata::class, $similarItems[0]['tocWithMetadata']);
+            $this->assertEquals($right = [
+                'toc_id'      => '1',
+                'word_count'  => '16',
+                'external_id' => 'id_1',
+                'instance_id' => '10',
+                'title'       => 'Test page title',
+                'snippet'     => 'This is the first page to be indexed.',
+                'snippet2'    => 'I have changed the content.',
+            ], array_intersect_key($similarItems[0], $right));
+
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), 10);
+            $this->assertEquals($right = [
+                'external_id' => 'id_1',
+                'instance_id' => '10',
+            ], array_intersect_key($similarItems[0], $right));
+
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), 999);
+            $this->assertCount(0, $similarItems);
+        }
     }
 
     /**
