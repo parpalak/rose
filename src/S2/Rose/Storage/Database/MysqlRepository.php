@@ -642,7 +642,7 @@ class MysqlRepository
         }
     }
 
-    public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $limit = 10): array
+    public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
     {
         $tocTable      = $this->getTableName(self::TOC);
         $wordTable     = $this->getTableName(self::WORD);
@@ -664,11 +664,11 @@ SELECT
 FROM (
     SELECT -- Перебираем все возможные заметки и вычисляем релевантность каждой для подбора рекомендаций
         i.toc_id,
-        round(sum(
+        sum(
             original_repeat + -- доп. 1 за каждый повтор слова в оригинальной заметке
             exp( - abn/30.0 ) -- понижение веса у распространенных слов
                 * (1 + length(positions) - length(replace(positions, ',', ''))) -- повышение при повторе в рекомендуемой заметке, конструкция тождественна count(explode(',', positions))
-        ) * pow(m.word_count, -0.5), 3) AS relevance, -- тут нормировка на корень из размера рекомендуемой заметки. Не знаю, почему именно корень, но так рабоатет хорошо.
+        ) * pow(m.word_count, -0.5) AS relevance, -- тут нормировка на корень из размера рекомендуемой заметки. Не знаю, почему именно корень, но так работает хорошо.
         m.word_count,
         GROUP_CONCAT(concat(w.name, ' ',  round(original_repeat + exp( -pow( (abn/30.0),1) )/1.0, 3)   )) AS names -- TODO remove debug
     FROM {$fulltextTable} AS i
@@ -684,11 +684,11 @@ FROM (
         JOIN {$tocTable} AS t ON t.id = x.toc_id
         WHERE t.external_id = :external_id AND t.instance_id = :instance_id
             AND length(positions) - length(replace(positions, ',', '')) < 200 -- отсекаем слишком частые слова. Хотя 200 слишком завышенный порог, чтобы на что-то менять
-            -- AND length(positions) - length(replace(positions, ',', '')) >= 1 -- слово должно повторяться в оригинальной зметке минимум 2 раза  -- вместо этого придумал original_repeat
+            -- AND length(positions) - length(replace(positions, ',', '')) >= 1 -- слово должно повторяться в оригинальной заметке минимум 2 раза  -- вместо этого придумал original_repeat
         HAVING abn < 100 -- если слово встречается более чем в 100 заметках, выкидываем его, так как слишком частое. Помогает с производительностью
     ) AS original_info ON original_info.word_id = i.word_id AND original_info.toc_id <> i.toc_id
     GROUP BY 1
-    HAVING count(*) >= 4 -- количество общих слов, иначе отбрасываем // вот это тоже добавить в сортировку релевантности
+    HAVING count(*) >= :min_common_words -- количество общих слов, иначе отбрасываем // вот это тоже добавить в сортировку релевантности
 ) AS relevance_info
 JOIN {$tocTable} AS t FORCE INDEX FOR JOIN(PRIMARY) on t.id = relevance_info.toc_id
 JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) on m.toc_id = t.id
@@ -699,6 +699,7 @@ LIMIT :limit";
         $st->bindValue('external_id', $externalId->getId(), \PDO::PARAM_STR);
         $st->bindValue('instance_id', (int)$externalId->getInstanceId(), \PDO::PARAM_INT);
         $st->bindValue('limit', $limit, \PDO::PARAM_INT);
+        $st->bindValue('min_common_words', $minCommonWords, \PDO::PARAM_INT);
         $st->execute();
         $recommendations = $st->fetchAll(\PDO::FETCH_ASSOC);
 

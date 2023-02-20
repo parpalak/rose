@@ -214,3 +214,20 @@ class CustomExtractor implements ExtractorInterface
 
 $indexer = new Indexer($storage, $stemmer, new CustomExtractor(), new Logger());
 ```
+
+### Recommendations
+
+PdoStorage is able to find similar items among all indexed items. Here is an example of this feature:
+
+```php
+$similarItems = $readStorage->getSimilar(new ExternalId('id_2'));
+// The result contains the following data:
+// $similarItems[0] = [
+//     'tocWithMetadata' => new TocEntryWithMetadata(...),
+//     'external_id'     => 'id_1',
+//     'instance_id'     => '1',
+//     'title'           => 'Test page title',
+//     'snippet'         => 'This is the first page to be indexed.',
+//     'snippet2'        => 'I have to make up a content.',
+// ],
+```

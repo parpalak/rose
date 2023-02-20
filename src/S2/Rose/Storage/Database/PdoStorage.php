@@ -341,11 +341,19 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     }
 
     /**
+     * @param ExternalId $externalId An id of indexed item to search other similar items
+     * @param int|null   $instanceId Id of instance where to search these similar items
+     * @param int        $minCommonWords Lower limit for common words. The less common words,
+     *                                   the more items are returned, but among them the proportion
+     *                                   of irrelevant items is increasing.
+     * @param int        $limit
+     *
+     * @return array
      * @throws \JsonException
      */
-    public function getSimilar(ExternalId $externalId, ?int $instanceId = null): array
+    public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
     {
-        $data = $this->repository->getSimilar($externalId, $instanceId);
+        $data = $this->repository->getSimilar($externalId, $instanceId, $minCommonWords, $limit);
 
         foreach ($data as &$row) {
             [$tocWithMetadata] = $this->transformDataToTocEntries([$row]);
