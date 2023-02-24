@@ -499,9 +499,9 @@ class MysqlRepository
     public function addToToc(TocEntry $entry, ExternalId $externalId): void
     {
         $sql = 'INSERT INTO ' . $this->getTableName(self::TOC) .
-            ' (external_id, instance_id, title, description, added_at, url, relevance_ratio, hash)' .
-            ' VALUES (:external_id, :instance_id, :title, :description, :added_at, :url, :relevance_ratio, :hash)' .
-            ' ON DUPLICATE KEY UPDATE title = :title, description = :description, added_at = :added_at, url = :url, relevance_ratio = :relevance_ratio, hash = :hash';
+            ' (external_id, instance_id, title, description, added_at, timezone, url, relevance_ratio, hash)' .
+            ' VALUES (:external_id, :instance_id, :title, :description, :added_at, :timezone, :url, :relevance_ratio, :hash)' .
+            ' ON DUPLICATE KEY UPDATE title = :title, description = :description, added_at = :added_at, timezone = :timezone, url = :url, relevance_ratio = :relevance_ratio, hash = :hash';
 
         try {
             $statement = $this->pdo->prepare($sql);
@@ -511,6 +511,7 @@ class MysqlRepository
                 'title'           => $entry->getTitle(),
                 'description'     => $entry->getDescription(),
                 'added_at'        => $entry->getFormattedDate(),
+                'timezone'        => $entry->getTimeZone(),
                 'url'             => $entry->getUrl(),
                 'relevance_ratio' => $entry->getRelevanceRatio(),
                 'hash'            => $entry->getHash(),
@@ -893,6 +894,7 @@ LIMIT :limit";
 			title VARCHAR(255) NOT NULL DEFAULT "",
 			description TEXT NOT NULL,
 			added_at DATETIME NULL,
+			timezone VARCHAR(64) NULL,
 			url TEXT NOT NULL,
 			relevance_ratio DECIMAL(4,3) NOT NULL,
 			hash VARCHAR(80) NOT NULL DEFAULT "",

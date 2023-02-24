@@ -75,4 +75,9 @@ class TocEntry
     {
         return $this->date !== null ? $this->date->format('Y-m-d H:i:s') : null;
     }
+
+    public function getTimeZone(): ?string
+    {
+        return $this->date !== null ? $this->date->getTimeZone()->getName() : null;
+    }
 }

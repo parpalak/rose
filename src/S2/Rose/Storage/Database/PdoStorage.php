@@ -498,7 +498,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             $date = null;
             if (isset($row['added_at'])) {
                 try {
-                    $date = new \DateTime($row['added_at']);
+                    $date = new \DateTime($row['added_at'], isset($row['timezone']) ? new \DateTimeZone($row['timezone']) : null);
                 } catch (\Exception $e) {
                 }
             }

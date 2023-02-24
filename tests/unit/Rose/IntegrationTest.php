@@ -105,6 +105,7 @@ class IntegrationTest extends Unit
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
         $this->assertEquals(4.1610856664112195, $items[0]->getRelevance());
+        $this->assertEquals(new \DateTime('2016-08-20 00:00:00+00:00'), $items[0]->getDate());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
 
         $resultSet2 = $finder->find(new Query('content'));
@@ -373,7 +374,7 @@ class IntegrationTest extends Unit
             (new Indexable('id_2', 'To be continued...', 'This is the second page to be indexed. Let\'s compose something new.', 20))
                 ->setKeywords('content, ')
                 ->setDescription('')
-                ->setDate(new \DateTime('2016-08-20 00:00:00'))
+                ->setDate(new \DateTime('2016-08-20 00:00:00+00:00'))
                 ->setUrl('any string')
                 ->setRelevanceRatio(3.14)
             ,
