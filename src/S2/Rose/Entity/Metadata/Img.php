@@ -46,6 +46,9 @@ class Img implements \JsonSerializable
         return new self($img['src'], $img['width'], $img['height'], $img['alt']);
     }
 
+    /**
+     * @return mixed
+     */
     public function jsonSerialize()
     {
         return get_object_vars($this);

@@ -30,44 +30,21 @@ use S2\Rose\Storage\TransactionalStorageInterface;
 
 class PdoStorage implements StorageWriteInterface, StorageReadInterface, StorageEraseInterface, TransactionalStorageInterface
 {
-    /**
-     * @var array
-     */
-    protected $cachedWordIds = [];
+    protected array $cachedWordIds = [];
+    protected array $options = [];
+    protected IdMappingStorage $mapping;
+    protected \PDO $pdo;
+    protected string $prefix;
+    protected ?MysqlRepository $repository = null;
 
     /**
-     * @var array
-     */
-    protected $options = [];
-
-    /**
-     * @var IdMappingStorage
-     */
-    protected $mapping;
-
-    /**
-     * @var MysqlRepository
-     */
-    protected $repository;
-
-    /**
-     * @param \PDO   $pdo
-     * @param string $prefix
-     * @param array  $options
-     *
      * @throws InvalidEnvironmentException
      */
-    public function __construct(\PDO $pdo, $prefix = 's2_rose_', array $options = [])
+    public function __construct(\PDO $pdo, string $prefix = 's2_rose_', array $options = [])
     {
-        $driverName = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        switch ($driverName) {
-            case 'mysql':
-                $this->repository = new MysqlRepository($pdo, $prefix, $options);
-                break;
-
-            default:
-                throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
-        }
+        $this->pdo     = $pdo;
+        $this->prefix  = $prefix;
+        $this->options = $options;
         $this->mapping = new IdMappingStorage();
     }
 
@@ -81,7 +58,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     {
         $this->mapping->clear();
         $this->cachedWordIds = [];
-        $this->repository->erase();
+        $this->getRepository()->erase();
     }
 
     /**
@@ -98,7 +75,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             return $result;
         }
 
-        $data = $this->repository->findFulltextByWords($words, $instanceId);
+        $data = $this->getRepository()->findFulltextByWords($words, $instanceId);
 
         foreach ($data as $row) {
             $result->add($row['word'], $this->getExternalIdFromRow($row), $row['positions'], $row['word_count']);
@@ -114,7 +91,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
     {
-        $data    = $this->repository->findSingleKeywordIndex($words, $instanceId);
+        $data    = $this->getRepository()->findSingleKeywordIndex($words, $instanceId);
         $tocSize = $this->getTocSize($instanceId);
 
         /** @var KeywordIndexContent[]|array $result */
@@ -138,7 +115,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getMultipleKeywordIndexByString($string, $instanceId = null)
     {
-        $data = $this->repository->findMultipleKeywordIndex($string, $instanceId);
+        $data = $this->getRepository()->findMultipleKeywordIndex($string, $instanceId);
 
         $result = new KeywordIndexContent();
         foreach ($data as $row) {
@@ -153,7 +130,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getSnippets(SnippetQuery $snippetQuery): SnippetResult
     {
-        $data = $this->repository->getSnippets($snippetQuery);
+        $data = $this->getRepository()->getSnippets($snippetQuery);
 
         $result = new SnippetResult();
         foreach ($data as $row) {
@@ -180,7 +157,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $internalId = $this->getInternalIdFromExternalId($externalId);
         $wordIds    = $this->getWordIds($words);
 
-        $this->repository->insertFulltext($words, $wordIds, $internalId);
+        $this->getRepository()->insertFulltext($words, $wordIds, $internalId);
     }
 
     /**
@@ -231,7 +208,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     public function addMetadata(ExternalId $externalId, int $wordCount, ImgCollection $imgCollection): void
     {
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $this->repository->insertMetadata($internalId, $wordCount, $imgCollection->toJson());
+        $this->getRepository()->insertMetadata($internalId, $wordCount, $imgCollection->toJson());
     }
 
     /**
@@ -245,7 +222,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             return;
         }
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $this->repository->insertSnippets($internalId, ...$snippets);
+        $this->getRepository()->insertSnippets($internalId, ...$snippets);
     }
 
     /**
@@ -256,7 +233,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function removeFromIndex(ExternalId $externalId)
     {
-        $this->repository->removeFromIndex($externalId);
+        $this->getRepository()->removeFromIndex($externalId);
     }
 
     /**
@@ -267,12 +244,12 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function addEntryToToc(TocEntry $entry, ExternalId $externalId)
     {
-        $this->repository->addToToc($entry, $externalId);
+        $this->getRepository()->addToToc($entry, $externalId);
 
         try {
             $internalId = $this->getInternalIdFromExternalId($externalId);
         } catch (UnknownIdException $e) {
-            $internalId = $this->repository->selectInternalId($externalId);
+            $internalId = $this->getRepository()->selectInternalId($externalId);
             $this->mapping->add($externalId, $internalId);
         }
 
@@ -287,7 +264,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getTocByExternalIds(ExternalIdCollection $externalIds, $instanceId = null)
     {
-        $data = $this->repository->getTocEntries(['ids' => $externalIds]);
+        $data = $this->getRepository()->getTocEntries(['ids' => $externalIds]);
 
         return $this->transformDataToTocEntries($data);
     }
@@ -299,7 +276,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getTocByTitlePrefix($titlePrefix)
     {
-        $data = $this->repository->getTocEntries(['title' => $titlePrefix]);
+        $data = $this->getRepository()->getTocEntries(['title' => $titlePrefix]);
 
         return $this->transformDataToTocEntries($data);
     }
@@ -325,7 +302,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getTocSize($instanceId)
     {
-        return $this->repository->getTocSize($instanceId);
+        return $this->getRepository()->getTocSize($instanceId);
     }
 
     /**
@@ -336,7 +313,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function removeFromToc(ExternalId $externalId)
     {
-        $this->repository->removeFromToc($externalId);
+        $this->getRepository()->removeFromToc($externalId);
         $this->mapping->remove($externalId);
     }
 
@@ -353,7 +330,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
     {
-        $data = $this->repository->getSimilar($externalId, $instanceId, $minCommonWords, $limit);
+        $data = $this->getRepository()->getSimilar($externalId, $instanceId, $minCommonWords, $limit);
 
         foreach ($data as &$row) {
             [$tocWithMetadata] = $this->transformDataToTocEntries([$row]);
@@ -370,7 +347,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     public function startTransaction()
     {
         $this->mapping->clear();
-        $this->repository->startTransaction();
+        $this->getRepository()->startTransaction();
     }
 
     /**
@@ -379,7 +356,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function commitTransaction()
     {
-        $this->repository->commitTransaction();
+        $this->getRepository()->commitTransaction();
         $this->mapping->clear();
     }
 
@@ -389,7 +366,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function rollbackTransaction()
     {
-        $this->repository->rollbackTransaction();
+        $this->getRepository()->rollbackTransaction();
     }
 
     /**
@@ -397,7 +374,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function getIndexStat()
     {
-        return $this->repository->getIndexStat();
+        return $this->getRepository()->getIndexStat();
     }
 
     /**
@@ -426,7 +403,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             return $knownWords;
         }
 
-        $ids = $this->repository->findIdsByWords(array_keys($unknownWords));
+        $ids = $this->getRepository()->findIdsByWords(array_keys($unknownWords));
         foreach ($ids as $word => $id) {
             $this->cachedWordIds[$word] = $id;
             $knownWords[$word]          = $id;
@@ -437,9 +414,9 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             return $knownWords;
         }
 
-        $this->repository->insertWords(array_keys($unknownWords));
+        $this->getRepository()->insertWords(array_keys($unknownWords));
 
-        $ids = $this->repository->findIdsByWords(array_keys($unknownWords));
+        $ids = $this->getRepository()->findIdsByWords(array_keys($unknownWords));
         foreach ($ids as $word => $id) {
             $this->cachedWordIds[$word] = $id;
             $knownWords[$word]          = $id;
@@ -464,7 +441,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     private function addKeywordToDb($word, ExternalId $externalId, $type, $tableKey)
     {
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $this->repository->insertKeywords([$word], $internalId, $type, $tableKey);
+        $this->getRepository()->insertKeywords([$word], $internalId, $type, $tableKey);
     }
 
     /**
@@ -518,5 +495,22 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         }
 
         return $result;
+    }
+
+    private function getRepository()
+    {
+        if ($this->repository === null) {
+            $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            switch ($driverName) {
+                case 'mysql':
+                    $this->repository = new MysqlRepository($this->pdo, $this->prefix, $this->options);
+                    break;
+
+                default:
+                    throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
+            }
+        }
+
+        return $this->repository;
     }
 }
