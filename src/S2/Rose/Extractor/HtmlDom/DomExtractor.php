@@ -218,10 +218,10 @@ class DomExtractor implements ExtractorInterface
 
             case 'img':
                 $domState->attachImg(
-                    $domNode->getAttribute('src'),
+                    html_entity_decode($domNode->getAttribute('src'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5),
                     $domNode->getAttribute('width'),
                     $domNode->getAttribute('height'),
-                    $domNode->getAttribute('alt')
+                    html_entity_decode($domNode->getAttribute('alt'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)
                 );
                 // TODO Add alt text?
                 $domState->attachContent($domNode->getNodePath(), ' ');

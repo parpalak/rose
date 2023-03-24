@@ -42,17 +42,19 @@ class ExtractorTest extends Unit
     /**
      * @dataProvider htmlTextProvider
      */
-    public function testDomExtractor(string $htmlText, string $resultText, ?array $s = null): void
+    public function testDomExtractor(string $htmlText, string $resultText, ?array $words = null, $images = null): void
     {
         $extractionResult = $this->domExtractor->extract($htmlText);
         $sentenceMap      = $extractionResult->getContentWithMetadata()->getSentenceMap();
 
         self::assertEquals($resultText, $sentenceMap->toSentenceCollection()->getText());
-        if ($s !== null) {
-            self::assertEquals($s, $sentenceMap->toSentenceCollection()->getWordsArray());
+        if ($words !== null) {
+            self::assertEquals($words, $sentenceMap->toSentenceCollection()->getWordsArray());
+        }
+        if ($images !== null) {
+            self::assertEquals($images, $extractionResult->getContentWithMetadata()->getImageCollection()->toJson());
         }
     }
-
     /**
      * @dataProvider htmlSentenceProvider
      */
@@ -112,19 +114,21 @@ div {
 
 <p><img src="1.jpg" width="300" height="200">Внешнее кольцо позволяет пренебречь.</p>
 
-<p><img src="2.jpg" width="300" height="200">
+<p><img src="https://localhost/2.jpg&amp;test=1" width="300" height="200" alt="valid escaped src and alt &amp; &rarr; &amp;rarr;">
 
 <blockquote>
     А это цитата, ее тоже надо индексировать.
     <p>В цитате могут быть абзацы.</p>
 </blockquote>
 
-<img src="3.jpg" width="300" height="200">
+<img src="https://localhost/3.jpg&test=1" width="300" height="200" alt="invalid escaped src and alt &">
 
 <p>Ошибка <i>астатически</i> даёт более простую систему.</p>
 
 <p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>',
                 'Должно проиндексироваться. Внешнее кольцо позволяет пренебречь. А это цитата, ее тоже надо индексировать. В цитате могут быть абзацы. Ошибка астатически даёт более простую систему. Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
+                null,
+                '[{"src":"1.jpg","width":"300","height":"200","alt":""},{"src":"https:\/\/localhost\/2.jpg&test=1","width":"300","height":"200","alt":"valid escaped src and alt & → &rarr;"},{"src":"https:\/\/localhost\/3.jpg&test=1","width":"300","height":"200","alt":"invalid escaped src and alt &"}]'
             ],
         ];
     }
