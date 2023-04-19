@@ -29,8 +29,13 @@ class StringHelper
      */
     public static function sentencesFromText(string $text): array
     {
-        // TODO improve algorithm
-        $substrings = preg_split('#[.?!]\K([ \n\t\r]+)#S', $text);
+        $text2 = preg_replace('#(\p{Lu}\p{L}*\.?)\s+(\p{Lu}\p{L}?\.)\s+(\p{Lu})#u',"\\1�\\2�\\3", $text);
+        $text2 = preg_replace('#(\p{Lu}\p{L}?\.)(\p{Lu}\p{L}?\.)\s+(\p{Lu})#u',"\\1\\2�\\3", $text2);
+        $text2 = preg_replace('#\s\K(Mr.|Dr.)\s(?=\p{Lu}\p{L}?)#u',"\\1�\\3", $text2);
+
+        $substrings = preg_split('#[.?!]\K([ \n\t\r]+)(?=[^\p{Ll}])#Su', $text2);
+
+        $substrings = str_replace("�", ' ', $substrings);
 
         return $substrings;
     }
