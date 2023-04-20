@@ -5,7 +5,7 @@ It indexes your content and provides a full-text search.
 ## Requirements
 
 1. PHP 7.4 or later. ![Build Status](https://github.com/parpalak/rose/actions/workflows/test.yml/badge.svg?branch=master)
-2. A relational database (MySQL is supported for now) in case of significant content size.
+2. A relational database in case of significant content size. MySQL 5.7+ and MariaDB 10.2+ are supported.
 
 ## Installation
 

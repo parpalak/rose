@@ -12,7 +12,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating_system: ['ubuntu-20.04', 'ubuntu-18.04']
+        operating_system: ['ubuntu-20.04']
+        mysql_versions:
+          - 'mariadb-10.2'
+          - 'mariadb-10.3'
+          - 'mariadb-10.4'
+          - 'mariadb-10.5'
+          - 'mariadb-10.6'
+          - 'mariadb-10.7'
+          - 'mariadb-10.8'
+          - 'mariadb-10.9'
+          - '5.7'
+          - '8.0'
         php_versions:
           - '7.4'
           - '8.0'
@@ -21,14 +32,25 @@ jobs:
           -
             operating_system: 'ubuntu-22.04'
             php_versions: 8.1
+            mysql_versions: 'mariadb-10.7'
           -
             operating_system: 'ubuntu-22.04'
             php_versions: 8.2
+            mysql_versions: '8.0'
 
     runs-on: '${{ matrix.operating_system }}'
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - uses: shogo82148/actions-setup-mysql@v1
+        with:
+          mysql-version: ${{ matrix.mysql_versions }}
+          root-password: ${{ env.DB_PASSWORD }}
+
+      - name: 'Setup MySQL'
+        run: |
+          mysql -e 'SELECT version();' -u${{ env.DB_USER }} -h127.0.0.1 -p${{ env.DB_PASSWORD }}
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -h127.0.0.1 -p${{ env.DB_PASSWORD }}
 
       - name: 'Setup PHP'
         uses: shivammathur/setup-php@v2
@@ -40,12 +62,6 @@ jobs:
 
       - name: Prepare config
         run: cp tests/config.php.dist tests/config.php
-
-      - name: Set up MySQL
-        run: |
-          sudo /etc/init.d/mysql start
-          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
-          mysql -e 'SELECT version();' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
 
       - name: Run test cases
         run: php bin/codecept run --skip-group profile
