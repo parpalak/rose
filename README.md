@@ -1,5 +1,6 @@
 # Rose
-This is a simple search engine for content sites with simplified but functional English and Russian morphology support.
+
+This is a search engine designed for content sites with simplified yet functional English and Russian morphology support.
 It indexes your content and provides a full-text search.
 
 ## Requirements
@@ -15,10 +16,10 @@ composer require s2/rose
 
 ## Usage
 ### Preparing Storage
-The index can be stored in a database or in a file. A storage is an abstraction layer that hides implementation details.
+The index can be stored in a database or in a file. A storage serves as an abstraction layer that conceals implementation details.
 In most cases you need database storage `PdoStorage`.
 
-Both indexing and searching require the storage.
+The storage is required for both indexing and searching.
 
 ```php
 $pdo = new \PDO('mysql:host=127.0.0.1;dbname=s2_rose_test;charset=utf8', 'username', 'passwd');
@@ -34,13 +35,14 @@ When you want to rebuild the index, you call `PdoStorage::erase()` method:
 $storage->erase();
 ```
 
-It drops index tables (if exist) and creates new ones from scratch. This method will be enough to upgrade to a new version of Rose that breaks the backward compatibility of the index.
+It drops index tables (if they exist) and creates new ones from scratch.
+This method is sufficient for upgrading to a new version of Rose that may not be backward compatible with the existing index.
 
 ### Morphology
 
 For natural language processing, Rose uses stemmers.
-Stemmer cuts off the changing part of words and Rose deals with stems.
-It has no built-in dictionaries but contains heuristic stemmers developed by Porter.
+The stemmer truncates the inflected part of words, and Rose processes the resulting stems.
+Rose does not have built-in dictionaries, but it includes heuristic stemmers developed by Porter.
 You can integrate any other algorithm by implementing the StemmerInterface.
 
 ```php
@@ -80,7 +82,7 @@ $indexable
 	->setDescription('Description can be used in snippets') // The same as Meta Description
 	->setDate(new \DateTime('2016-08-24 00:00:00'))
 	->setUrl('url1')
-	->getRelevanceRatio(3.14)                               // Multiplier for important pages 
+	->setRelevanceRatio(3.14)                               // Multiplier for important pages
 ;
 
 $indexer->index($indexable);
@@ -99,13 +101,19 @@ The constructor of `Indexable` requires 4 arguments:
 - external ID - an arbitrary string that is sufficient for your code to identify the page;
 - page title;
 - page content;
-- instance ID - an optional integer ID of the page source (e.g. for multi-site services), see below for details.
+- instance ID - an optional integer ID of the page source (e.g., for multi-site services), as explained below.
 
-You may also provide some optional parameters: keywords, description, date, relevance ratio and URL. Keywords are indexed and searched with higher relevance. The description can be used for building a snippet (see below). It's a good idea to use the content of "keyword" and "description" meta-tags for this purpose (if you have any, of course). The URL can be an arbitrary string.
+Optional parameters that you can provide include: keywords, description, date, relevance ratio, and URL.
+Keywords are indexed and searched with higher relevance.
+The description can be used for building a snippet (see below).
+The URL can be an arbitrary string.
 
-The `Indexer::index()` method is used both for adding and updating the index. If the content is not changed, this method skips the job. Otherwise, the content is being removed and indexed again.
+It is suggested to use the content of "keyword" and "description" meta-tags, if available, for this purpose.
 
-When you remove a page from the site, just call
+The `Indexer::index()` method is used for both adding and updating the index.
+If the content is unchanged, this method skips the operation. Otherwise, the content is being removed and indexed again.
+
+When you remove a page from the site, simply call
 
 ```php
 $indexer->removeById($externalId, $instanceId);
@@ -170,7 +178,7 @@ $resultSet->getItems()[0]->getHighlightedTitle($stemmer); // 'Test page <i>title
 
 This method requires the stemmer since it takes into account the morphology and highlights all the word forms. By default, words are highlighted with italics. You can change the highlight template by calling `$finder->setHighlightTemplate('<b>%s</b>')`.
 
-Snippets are small text fragments containing found words that are displayed at a search result page. Rose processes the indexed content and selects best matching sentences.
+Snippets are small text fragments containing found words that are displayed at a search results page. Rose processes the indexed content and selects best matching sentences.
 
 ```php
 use S2\Rose\Entity\ExternalContent;
@@ -182,7 +190,7 @@ $resultSet->getItems()[0]->getSnippet();
 // 'I have to make up a <i>content</i>. &middot; I have changed the <i>content</i>.'
 ```
 
-Words in snippets are highlighted the same way as in titles.
+Words in the snippets are highlighted the same way as in titles.
 
 If building snippets takes a lot of time, try to use pagination to reduce the number of snippets processed. 
 
@@ -190,16 +198,20 @@ If building snippets takes a lot of time, try to use pagination to reduce the nu
 
 Instances can be helpful to restrict the scope of search.
 
-For example, you can try to index blog posts with `instance_id = 1` and comments with `instance_id = 2`. Then you can run queries with different restrictions:
+For example, you can try to index blog posts with `instance_id = 1` and comments with `instance_id = 2`.
+Then you can run queries with different restrictions:
 - `(new Query('content'))->setInstanceId(1)` searches through blog posts,
 - `(new Query('content'))->setInstanceId(2)` searches through comments,
-- `(new Query('content'))` searches through everywhere.
+- `(new Query('content'))` searches everywhere.
 
 If you omit instance_id or provide `instance_id === null`, a value `0` will be used internally. This content can match only queries without instance_id restriction.
 
 ### Content format and extraction
 
-Rose is designed for websites and web applications. It supports HTML format of the content. However, it is possible to extend the code to support other formats. This can be done via creating a custom extractor:
+Rose is designed for the websites and web applications.
+It supports HTML format of the content by default.
+However, it is possible to extend the code to support other formats (e.g. plain text, markdown).
+This can be done by creating a custom extractor:
 
 ```php
 use S2\Rose\Extractor\ExtractorInterface;
@@ -217,7 +229,16 @@ $indexer = new Indexer($storage, $stemmer, new CustomExtractor(), new Logger());
 
 ### Recommendations
 
-PdoStorage is able to find similar items among all indexed items. Here is an example of this feature:
+PdoStorage has the capability to identify similar items within the entire set of indexed items.
+
+Consider a scenario where you have a blog and its posts are indexed using Rose.
+This particular feature allows you to choose a set of other posts for each individual post, enabling visitors to explore related content.
+
+The data structure within the full-text index is well-suited for the task of selecting similar posts.
+To put it simply, regular search entails selecting relevant posts based on words from a search query,
+whereas post recommendations involve selecting other posts based on the words present in a given post.
+
+You can retrieve recommendations by invoking the following method:
 
 ```php
 $similarItems = $readStorage->getSimilar(new ExternalId('id_2'));
