@@ -39,4 +39,15 @@ class StringHelper
 
         return $substrings;
     }
+
+    /**
+     * @return string[]
+     */
+    public static function sentencesFromCode(string $text): array
+    {
+        $substrings = preg_split('#(\r?\n\r?){2,}#Su', $text);
+        array_walk($substrings, 'trim');
+
+        return $substrings;
+    }
 }

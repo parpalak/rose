@@ -55,6 +55,7 @@ class ExtractorTest extends Unit
             self::assertEquals($images, $extractionResult->getContentWithMetadata()->getImageCollection()->toJson());
         }
     }
+
     /**
      * @dataProvider htmlSentenceProvider
      */
@@ -181,9 +182,52 @@ div {
             'Итог',
         ];
 
+        $sourceWithCode = '<p>Ошибка <i>астатически</i> даёт более простую систему.</p>
+
+<pre><code>&lt;?php
+
+require \'vendor/autoload.php\';
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\ServerRequest;
+
+// Создание экземпляра клиента Guzzle
+$client = new Client();
+
+// Обработка входящего запроса
+$request = ServerRequest::fromGlobals();
+
+// Получение URL-адреса запрашиваемого сайта
+$url = $request->getUri();
+$url
+    // Я собирался ходить на https-сайты, поэтому подменил протокол и порт
+    ->withScheme(\'https\')
+    ->withPort(443)
+    // Подменяем хост (видимо, тут и есть обработка протокола http-прокси)
+    ->withHost($request->getHeaderLine(\'host\'))
+    ->withQuery($request->getUri()->getQuery())
+;
+</code></pre>
+
+<p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>';
+
+        $sourceWithCodeSentences = [
+            'Ошибка астатически даёт более простую систему.',
+            '<?php',
+            'require \'vendor/autoload.php\';',
+            'use GuzzleHttp\Client; use GuzzleHttp\Psr7\Request; use GuzzleHttp\Psr7\ServerRequest;',
+            '// Создание экземпляра клиента Guzzle $client = new Client();',
+            '// Обработка входящего запроса $request = ServerRequest::fromGlobals();',
+            '// Получение URL-адреса запрашиваемого сайта $url = $request->getUri(); $url // Я собирался ходить на https-сайты, поэтому подменил протокол и порт ->withScheme(\'https\') ->withPort(443) // Подменяем хост (видимо, тут и есть обработка протокола http-прокси) ->withHost($request->getHeaderLine(\'host\')) ->withQuery($request->getUri()->getQuery()) ;',
+            'Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
+
+        ];
+
         return [
             [new DomExtractor(), $source, $sentences],
             [new RegexExtractor(), $source, $sentences],
+            [new DomExtractor(), $sourceWithCode, $sourceWithCodeSentences],
         ];
     }
 }

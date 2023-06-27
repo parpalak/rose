@@ -23,7 +23,7 @@ class SentenceMap
      *    ],
      * ]
      *
-     * @var array[][]
+     * @var array[]
      */
     private array $paragraphs = [];
 
@@ -46,31 +46,70 @@ class SentenceMap
     {
         $sentenceCollection = new SentenceCollection();
 
-        foreach ($this->paragraphs as $paragraph) {
-            $text      = trim(implode('', $paragraph));
-            $sentences = StringHelper::sentencesFromText($text);
+        foreach ($this->paragraphs as $paragraphSentences) {
+            $accumulatedRegularSentences = '';
+            foreach ($paragraphSentences as $path => $paragraphSentence) {
+                if (strpos($path, '/code/') === false) {
+                    // Merge non-code text content and then break into sentences.
+                    $accumulatedRegularSentences .= $paragraphSentence;
+                } else {
+                    // When a code block is encountered, do accumulated regular work
+                    $this->processRegularSentences($accumulatedRegularSentences, $sentenceCollection);
+                    $accumulatedRegularSentences = '';
 
-            if (($linesNum = 1 + substr_count($text, self::LINE_SEPARATOR)) > 3) {
-                $totalWordNum = \count(SentenceCollection::breakIntoWords($text));
-                $avgWordNumInSentences = 1.0 * $totalWordNum / \count($sentences);
-                $avgWordNumInLines = 1.0 * $totalWordNum / $linesNum;
-
-                if ($avgWordNumInSentences > 20 && $avgWordNumInLines > 3 && $avgWordNumInLines < 15) {
-                    // Heuristics for lines separated by <br>.
-                    // This branch is for lists like table of contents.
-                    $sentences = explode(self::LINE_SEPARATOR, $text);
+                    // and process the code in a different way
+                    $this->processCodeSentences($paragraphSentence, $sentenceCollection);
                 }
             }
 
-            foreach ($sentences as $sentence) {
-                if ($sentence === '') {
-                    continue;
-                }
-                // TODO transfer information about formatting?
-                $sentenceCollection->attach($sentence);
-            }
+            $this->processRegularSentences($accumulatedRegularSentences, $sentenceCollection);
         }
 
         return $sentenceCollection;
+    }
+
+    /**
+     * Breaks a regular text into sentences using heuristics based on punctuation rules.
+     */
+    private function processRegularSentences(string $text, SentenceCollection $sentenceCollection): void
+    {
+        $text = trim($text);
+        $sentences = StringHelper::sentencesFromText($text);
+
+        if (($linesNum = 1 + substr_count($text, self::LINE_SEPARATOR)) > 3) {
+            $totalWordNum          = \count(SentenceCollection::breakIntoWords($text));
+            $avgWordNumInSentences = 1.0 * $totalWordNum / \count($sentences);
+            $avgWordNumInLines     = 1.0 * $totalWordNum / $linesNum;
+
+            if ($avgWordNumInSentences > 20 && $avgWordNumInLines > 3 && $avgWordNumInLines < 15) {
+                // Heuristics for lines separated by <br>.
+                // This branch is for lists like table of contents.
+                $sentences = explode(self::LINE_SEPARATOR, $text);
+            }
+        }
+
+        foreach ($sentences as $sentence) {
+            if ($sentence === '') {
+                continue;
+            }
+            // TODO transfer information about formatting?
+            $sentenceCollection->attach($sentence);
+        }
+    }
+
+    /**
+     * Breaks a source code into "sentences" using empty lines as a separator.
+     */
+    private function processCodeSentences(string $text, SentenceCollection $sentenceCollection): void
+    {
+        $sentences = StringHelper::sentencesFromCode($text);
+
+        foreach ($sentences as $sentence) {
+            if ($sentence === '') {
+                continue;
+            }
+
+            $sentenceCollection->attach($sentence);
+        }
     }
 }
