@@ -49,7 +49,7 @@ class SentenceMap
         foreach ($this->paragraphs as $paragraphSentences) {
             $accumulatedRegularSentences = '';
             foreach ($paragraphSentences as $path => $paragraphSentence) {
-                if (strpos($path, '/code/') === false) {
+                if (strpos($path, '/pre/code/') === false) {
                     // Merge non-code text content and then break into sentences.
                     $accumulatedRegularSentences .= $paragraphSentence;
                 } else {
