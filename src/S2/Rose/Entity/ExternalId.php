@@ -26,7 +26,7 @@ class ExternalId
             throw new InvalidArgumentException('External id must be string or int or float.');
         }
 
-        $this->id         = $id;
+        $this->id         = (string)$id;
         $this->instanceId = $instanceId;
     }
 
