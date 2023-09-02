@@ -1,13 +1,11 @@
-<?php /** @noinspection OneTimeUseVariablesInspection */
-/** @noinspection PhpUnnecessaryLocalVariableInspection */
-/** @noinspection SqlNoDataSourceInspection */
+<?php /** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
-/** @noinspection PhpComposerExtensionStubsInspection */
-
 /**
  * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Storage\Database;
 

@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpUnnecessaryLocalVariableInspection */
+/** @noinspection SqlDialectInspection */
 /**
  * @copyright 2020-2023 Roman Parpalak
  * @license   MIT
@@ -51,8 +52,11 @@ abstract class AbstractRepository
     abstract public function erase(): void;
 
     abstract public function addToToc(TocEntry $entry, ExternalId $externalId): void;
+
     abstract public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array;
+
     abstract public function getIndexStat(): array;
+
     /**
      * @param string[] $words
      */
@@ -533,7 +537,7 @@ abstract class AbstractRepository
 
         $result = $statement->fetch(\PDO::FETCH_COLUMN);
 
-        return $result;
+        return (int)$result;
     }
 
     /**
@@ -587,7 +591,7 @@ abstract class AbstractRepository
 
         $internalId = $statement->fetch(\PDO::FETCH_COLUMN);
 
-        return $internalId === false ? null : $internalId;
+        return $internalId === false ? null : (int)$internalId;
     }
 
     public function selectInternalIds(ExternalId ...$externalIds): array
@@ -686,6 +690,6 @@ abstract class AbstractRepository
 
     private function getExternalIdFromRow(array $row): ExternalId
     {
-        return new ExternalId($row['external_id'], $row['instance_id'] > 0 ? $row['instance_id'] : null);
+        return new ExternalId($row['external_id'], is_numeric($row['instance_id']) && $row['instance_id'] > 0 ? (int)$row['instance_id'] : null);
     }
 }

@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpUnnecessaryLocalVariableInspection */
+/** @noinspection SqlDialectInspection */
 /**
  * @copyright 2023 Roman Parpalak
  * @license   MIT
