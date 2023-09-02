@@ -35,7 +35,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     protected IdMappingStorage $mapping;
     protected \PDO $pdo;
     protected string $prefix;
-    protected ?MysqlRepository $repository = null;
+    protected ?AbstractRepository $repository = null;
 
     /**
      * @throws InvalidEnvironmentException
@@ -67,6 +67,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @return FulltextIndexContent
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function fulltextResultByWords(array $words, $instanceId = null)
     {
@@ -88,6 +89,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * {@inheritdoc}
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
     {
@@ -112,6 +114,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * {@inheritdoc}
      * @throws UnknownException
      * @throws EmptyIndexException
+     * @throws InvalidEnvironmentException
      */
     public function getMultipleKeywordIndexByString($string, $instanceId = null)
     {
@@ -127,6 +130,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
 
     /**
      * {@inheritdoc}
+     * @throws InvalidEnvironmentException
      */
     public function getSnippets(SnippetQuery $snippetQuery): SnippetResult
     {
@@ -204,6 +208,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws UnknownIdException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function addMetadata(ExternalId $externalId, int $wordCount, ImgCollection $imgCollection): void
     {
@@ -215,6 +220,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * {@inheritdoc}
      *
      * @throws UnknownIdException
+     * @throws InvalidEnvironmentException
      */
     public function addSnippets(ExternalId $externalId, SnippetSource ...$snippets): void
     {
@@ -230,6 +236,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function removeFromIndex(ExternalId $externalId)
     {
@@ -241,6 +248,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function addEntryToToc(TocEntry $entry, ExternalId $externalId)
     {
@@ -261,6 +269,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function getTocByExternalIds(ExternalIdCollection $externalIds, $instanceId = null)
     {
@@ -273,6 +282,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @param string $titlePrefix
      *
      * @return TocEntryWithMetadata[]
+     * @throws InvalidEnvironmentException
+     * @throws \JsonException
      */
     public function getTocByTitlePrefix($titlePrefix)
     {
@@ -286,12 +297,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function getTocByExternalId(ExternalId $externalId)
     {
         $entries = $this->getTocByExternalIds(new ExternalIdCollection([$externalId]));
 
-        return count($entries) > 0 ? $entries[0]->getTocEntry() : null;
+        return \count($entries) > 0 ? $entries[0]->getTocEntry() : null;
     }
 
     /**
@@ -299,6 +311,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function getTocSize($instanceId)
     {
@@ -310,6 +323,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @throws EmptyIndexException
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function removeFromToc(ExternalId $externalId)
     {
@@ -327,6 +341,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      *
      * @return array
      * @throws \JsonException
+     * @throws InvalidEnvironmentException
      */
     public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
     {
@@ -343,6 +358,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     /**
      * {@inheritdoc}
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function startTransaction()
     {
@@ -353,6 +369,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     /**
      * {@inheritdoc}
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function commitTransaction()
     {
@@ -363,6 +380,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     /**
      * {@inheritdoc}
      * @throws UnknownException
+     * @throws InvalidEnvironmentException
      */
     public function rollbackTransaction()
     {
@@ -371,6 +389,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
 
     /**
      * @return array
+     * @throws InvalidEnvironmentException
      */
     public function getIndexStat()
     {
@@ -437,6 +456,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @param string     $tableKey
      *
      * @throws UnknownIdException
+     * @throws InvalidEnvironmentException
      */
     private function addKeywordToDb($word, ExternalId $externalId, $type, $tableKey)
     {
@@ -497,13 +517,20 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         return $result;
     }
 
-    private function getRepository()
+    /**
+     * @throws InvalidEnvironmentException
+     */
+    private function getRepository(): AbstractRepository
     {
         if ($this->repository === null) {
             $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
             switch ($driverName) {
                 case 'mysql':
                     $this->repository = new MysqlRepository($this->pdo, $this->prefix, $this->options);
+                    break;
+
+                case 'pgsql':
+                    $this->repository = new PostgresRepository($this->pdo, $this->prefix, $this->options);
                     break;
 
                 default:

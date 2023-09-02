@@ -267,8 +267,14 @@ class PdoStorageTest extends Unit
 
         $pdo2 = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
         $pdo2->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $pdo2->exec('set innodb_lock_wait_timeout=0;');
-        $this->pdo->exec('set innodb_lock_wait_timeout=0;');
+
+        if ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+            $pdo2->exec('set innodb_lock_wait_timeout=0;');
+            $this->pdo->exec('set innodb_lock_wait_timeout=0;');
+        } elseif ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+            $pdo2->exec('SET lock_timeout = 1;'); // 1 ms
+            $this->pdo->exec('SET lock_timeout = 1;'); // 1 ms
+        }
 
         $storage = new PdoStorage($this->pdo, 'test_tr_');
         $storage->erase();

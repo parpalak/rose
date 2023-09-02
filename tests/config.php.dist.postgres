@@ -1,0 +1,8 @@
+<?php
+
+// $s2_rose_test_db
+$GLOBALS['s2_rose_test_db'] = [
+    'dsn'      => 'pgsql:host=127.0.0.1;dbname=s2_rose_test',
+	'username' => 'postgres',
+	'passwd'   => '12345',
+];

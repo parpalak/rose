@@ -1,0 +1,45 @@
+name: Test on PostgreSQL
+
+on: [ push ]
+
+env:
+  DB_DATABASE: s2_rose_test
+  DB_USER: root
+  DB_PASSWORD: root
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: ['ubuntu-22.04']
+        php_versions:
+          - '8.2'
+
+    runs-on: '${{ matrix.operating_system }}'
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ikalnytskyi/action-setup-postgres@v4
+        with:
+          username: postgres
+          password: 12345
+          database: s2_rose_test
+          port: 5432
+
+      - name: 'Setup PHP'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_versions }}
+
+      - name: Install dependencies
+        run: COMPOSER_MEMORY_LIMIT=-1 composer install --prefer-dist --no-interaction
+
+      - name: Prepare config
+        run: cp tests/config.php.dist.postgres tests/config.php
+
+      - name: Run test cases
+        run: php bin/codecept run --skip-group profile
+
+      - name: Run profiling
+        run: php bin/codecept run -g profile -d

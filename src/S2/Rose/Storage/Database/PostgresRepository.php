@@ -1,13 +1,10 @@
-<?php /** @noinspection OneTimeUseVariablesInspection */
-/** @noinspection PhpUnnecessaryLocalVariableInspection */
-/** @noinspection SqlNoDataSourceInspection */
-/** @noinspection SqlDialectInspection */
-/** @noinspection PhpComposerExtensionStubsInspection */
-
+<?php
 /**
- * @copyright 2020-2023 Roman Parpalak
+ * @copyright 2023 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Storage\Database;
 
@@ -18,78 +15,21 @@ use S2\Rose\Exception\UnknownException;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 
-class MysqlRepository extends AbstractRepository
+class PostgresRepository extends AbstractRepository
 {
-    private const KEYLEN         = 255;
-    private const UTF8MB4_KEYLEN = 191;
-
     /**
      * {@inheritdoc}
-     *
-     * @throws InvalidEnvironmentException
-     * @throws UnknownException
      */
     public function erase(): void
     {
-        $charset = $this->pdo->query('SELECT @@character_set_connection')->fetchColumn();
-        if ($charset !== 'utf8mb4') {
-            $charset = 'utf8';
-        }
-
         try {
-            try {
-                $this->dropAndCreateTables($charset, self::KEYLEN);
-            } catch (\PDOException $e) {
-                if ($charset === 'utf8mb4') {
-                    // See https://stackoverflow.com/questions/30761867/mysql-error-the-maximum-column-size-is-767-bytes
-                    // In certain configurations we have only 767 bytes for index.
-                    // We can index only 191 = round(767/4) characters in case of 4-bytes encoding utf8mb4.
-                    // I prefer not to check exception codes because there are at least two possible values
-                    // of $e->errorInfo: [42000, 1071, 'Specified key was too long; max key length is 767 bytes']
-                    // and ['HY000', 1709, 'Index column size too large. The maximum column size is 767 bytes.'].
-
-                    $this->dropAndCreateTables($charset, self::UTF8MB4_KEYLEN);
-                } else {
-                    throw $e;
-                }
-            }
-
+            $this->dropAndCreateTables();
         } catch (\PDOException $e) {
             if ($e->getCode() === '42000') {
                 throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
             }
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while creating tables: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws RuntimeException
-     */
-    public function insertWords(array $words): void
-    {
-        $partWords = static::prepareWords($words);
-
-        $sql = 'INSERT IGNORE INTO ' . $this->getTableName(self::WORD) . ' (name) VALUES ("' . implode(
-                '"),("',
-                array_map(static function ($x) {
-                    return addslashes($x);
-                }, $partWords)
-            ) . '")';
-
-        try {
-            $this->pdo->exec($sql);
-        } catch (\PDOException $e) {
-            if (1205 === (int)$e->errorInfo[1]) {
-                throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
-            }
-            throw new UnknownException(sprintf(
-                'Unknown exception with code "%s" occurred while fulltext indexing: "%s".',
                 $e->getCode(),
                 $e->getMessage()
             ), 0, $e);
@@ -107,7 +47,8 @@ class MysqlRepository extends AbstractRepository
         $sql = 'INSERT INTO ' . $this->getTableName(self::TOC) .
             ' (external_id, instance_id, title, description, added_at, timezone, url, relevance_ratio, hash)' .
             ' VALUES (:external_id, :instance_id, :title, :description, :added_at, :timezone, :url, :relevance_ratio, :hash)' .
-            ' ON DUPLICATE KEY UPDATE title = :title, description = :description, added_at = :added_at, timezone = :timezone, url = :url, relevance_ratio = :relevance_ratio, hash = :hash';
+            ' ON CONFLICT (external_id, instance_id) DO UPDATE' .
+            ' SET title = :title, description = :description, added_at = :added_at, timezone = :timezone, url = :url, relevance_ratio = :relevance_ratio, hash = :hash';
 
         try {
             $statement = $this->pdo->prepare($sql);
@@ -123,7 +64,7 @@ class MysqlRepository extends AbstractRepository
                 'hash'            => $entry->getHash(),
             ]);
         } catch (\PDOException $e) {
-            if ($e->getCode() === '42S02') {
+            if ($this->isMissingTablesException($e)) {
                 throw new EmptyIndexException(
                     'There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?',
                     0,
@@ -169,28 +110,29 @@ FROM (
                 * (1 + length(positions) - length(replace(positions, ',', ''))) -- повышение при повторе в рекомендуемой заметке, конструкция тождественна count(explode(',', positions))
         ) * pow(m.word_count, -0.5) AS relevance, -- тут нормировка на корень из размера рекомендуемой заметки. Не знаю, почему именно корень, но так работает хорошо.
         m.word_count,
-        GROUP_CONCAT(concat(w.name, ' ',  round(original_repeat + exp( -pow( (abn/30.0),1) )/1.0, 3)   )) AS names -- TODO remove debug
+        STRING_AGG(concat(w.name, ' ',  round(original_repeat + exp( -pow( (abn/30.0),1) )/1.0, 3)   ), ', ') AS names -- TODO remove debug
     FROM {$fulltextTable} AS i
         JOIN {$wordTable} AS w ON i.word_id = w.id -- TODO remove debug
-        JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) ON m.toc_id = i.toc_id
+        JOIN {$metadataTable} AS m ON m.toc_id = i.toc_id
     JOIN (
         SELECT -- достаем информацию по словам из оригинальной заметки
             word_id,
             toc_id,
-            (SELECT count(*) FROM {$fulltextTable} WHERE word_id = x.word_id) AS abn, -- распространенность текущего слова по всем заметкам
+            abn,
             length(positions) - length(replace(positions, ',', '')) AS original_repeat -- сколько раз слово повторяется в оригинальной заметке. Выше используется как доп. важность
-        FROM {$fulltextTable} AS x FORCE INDEX FOR JOIN(toc_id)
+        FROM {$fulltextTable} AS x
         JOIN {$tocTable} AS t ON t.id = x.toc_id
+        CROSS JOIN LATERAL (SELECT count(*) AS abn FROM {$fulltextTable} WHERE word_id = x.word_id) AS fulltext2 -- распространенность текущего слова по всем заметкам
         WHERE t.external_id = :external_id AND t.instance_id = :instance_id
             AND length(positions) - length(replace(positions, ',', '')) < 200 -- отсекаем слишком частые слова. Хотя 200 слишком завышенный порог, чтобы на что-то менять
             -- AND length(positions) - length(replace(positions, ',', '')) >= 1 -- слово должно повторяться в оригинальной заметке минимум 2 раза  -- вместо этого придумал original_repeat
-        HAVING abn < 100 -- если слово встречается более чем в 100 заметках, выкидываем его, так как слишком частое. Помогает с производительностью
+            AND abn < 100 -- если слово встречается более чем в 100 заметках, выкидываем его, так как слишком частое. Помогает с производительностью
     ) AS original_info ON original_info.word_id = i.word_id AND original_info.toc_id <> i.toc_id
-    GROUP BY 1
+    GROUP BY i.toc_id, m.word_count
     HAVING count(*) >= :min_common_words -- количество общих слов, иначе отбрасываем // вот это тоже добавить в сортировку релевантности
 ) AS relevance_info
-JOIN {$tocTable} AS t FORCE INDEX FOR JOIN(PRIMARY) on t.id = relevance_info.toc_id
-JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) on m.toc_id = t.id
+JOIN {$tocTable} AS t ON t.id = relevance_info.toc_id
+JOIN {$metadataTable} AS m ON m.toc_id = t.id
 {$where}
 ORDER BY relevance DESC
 LIMIT :limit";
@@ -205,6 +147,7 @@ LIMIT :limit";
         return $recommendations;
     }
 
+
     /**
      * {@inheritdoc}
      *
@@ -212,22 +155,35 @@ LIMIT :limit";
      */
     public function getIndexStat(): array
     {
-        $tableNames = array_map(function ($s) {
-            return $this->pdo->quote($this->getTableName($s));
-        }, array_keys(self::DEFAULT_TABLE_NAMES));
+        $tableNames = array_map(fn($s) => $this->pdo->quote($this->getTableName($s)), array_keys(self::DEFAULT_TABLE_NAMES));
 
-        $sql           = 'SHOW TABLE STATUS WHERE name IN (' . implode(',', $tableNames) . ')';
+        $sql = "
+            SELECT
+                pg_total_relation_size(c.oid) AS total_size,
+                c.reltuples AS row_count
+            FROM
+                pg_class c
+            LEFT JOIN
+                pg_namespace n ON n.oid = c.relnamespace
+            WHERE
+                c.relkind IN ('r', 'p')
+                AND n.nspname = 'public'
+                AND c.relname IN  (" . implode(',', $tableNames) . ');';
+
         $tableStatuses = $this->pdo->query($sql)->fetchAll();
 
         if (\count($tableStatuses) !== \count($tableNames)) {
-            throw new EmptyIndexException('Some storage tables are missed in the database. Call ' . __CLASS__ . '::erase() first.');
+            throw new EmptyIndexException(sprintf(
+                'Some storage tables are missed in the database. Call %s::erase() first.',
+                PdoStorage::class
+            ));
         }
 
         $indexSize = 0;
         $indexRows = 0;
         foreach ($tableStatuses as $tableStatus) {
-            $indexSize += $tableStatus['Data_length'] + $tableStatus['Index_length'];
-            $indexRows += $tableStatus['Rows'];
+            $indexSize += $tableStatus['total_size'];
+            $indexRows += max(0, $tableStatus['row_count']);
         }
 
         return [
@@ -238,90 +194,121 @@ LIMIT :limit";
 
     /**
      * {@inheritdoc}
+     *
+     * @throws RuntimeException
      */
-    public static function prepareWords(array $words): array
+    public function insertWords(array $words): void
     {
-        $partWords = [];
-        foreach ($words as $fullWord) {
-            $partWords[$fullWord] = mb_substr((string)$fullWord, 0, self::UTF8MB4_KEYLEN);
-        }
+        $partWords = static::prepareWords($words);
 
-        return $partWords;
+        $sql = 'INSERT INTO ' . $this->getTableName(AbstractRepository::WORD) . " (name) VALUES (" . implode(
+                "),(",
+                array_map(fn($x) => $this->pdo->quote($x), $partWords)
+            ) . ") ON CONFLICT DO NOTHING";
+
+        try {
+            $this->pdo->exec($sql);
+        } catch (\PDOException $e) {
+            if (7 === $e->errorInfo[1] && ('55P03' === $e->errorInfo[0] || '40P01' === $e->errorInfo[0])) {
+                throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
+            }
+            throw new UnknownException(sprintf(
+                'Unknown exception with code "%s" occurred while fulltext indexing: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function isMissingTablesException(\PDOException $e): bool
     {
-        return $e->getCode() === '42S02';
+        return $e->getCode() === '42P01';
     }
 
-    private function dropAndCreateTables(string $charset, int $keyLen): void
+    private function dropAndCreateTables(): void
     {
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
-			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-			external_id VARCHAR(255) NOT NULL,
-			instance_id INT(11) UNSIGNED NOT NULL DEFAULT 0,
-			title VARCHAR(255) NOT NULL DEFAULT "",
-			description TEXT NOT NULL,
-			added_at DATETIME NULL,
-			timezone VARCHAR(64) NULL,
-			url TEXT NOT NULL,
-			relevance_ratio DECIMAL(4,3) NOT NULL,
-			hash VARCHAR(80) NOT NULL DEFAULT "",
-			PRIMARY KEY (`id`),
-			UNIQUE KEY (instance_id, external_id(' . $keyLen . '))
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+            id SERIAL PRIMARY KEY,
+            external_id VARCHAR(255) NOT NULL,
+            instance_id INT NOT NULL DEFAULT 0,
+            title VARCHAR(255) NOT NULL DEFAULT \'\',
+            description TEXT NOT NULL,
+            added_at TIMESTAMP WITHOUT TIME ZONE NULL,
+            timezone VARCHAR(64) NULL,
+            url TEXT NOT NULL,
+            relevance_ratio DECIMAL(4,3) NOT NULL,
+            hash VARCHAR(80) NOT NULL DEFAULT \'\',
+            UNIQUE (instance_id, external_id)
+		)');
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
-			toc_id INT(11) UNSIGNED NOT NULL,
-			word_count INT(11) UNSIGNED NOT NULL,
-			images JSON NOT NULL,
-			PRIMARY KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+			toc_id SERIAL PRIMARY KEY,
+			word_count INT NOT NULL,
+			images JSON NOT NULL
+		)');
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
+        // TODO compression?
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::SNIPPET) . ' (
-			toc_id INT(11) UNSIGNED NOT NULL,
-			max_word_pos INT(11) UNSIGNED NOT NULL,
-			min_word_pos INT(11) UNSIGNED NOT NULL,
-			snippet LONGTEXT NOT NULL,
-			PRIMARY KEY (toc_id, max_word_pos)
-		) ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4 ENGINE=InnoDB CHARACTER SET ' . $charset);
+            toc_id INT NOT NULL,
+            max_word_pos INT NOT NULL,
+            min_word_pos INT NOT NULL,
+            snippet TEXT NOT NULL,
+            PRIMARY KEY (toc_id, max_word_pos)
+		)');
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
-			word_id INT(11) UNSIGNED NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			positions LONGTEXT NOT NULL,
-			PRIMARY KEY (word_id, toc_id),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+            word_id INT NOT NULL,
+            toc_id INT NOT NULL,
+            positions TEXT NOT NULL,
+            PRIMARY KEY (word_id, toc_id)
+		)');
+        $this->pdo->exec(sprintf(
+            'CREATE INDEX idx_%1$s_toc_id ON %1$s (toc_id);',
+            $this->getTableName(self::FULLTEXT_INDEX)
+        ));
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
-			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-			name VARCHAR(255) NOT NULL DEFAULT "",
-			PRIMARY KEY (`id`),
-			UNIQUE KEY (name(' . $keyLen . '))
-		) ENGINE=InnoDB CHARACTER SET ' . $charset . ' COLLATE ' . $charset . '_bin');
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL DEFAULT \'\',
+            UNIQUE (name)
+		)');
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
-			keyword VARCHAR(255) NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			type INT(11) UNSIGNED NOT NULL,
-			KEY (keyword(' . $keyLen . ')),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+            keyword VARCHAR(255) NOT NULL,
+            toc_id INT NOT NULL,
+            type INT NOT NULL
+		)');
+        $this->pdo->exec(sprintf(
+            'CREATE INDEX idx_%1$s_toc_id ON %1$s (toc_id);',
+            $this->getTableName(self::KEYWORD_INDEX)
+        ));
+        $this->pdo->exec(sprintf(
+            'CREATE INDEX idx_%1$s_keyword ON %1$s (keyword);',
+            $this->getTableName(self::KEYWORD_INDEX)
+        ));
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
-			keyword VARCHAR(255) NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			type INT(11) UNSIGNED NOT NULL,
-			KEY (keyword(' . $keyLen . ')),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+            keyword VARCHAR(255) NOT NULL,
+            toc_id INT NOT NULL,
+            type INT NOT NULL
+		)');
+        $this->pdo->exec(sprintf(
+            'CREATE INDEX idx_%1$s_toc_id ON %1$s (toc_id);',
+            $this->getTableName(self::KEYWORD_MULTIPLE_INDEX)
+        ));
+        $this->pdo->exec(sprintf(
+            'CREATE INDEX idx_%1$s_keyword ON %1$s (keyword);',
+            $this->getTableName(self::KEYWORD_MULTIPLE_INDEX)
+        ));
     }
 }
