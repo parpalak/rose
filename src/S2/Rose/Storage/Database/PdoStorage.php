@@ -522,22 +522,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     private function getRepository(): AbstractRepository
     {
-        if ($this->repository === null) {
-            $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-            switch ($driverName) {
-                case 'mysql':
-                    $this->repository = new MysqlRepository($this->pdo, $this->prefix, $this->options);
-                    break;
-
-                case 'pgsql':
-                    $this->repository = new PostgresRepository($this->pdo, $this->prefix, $this->options);
-                    break;
-
-                default:
-                    throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
-            }
-        }
-
-        return $this->repository;
+        return $this->repository ?? $this->repository = AbstractRepository::create($this->pdo, $this->prefix, $this->options);
     }
 }

@@ -244,7 +244,7 @@ class IntegrationTest extends Unit
         $this->assertEquals('25', $img1->getHeight());
         $this->assertEquals('Alternative text', $img1->getAlt());
 
-        if ($readStorage instanceof PdoStorage) {
+        if ($readStorage instanceof PdoStorage && strpos($GLOBALS['s2_rose_test_db']['dsn'], 'sqlite') !== 0) {
             $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20));
             $this->assertInstanceOf(TocEntryWithMetadata::class, $similarItems[0]['tocWithMetadata']);
             $this->assertEquals($right = [

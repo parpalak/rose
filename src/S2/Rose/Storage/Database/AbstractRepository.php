@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpUnnecessaryLocalVariableInspection */
+<?php /** @noinspection PhpComposerExtensionStubsInspection */
+/** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
 /**
  * @copyright 2020-2023 Roman Parpalak
@@ -17,6 +18,7 @@ use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\Exception\EmptyIndexException;
+use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 
 abstract class AbstractRepository
 {
@@ -47,6 +49,27 @@ abstract class AbstractRepository
         $this->pdo     = $pdo;
         $this->prefix  = $prefix;
         $this->options = array_merge(self::DEFAULT_TABLE_NAMES, $options);
+    }
+
+    /**
+     * @throws InvalidEnvironmentException
+     */
+    public static function create(\PDO $pdo, string $prefix, array $options = [])
+    {
+        $driverName = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        switch ($driverName) {
+            case 'mysql':
+                return new MysqlRepository($pdo, $prefix, $options);
+
+            case 'pgsql':
+                return new PostgresRepository($pdo, $prefix, $options);
+
+            case 'sqlite':
+                return new SqliteRepository($pdo, $prefix, $options);
+
+            default:
+                throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
+        }
     }
 
     abstract public function erase(): void;

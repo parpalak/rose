@@ -1,0 +1,8 @@
+<?php
+
+// $s2_rose_test_db
+$GLOBALS['s2_rose_test_db'] = [
+    'dsn'      => 'sqlite:tests/_output/s2_rose_test',
+    'username' => '',
+    'passwd'   => '',
+];

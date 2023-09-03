@@ -16,11 +16,8 @@ use S2\Rose\Entity\TocEntry;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownIdException;
 use S2\Rose\Storage\Database\AbstractRepository;
-use S2\Rose\Storage\Database\MysqlRepository;
 use S2\Rose\Storage\Database\PdoStorage;
-use S2\Rose\Storage\Database\PostgresRepository;
 use S2\Rose\Storage\Exception\EmptyIndexException;
-use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 
 /**
  * @group storage
@@ -268,12 +265,16 @@ class PdoStorageTest extends Unit
 
         $pdo2 = $this->createPdo($s2_rose_test_db);
 
-        if ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+        $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driverName === 'mysql') {
             $pdo2->exec('set innodb_lock_wait_timeout=0;');
             $this->pdo->exec('set innodb_lock_wait_timeout=0;');
-        } elseif ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        } elseif ($driverName === 'pgsql') {
             $pdo2->exec('SET lock_timeout = 1;'); // 1 ms
             $this->pdo->exec('SET lock_timeout = 1;'); // 1 ms
+        } elseif ($driverName === 'sqlite') {
+            $pdo2->setAttribute(\PDO::ATTR_TIMEOUT, 0);
+            $this->pdo->setAttribute(\PDO::ATTR_TIMEOUT, 0);
         }
 
         $storage = new PdoStorage($this->pdo, 'test_tr_');
@@ -288,19 +289,25 @@ class PdoStorageTest extends Unit
 
         $storage2 = new PdoStorage($pdo2, 'test_tr_');
         $storage2->startTransaction();
+
+        if ($driverName === 'sqlite') {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('Cannot insert new items. Possible deadlock? Database reported:');
+        }
         $storage2->addEntryToToc(
             new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', 1, 'qwerty'),
             new ExternalId('id_2')
         );
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Cannot insert words. Possible deadlock?');
-
-        $storage2->addToFulltext(['word1', 'word5'], new ExternalId('id_2'));
+        if ($driverName !== 'sqlite') {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('Cannot insert words. Possible deadlock?');
+            $storage2->addToFulltext(['word1', 'word5'], new ExternalId('id_2'));
 //        $storage2->commitTransaction();
 //
 //        $storage->addToFulltext(['word4', 'word5', 'word6'], new ExternalId('id_1'));
 //        $storage->commitTransaction();
+        }
     }
 
     public function testParallelAddingAndErasingInTransactions(): void
@@ -309,15 +316,19 @@ class PdoStorageTest extends Unit
 
         $pdo2 = $this->createPdo($s2_rose_test_db);
 
-        if ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+        $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driverName === 'mysql') {
             $pdo2->exec('set lock_wait_timeout=1;'); // 1s
             $this->pdo->exec('set lock_wait_timeout=1;'); // 1s
-        } elseif ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        } elseif ($driverName === 'pgsql') {
             $pdo2->exec('SET lock_timeout = 1;'); // 1 ms
             $this->pdo->exec('SET lock_timeout = 1;'); // 1 ms
+        } elseif ($driverName === 'sqlite') {
+            $pdo2->setAttribute(\PDO::ATTR_TIMEOUT, 0);
+            $this->pdo->setAttribute(\PDO::ATTR_TIMEOUT, 0);
         }
 
-        $repo = $this->createRepository($this->pdo, 'test_tr_');
+        $repo = AbstractRepository::create($this->pdo, 'test_tr_');
         $repo->startTransaction();
         $repo->insertWords(['word4', 'word5', 'word6']);
 
@@ -443,20 +454,5 @@ class PdoStorageTest extends Unit
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
         return $pdo;
-    }
-
-    private function createRepository(\PDO $pdo, string $prefix): AbstractRepository
-    {
-        $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        switch ($driverName) {
-            case 'mysql':
-                return new MysqlRepository($pdo, $prefix);
-
-            case 'pgsql':
-                return new PostgresRepository($pdo, $prefix);
-
-            default:
-                throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
-        }
     }
 }
