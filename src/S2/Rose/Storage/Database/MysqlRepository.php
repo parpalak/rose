@@ -1,4 +1,5 @@
-<?php /** @noinspection PhpUnnecessaryLocalVariableInspection */
+<?php /** @noinspection PhpComposerExtensionStubsInspection */
+/** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
 /**
  * @copyright 2020-2023 Roman Parpalak
@@ -25,7 +26,7 @@ class MysqlRepository extends AbstractRepository
      * {@inheritdoc}
      *
      * @throws InvalidEnvironmentException
-     * @throws UnknownException
+     * @throws RuntimeException
      */
     public function erase(): void
     {
@@ -53,6 +54,9 @@ class MysqlRepository extends AbstractRepository
             }
 
         } catch (\PDOException $e) {
+            if ($this->isLockWaitingException($e)) {
+                throw new RuntimeException('Cannot drop and create tables. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
+            }
             if ($e->getCode() === '42000') {
                 throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
             }
@@ -83,7 +87,7 @@ class MysqlRepository extends AbstractRepository
         try {
             $this->pdo->exec($sql);
         } catch (\PDOException $e) {
-            if (1205 === (int)$e->errorInfo[1]) {
+            if ($this->isLockWaitingException($e)) {
                 throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -247,9 +251,28 @@ LIMIT :limit";
         return $partWords;
     }
 
-    protected function isMissingTablesException(\PDOException $e): bool
+    /**
+     * {@inheritdoc}
+     */
+    protected function isUnknownTableException(\PDOException $e): bool
     {
         return $e->getCode() === '42S02';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function isLockWaitingException(\PDOException $e): bool
+    {
+        return 1205 === (int)$e->errorInfo[1];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function isUnknownColumnException(\PDOException $e): bool
+    {
+        return $e->getCode() === '42S22'; // e.g. SQLSTATE[42S22]: Column not found: 1054 Unknown column 'f.positions' in 'field list'
     }
 
     private function dropAndCreateTables(string $charset, int $keyLen): void

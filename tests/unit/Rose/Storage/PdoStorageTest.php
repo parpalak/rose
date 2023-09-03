@@ -15,8 +15,12 @@ use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Storage\Database\AbstractRepository;
+use S2\Rose\Storage\Database\MysqlRepository;
 use S2\Rose\Storage\Database\PdoStorage;
+use S2\Rose\Storage\Database\PostgresRepository;
 use S2\Rose\Storage\Exception\EmptyIndexException;
+use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 
 /**
  * @group storage
@@ -33,8 +37,12 @@ class PdoStorageTest extends Unit
     {
         global $s2_rose_test_db;
 
-        $this->pdo = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->pdo = $this->createPdo($s2_rose_test_db);
+    }
+
+    protected function _after()
+    {
+        $this->pdo = null;
     }
 
     public function testStorage()
@@ -152,7 +160,7 @@ class PdoStorageTest extends Unit
         $storage->addEntryToToc($tocEntry1, $externalId);
 
         // Race condition
-        $tocEntry1mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1,'9654321');
+        $tocEntry1mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '9654321');
         $storage2->addEntryToToc($tocEntry1mod, $externalId);
 
         $tocEntry2mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '111111');
@@ -203,8 +211,6 @@ class PdoStorageTest extends Unit
 
     public function testDiacritic()
     {
-        global $s2_rose_test_db;
-
         $storage = new PdoStorage($this->pdo, 'test_');
         $storage->erase();
 
@@ -218,8 +224,6 @@ class PdoStorageTest extends Unit
 
     public function testLongWords()
     {
-        global $s2_rose_test_db;
-
         $storage = new PdoStorage($this->pdo, 'test_');
         $storage->erase();
 
@@ -258,15 +262,11 @@ class PdoStorageTest extends Unit
         $storage->addToFulltext(['word4', '1' . str_repeat('я', 255)], new ExternalId('id_2'));
     }
 
-    public function testTransactions()
+    public function testParallelAddingInTransactions(): void
     {
         global $s2_rose_test_db;
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Cannot insert words. Possible deadlock?');
-
-        $pdo2 = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
-        $pdo2->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo2 = $this->createPdo($s2_rose_test_db);
 
         if ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
             $pdo2->exec('set innodb_lock_wait_timeout=0;');
@@ -292,11 +292,41 @@ class PdoStorageTest extends Unit
             new TocEntry('title 2', 'descr 2', new \DateTime('2014-05-28'), '', 1, 'qwerty'),
             new ExternalId('id_2')
         );
-        $storage2->addToFulltext(['word1', 'word5'], new ExternalId('id_2'));
-        $storage2->commitTransaction();
 
-        $storage->addToFulltext(['word4', 'word5', 'word6'], new ExternalId('id_1'));
-        $storage->commitTransaction();
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot insert words. Possible deadlock?');
+
+        $storage2->addToFulltext(['word1', 'word5'], new ExternalId('id_2'));
+//        $storage2->commitTransaction();
+//
+//        $storage->addToFulltext(['word4', 'word5', 'word6'], new ExternalId('id_1'));
+//        $storage->commitTransaction();
+    }
+
+    public function testParallelAddingAndErasingInTransactions(): void
+    {
+        global $s2_rose_test_db;
+
+        $pdo2 = $this->createPdo($s2_rose_test_db);
+
+        if ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'mysql') {
+            $pdo2->exec('set lock_wait_timeout=1;'); // 1s
+            $this->pdo->exec('set lock_wait_timeout=1;'); // 1s
+        } elseif ($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+            $pdo2->exec('SET lock_timeout = 1;'); // 1 ms
+            $this->pdo->exec('SET lock_timeout = 1;'); // 1 ms
+        }
+
+        $repo = $this->createRepository($this->pdo, 'test_tr_');
+        $repo->startTransaction();
+        $repo->insertWords(['word4', 'word5', 'word6']);
+
+        $storage2 = new PdoStorage($pdo2, 'test_tr_');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Cannot drop and create tables. Possible deadlock? Database reported:');
+
+        $storage2->erase();
     }
 
     public function testBrokenDb()
@@ -314,6 +344,18 @@ class PdoStorageTest extends Unit
         $this->pdo->exec('DROP TABLE test_keyword_multiple_index;');
 
         $storage->removeFromIndex(new ExternalId('id_1'));
+    }
+
+    public function testBrokenDbFulltextResultForWords()
+    {
+        $this->expectException(EmptyIndexException::class);
+
+        $storage = new PdoStorage($this->pdo, 'test_');
+        $storage->erase();
+
+        $this->pdo->exec('ALTER TABLE test_fulltext_index DROP COLUMN positions');
+
+        $storage->fulltextResultByWords(['word']);
     }
 
     public function testNonExistentDbAddToToc()
@@ -393,5 +435,28 @@ class PdoStorageTest extends Unit
         $this->expectException(EmptyIndexException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
         $storage->removeFromIndex(new ExternalId('id_1'));
+    }
+
+    private function createPdo(array $s2_rose_test_db): \PDO
+    {
+        $pdo = new \PDO($s2_rose_test_db['dsn'], $s2_rose_test_db['username'], $s2_rose_test_db['passwd']);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        return $pdo;
+    }
+
+    private function createRepository(\PDO $pdo, string $prefix): AbstractRepository
+    {
+        $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        switch ($driverName) {
+            case 'mysql':
+                return new MysqlRepository($pdo, $prefix);
+
+            case 'pgsql':
+                return new PostgresRepository($pdo, $prefix);
+
+            default:
+                throw new InvalidEnvironmentException(sprintf('Driver "%s" is not supported.', $driverName));
+        }
     }
 }

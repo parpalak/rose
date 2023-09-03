@@ -62,7 +62,11 @@ abstract class AbstractRepository
      */
     abstract public function insertWords(array $words): void;
 
-    abstract protected function isMissingTablesException(\PDOException $e): bool;
+    abstract protected function isUnknownTableException(\PDOException $e): bool;
+
+    abstract protected function isLockWaitingException(\PDOException $e): bool;
+
+    abstract protected function isUnknownColumnException(\PDOException $e): bool;
 
     /**
      * Converts array of (long) words to array of word parts no longer than 255 chars.
@@ -91,9 +95,8 @@ abstract class AbstractRepository
     }
 
     /**
-     * @param string[] $words
+     * @param string[]|int[] $words
      *
-     * @throws EmptyIndexException
      * @throws UnknownException
      */
     public function findIdsByWords(array $words): array
@@ -110,9 +113,6 @@ abstract class AbstractRepository
             $st = $this->pdo->prepare($sql);
             $st->execute(array_values($partWords));
         } catch (\PDOException $e) {
-            if (1412 === (int)$e->errorInfo[1]) {
-                throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
-            }
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while reading word dictionary: "%s".',
                 $e->getCode(),
@@ -190,11 +190,11 @@ abstract class AbstractRepository
             $statement = $this->pdo->prepare($sql);
             $statement->execute($parameters);
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
-            if ($e->getCode() === '42S22') { // e.g. SQLSTATE[42S22]: Column not found: 1054 Unknown column 'f.positions' in 'field list'
-                throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
+            if ($this->isUnknownColumnException($e)) {
+                throw new EmptyIndexException('There are outdated tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while fulltext searching: "%s".',
@@ -304,7 +304,7 @@ abstract class AbstractRepository
             $st = $this->pdo->prepare($sql);
             $st->execute($parameters);
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -342,7 +342,7 @@ abstract class AbstractRepository
             $statement = $this->pdo->prepare($sql);
             $statement->execute($parameters);
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -441,10 +441,7 @@ abstract class AbstractRepository
             $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::SNIPPET)} WHERE toc_id = ?");
             $st->execute([$tocId]);
         } catch (\PDOException $e) {
-            if (1412 === (int)$e->errorInfo[1]) {
-                throw new EmptyIndexException('Storage tables has been changed in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
-            }
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -497,7 +494,7 @@ abstract class AbstractRepository
                 throw new InvalidArgumentException('Criteria must contain title or ids conditions.');
             }
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -525,7 +522,7 @@ abstract class AbstractRepository
             $statement = $this->pdo->prepare($sql);
             $statement->execute($instanceId !== null ? [$instanceId] : []);
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -555,7 +552,7 @@ abstract class AbstractRepository
             $st = $this->pdo->prepare($sql);
             $st->execute([$externalId->getId(), (int)$externalId->getInstanceId()]);
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -579,7 +576,7 @@ abstract class AbstractRepository
             $statement->execute([$externalId->getId(), (int)$externalId->getInstanceId()]);
 
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(
@@ -611,7 +608,7 @@ abstract class AbstractRepository
             $statement->execute($params);
 
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
             }
             throw new UnknownException(sprintf(

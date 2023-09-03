@@ -20,17 +20,50 @@ class PostgresRepository extends AbstractRepository
 {
     /**
      * {@inheritdoc}
+     *
+     * @throws RuntimeException
      */
     public function erase(): void
     {
         try {
             $this->dropAndCreateTables();
         } catch (\PDOException $e) {
+            if ($this->isLockWaitingException($e)) {
+                throw new RuntimeException('Cannot drop and create tables. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
+            }
             if ($e->getCode() === '42000') {
                 throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
             }
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while creating tables: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @throws RuntimeException
+     */
+    public function insertWords(array $words): void
+    {
+        $partWords = static::prepareWords($words);
+
+        $sql = 'INSERT INTO ' . $this->getTableName(AbstractRepository::WORD) . " (name) VALUES (" . implode(
+                "),(",
+                array_map(fn($x) => $this->pdo->quote($x), $partWords)
+            ) . ") ON CONFLICT DO NOTHING";
+
+        try {
+            $this->pdo->exec($sql);
+        } catch (\PDOException $e) {
+            if ($this->isLockWaitingException($e)) {
+                throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
+            }
+            throw new UnknownException(sprintf(
+                'Unknown exception with code "%s" occurred while fulltext indexing: "%s".',
                 $e->getCode(),
                 $e->getMessage()
             ), 0, $e);
@@ -65,7 +98,7 @@ class PostgresRepository extends AbstractRepository
                 'hash'            => $entry->getHash(),
             ]);
         } catch (\PDOException $e) {
-            if ($this->isMissingTablesException($e)) {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException(
                     'There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?',
                     0,
@@ -195,38 +228,23 @@ LIMIT :limit";
 
     /**
      * {@inheritdoc}
-     *
-     * @throws RuntimeException
      */
-    public function insertWords(array $words): void
+    protected function isUnknownTableException(\PDOException $e): bool
     {
-        $partWords = static::prepareWords($words);
-
-        $sql = 'INSERT INTO ' . $this->getTableName(AbstractRepository::WORD) . " (name) VALUES (" . implode(
-                "),(",
-                array_map(fn($x) => $this->pdo->quote($x), $partWords)
-            ) . ") ON CONFLICT DO NOTHING";
-
-        try {
-            $this->pdo->exec($sql);
-        } catch (\PDOException $e) {
-            if (7 === $e->errorInfo[1] && ('55P03' === $e->errorInfo[0] || '40P01' === $e->errorInfo[0])) {
-                throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
-            }
-            throw new UnknownException(sprintf(
-                'Unknown exception with code "%s" occurred while fulltext indexing: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
+        return $e->getCode() === '42P01';
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function isMissingTablesException(\PDOException $e): bool
+    protected function isLockWaitingException(\PDOException $e): bool
     {
-        return $e->getCode() === '42P01';
+        return 7 === $e->errorInfo[1] && ('55P03' === $e->errorInfo[0] || '40P01' === $e->errorInfo[0]);
+    }
+
+    protected function isUnknownColumnException(\PDOException $e): bool
+    {
+        return $e->getCode() === '42703'; // e.g. SQLSTATE[42703]: Undefined column: 7 ERROR:  column f.positions does not exist...
     }
 
     private function dropAndCreateTables(): void
