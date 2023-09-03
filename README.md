@@ -5,8 +5,11 @@ It indexes your content and provides a full-text search.
 
 ## Requirements
 
-1. PHP 7.4 or later. ![Build Status](https://github.com/parpalak/rose/actions/workflows/test.yml/badge.svg?branch=master)
-2. A relational database in case of significant content size. MySQL 5.7+ and MariaDB 10.2+ are supported.
+1. PHP 7.4 or later.
+2. A relational database in case of significant content size. Supported versions are:
+   1. MySQL 5.7+ and MariaDB 10.2+ [![Tests on MySQL](https://github.com/parpalak/rose/actions/workflows/test_mysql.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_mysql.yml)
+   2. PostgreSQL (tested on 14) [![Tests on PostgreSQL](https://github.com/parpalak/rose/actions/workflows/test_postgres.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_postgres.yml) 
+   3. SQLite [![Tests on SQLite](https://github.com/parpalak/rose/actions/workflows/test_sqlite.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_sqlite.yml)
 
 ## Installation
 
@@ -252,3 +255,6 @@ $similarItems = $readStorage->getSimilar(new ExternalId('id_2'));
 //     'snippet2'        => 'I have to make up a content.',
 // ],
 ```
+
+Please note that these recommendations are supported on MySQL and PostgreSQL databases,
+but they are not implemented in SQLite due to limited SQL support.
