@@ -6,10 +6,13 @@ It indexes your content and provides a full-text search.
 ## Requirements
 
 1. PHP 7.4 or later.
-2. A relational database in case of significant content size. Supported versions are:
-   1. MySQL 5.7+ and MariaDB 10.2+ [![Tests on MySQL](https://github.com/parpalak/rose/actions/workflows/test_mysql.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_mysql.yml)
-   2. PostgreSQL (tested on 14) [![Tests on PostgreSQL](https://github.com/parpalak/rose/actions/workflows/test_postgres.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_postgres.yml) 
-   3. SQLite [![Tests on SQLite](https://github.com/parpalak/rose/actions/workflows/test_sqlite.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_sqlite.yml)
+2. A relational database in case of significant content size. Supported databases are:
+
+| Database  | Tests |
+| ------------- | ------------- |
+| MySQL 5.7 or later and MariaDB 10.2 or later | [![Tests on MySQL](https://github.com/parpalak/rose/actions/workflows/test_mysql.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_mysql.yml) |
+| PostgreSQL (tested on 14) | [![Tests on PostgreSQL](https://github.com/parpalak/rose/actions/workflows/test_postgres.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_postgres.yml) |
+| SQLite | [![Tests on SQLite](https://github.com/parpalak/rose/actions/workflows/test_sqlite.yml/badge.svg)](https://github.com/parpalak/rose/actions/workflows/test_sqlite.yml) |
 
 ## Installation
 
@@ -256,5 +259,5 @@ $similarItems = $readStorage->getSimilar(new ExternalId('id_2'));
 // ],
 ```
 
-Please note that these recommendations are supported on MySQL and PostgreSQL databases,
-but they are not implemented in SQLite due to limited SQL support.
+> [!NOTE]
+> Recommendations are supported on MySQL and PostgreSQL databases, but they are not implemented in SQLite due to limited SQL support.
