@@ -55,16 +55,16 @@ class SentenceMap
         foreach ($this->paragraphs as $paragraphSentences) {
             $accumulatedRegularSentences = '';
             foreach ($paragraphSentences as $path => $paragraphSentence) {
-                if (strpos($path, '/pre/code/') === false) {
-                    // Merge non-code text content and then break into sentences.
-                    $accumulatedRegularSentences .= $paragraphSentence;
-                } else {
+                if (strpos($path, '/pre') !== false && strpos($path, '/code') !== false) {
                     // When a code block is encountered, do accumulated regular work
                     $this->processRegularSentences($accumulatedRegularSentences, $sentenceCollection);
                     $accumulatedRegularSentences = '';
 
                     // and process the code in a different way
                     $this->processCodeSentences($paragraphSentence, $sentenceCollection);
+                } else {
+                    // Merge non-code text content and then break into sentences.
+                    $accumulatedRegularSentences .= $paragraphSentence;
                 }
             }
 

@@ -211,6 +211,8 @@ $url
 ;
 </code></pre>
 
+<pre>123</pre>
+
 <p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>';
 
         $sourceWithCodeSentences = [
@@ -221,6 +223,7 @@ $url
             '// Создание экземпляра клиента Guzzle $client = new Client();',
             '// Обработка входящего запроса $request = ServerRequest::fromGlobals();',
             '// Получение URL-адреса запрашиваемого сайта $url = $request->getUri(); $url // Я собирался ходить на https-сайты, поэтому подменил протокол и порт ->withScheme(\'https\') ->withPort(443) // Подменяем хост (видимо, тут и есть обработка протокола http-прокси) ->withHost($request->getHeaderLine(\'host\')) ->withQuery($request->getUri()->getQuery()) ;',
+            '123',
             'Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
 
         ];
