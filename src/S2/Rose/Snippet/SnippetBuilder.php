@@ -13,6 +13,7 @@ use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Helper\StringHelper;
 use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Dto\SnippetResult;
@@ -83,8 +84,9 @@ class SnippetBuilder
         foreach ($snippetSources as $snippetSource) {
             // Check the text for the query words
             // TODO: Make sure the modifier S works correct on cyrillic
+            $formattingSymbols = StringHelper::BOLD . StringHelper::ITALIC . StringHelper::SUPERSCRIPT . StringHelper::SUBSCRIPT;
             preg_match_all(
-                '#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
+                '#(?<=[^\\p{L}]|^|\\\\[' . $formattingSymbols . '])(' . $joinedStems . ')\\p{L}*#Ssui',
                 $snippetSource->getText(),
                 $matches,
                 PREG_OFFSET_CAPTURE

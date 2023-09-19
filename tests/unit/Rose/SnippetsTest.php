@@ -186,6 +186,13 @@ class SnippetsTest extends Unit
             $resultSet->getItems()[0]->getSnippet(),
             'Stemmer trims incorrectly подсистем to подсист. Check that this incorrect behaviour is handled without bugs.'
         );
+
+        $resultSet = $this->finder->find(new Query('астатически'));
+        $this->assertEquals(
+            'Ошибка <i>астатически</i> даёт более простую систему дифференциальных уравнений, если исключить небольшой угол тангажа.',
+            $resultSet->getItems()[0]->getFormattedSnippet(),
+            'Stemmer trims incorrectly подсистем to подсист. Check that this incorrect behaviour is handled without bugs.'
+        );
     }
 
     public function indexableProvider()
