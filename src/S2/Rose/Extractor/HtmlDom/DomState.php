@@ -79,7 +79,13 @@ class DomState
         }
         $level = $this->formattingLevel[$formatting] ?? 0;
         if ($level === 1) {
-            $this->pendingFormatting .= '\\' . strtoupper($formatting);
+            if ($this->pendingFormatting === '') {
+                // No format symbols are queued. This means that symbols of formatting start have already been added
+                // to SentenceMap. So it is not empty and the last item can be modified.
+                $this->sentenceMap->appendToLastItem('\\' . strtoupper($formatting));
+            } else {
+                $this->pendingFormatting .= '\\' . strtoupper($formatting);
+            }
         }
         if ($level > 0) {
             $this->formattingLevel[$formatting] = $level - 1;

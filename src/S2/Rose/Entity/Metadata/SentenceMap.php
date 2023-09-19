@@ -6,6 +6,7 @@
 
 namespace S2\Rose\Entity\Metadata;
 
+use S2\Rose\Exception\LogicException;
 use S2\Rose\Helper\StringHelper;
 
 class SentenceMap
@@ -46,6 +47,18 @@ class SentenceMap
         $this->paragraphs[$paragraphIndex][$path] = $textContent;
 
         return $this;
+    }
+
+    public function appendToLastItem(string $text): void
+    {
+        $a = $this->paragraphs;
+        if (\count($a) === 0) {
+            throw new LogicException('Cannot append to an empty sentence map.');
+        }
+        $lastKey = array_values(array_reverse(array_keys($a)))[0];
+        $a = $a[$lastKey];
+        $lastKey2 = array_values(array_reverse(array_keys($a)))[0];
+        $this->paragraphs[$lastKey][$lastKey2] .= $text;
     }
 
     public function toSentenceCollection(): SentenceCollection
