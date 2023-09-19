@@ -14,7 +14,6 @@ use S2\Rose\Entity\Query;
 use S2\Rose\Entity\ResultItem;
 use S2\Rose\Finder;
 use S2\Rose\Indexer;
-use S2\Rose\Snippet\SnippetBuilder;
 use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Database\PdoStorage;
@@ -25,7 +24,7 @@ use S2\Rose\Storage\StorageWriteInterface;
  * @group snippet
  * @group snippet-builder
  */
-class SnippetBuilderTest extends Unit
+class SnippetsTest extends Unit
 {
     /**
      * @var StorageReadInterface
@@ -52,11 +51,6 @@ class SnippetBuilderTest extends Unit
      */
     protected $finder;
 
-    /**
-     * @var SnippetBuilder
-     */
-    protected $snippetBuilder;
-
     public function _before()
     {
         global $s2_rose_test_db;
@@ -68,10 +62,10 @@ class SnippetBuilderTest extends Unit
         $this->writeStorage = new PdoStorage($pdo, 'test_');
         $this->writeStorage->erase();
 
-        $this->stemmer        = new PorterStemmerRussian();
-        $this->indexer        = new Indexer($this->writeStorage, $this->stemmer);
-        $this->finder         = new Finder($this->readStorage, $this->stemmer);
-        $this->snippetBuilder = new SnippetBuilder($this->stemmer);
+        $this->stemmer = new PorterStemmerRussian();
+        $this->indexer = new Indexer($this->writeStorage, $this->stemmer);
+        $this->finder  = new Finder($this->readStorage, $this->stemmer);
+        $this->finder->setHighlightTemplate('<span class="highlight">%s</span>');
     }
 
     /**
@@ -90,7 +84,7 @@ class SnippetBuilderTest extends Unit
         $resultSet = $this->finder->find(new Query('механическая природа'));
 
         $this->assertEquals(
-            'Если пренебречь малыми величинами, то видно, что <i>механическая природа</i> устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
+            'Если пренебречь малыми величинами, то видно, что <span class="highlight">механическая природа</span> устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
             $resultSet->getItems()[0]->getSnippet()
         );
 
@@ -98,33 +92,38 @@ class SnippetBuilderTest extends Unit
         $resultSet = $this->finder->find(new Query('если пренебречь'));
 
         $this->assertEquals(
-            '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр... <i>Если пренебречь</i> малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
+            '<span class="highlight">Если</span> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <span class="highlight">если</span> добавить устойчивый гиротахометр... <span class="highlight">Если пренебречь</span> малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик.',
             $resultSet->getItems()[0]->getSnippet()
         );
 
         // Check line separators
         $resultSet = $this->finder->find(new Query('если'));
         $this->assertEquals(
-            '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр... Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа.',
+            '<span class="highlight">Если</span> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <span class="highlight">если</span> добавить устойчивый гиротахометр... Ошибка астатически даёт более простую систему дифференциальных уравнений, <span class="highlight">если</span> исключить небольшой угол тангажа.',
             $resultSet->getItems()[0]->getSnippet()
+        );
+
+        $this->assertEquals(
+            '<span class="highlight">Если</span> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки... В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <span class="highlight">если</span> добавить устойчивый гиротахометр... Ошибка <i>астатически</i> даёт более простую систему дифференциальных уравнений, <span class="highlight">если</span> исключить небольшой угол тангажа.',
+            $resultSet->getItems()[0]->getFormattedSnippet()
         );
 
         $this->finder->setSnippetLineSeparator(' &middot; ');
         $resultSet = $this->finder->find(new Query('если'));
         $this->assertEquals(
-            '<i>Если</i> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки. &middot; В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <i>если</i> добавить устойчивый гиротахометр. &middot; Ошибка астатически даёт более простую систему дифференциальных уравнений, <i>если</i> исключить небольшой угол тангажа.',
+            '<span class="highlight">Если</span> основание движется с постоянным ускорением, проекция угловых скоростей вращает колебательный успокоитель качки. &middot; В самом общем случае маховик заставляет перейти к более сложной системе дифференциальных уравнений, <span class="highlight">если</span> добавить устойчивый гиротахометр. &middot; Ошибка астатически даёт более простую систему дифференциальных уравнений, <span class="highlight">если</span> исключить небольшой угол тангажа.',
             $resultSet->getItems()[0]->getSnippet()
         );
 
         // Highlighting 'мне' as a word found by stem 'я'
         $resultSet = $this->finder->find(new Query('Мне не душно'));
         $this->assertEquals(
-            '<i>Мне не душно</i>',
+            '<span class="highlight">Мне не душно</span>',
             $resultSet->getItems()[0]->getHighlightedTitle($this->stemmer)
         );
 
         $this->assertEquals(
-            '<i>Я</i> просто <i>не</i> ощущаю уровень углекислого газа в воздухе. <i>Меня не</i> устраивает.',
+            '<span class="highlight">Я</span> просто <span class="highlight">не</span> ощущаю уровень углекислого газа в воздухе. <span class="highlight">Меня не</span> устраивает.',
             $resultSet->getItems()[0]->getSnippet()
         );
 
@@ -133,8 +132,8 @@ class SnippetBuilderTest extends Unit
 
         $this->assertSimilar(
             [
-                'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
-                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
+                'Артемий как абсолютно <span class="highlight">твёрдое</span> тело заставляет иначе взглянуть на то, что такое объект.',
+                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <span class="highlight">твердый</span> экзистенциальный континентально-европейский тип политической культуры.',
             ],
             array_map(static function (ResultItem $item) {
                 return $item->getSnippet();
@@ -145,8 +144,8 @@ class SnippetBuilderTest extends Unit
 
         $this->assertSimilar(
             [
-                'Артемий как абсолютно <i>твёрдое</i> тело заставляет иначе взглянуть на то, что такое объект.',
-                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <i>твердый</i> экзистенциальный континентально-европейский тип политической культуры.',
+                'Артемий как абсолютно <span class="highlight">твёрдое</span> тело заставляет иначе взглянуть на то, что такое объект.',
+                'Согласно теории Э.Тоффлера ("Шок будущего"), коллапс Советского Союза иллюстрирует <span class="highlight">твердый</span> экзистенциальный континентально-европейский тип политической культуры.',
             ],
             array_map(static function (ResultItem $item) {
                 return $item->getSnippet();
@@ -157,8 +156,8 @@ class SnippetBuilderTest extends Unit
 
         $this->assertSimilar(
             [
-                'Политическое учение <i>Артёма</i>, в первом приближении, формирует экзистенциальный социализм.',
-                '<i>Артемий</i> как абсолютно твёрдое тело заставляет иначе взглянуть на то, что такое объект.',
+                'Политическое учение <span class="highlight">Артёма</span>, в первом приближении, формирует экзистенциальный социализм.',
+                '<span class="highlight">Артемий</span> как абсолютно твёрдое тело заставляет иначе взглянуть на то, что такое объект.',
             ],
             array_map(static function (ResultItem $item) {
                 return $item->getSnippet();
@@ -167,7 +166,7 @@ class SnippetBuilderTest extends Unit
 
         $this->assertSimilar(
             [
-                'Почему неоднозначна борьба <i>Артёма</i> против демократических и олигархических тенденций?',
+                'Почему неоднозначна борьба <span class="highlight">Артёма</span> против демократических и олигархических тенденций?',
                 'Почему апериодичен маховик?',
             ],
             array_map(function (ResultItem $item) {
@@ -177,13 +176,13 @@ class SnippetBuilderTest extends Unit
 
         $resultSet = $this->finder->find(new Query('1 защита xss gt'));
         $this->assertEquals(
-            'Еще <i>1</i> раз проверим, как <i>gt</i> работает <i>защита</i> против &lt;script&gt;alert();&lt;/script&gt; <i>xss</i>-уязвимостей.',
+            'Еще <span class="highlight">1</span> раз проверим, как <span class="highlight">gt</span> работает <span class="highlight">защита</span> против &lt;script&gt;alert();&lt;/script&gt; <span class="highlight">xss</span>-уязвимостей.',
             $resultSet->getItems()[0]->getSnippet()
         );
 
         $resultSet = $this->finder->find(new Query('подсистема'));
         $this->assertEquals(
-            'Теория политических <i>подсистем</i> нетривиальна, что такое <i>подсистема</i>?',
+            'Теория политических <span class="highlight">подсистем</span> нетривиальна, что такое <span class="highlight">подсистема</span>?',
             $resultSet->getItems()[0]->getSnippet(),
             'Stemmer trims incorrectly подсистем to подсист. Check that this incorrect behaviour is handled without bugs.'
         );

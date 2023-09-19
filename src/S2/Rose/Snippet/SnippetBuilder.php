@@ -111,6 +111,7 @@ class SnippetBuilder
 
             $snippetLine = new SnippetLine(
                 $snippetSource->getText(),
+                $snippetSource->getFormatId(),
                 array_keys($foundWords),
                 array_sum(array_map(static function ($stem) use ($relevanceByStems) {
                     return $relevanceByStems[$stem] ?? 0;

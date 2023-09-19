@@ -6,6 +6,9 @@
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Entity\Metadata\SnippetSource;
+use S2\Rose\Helper\StringHelper;
+
 class Snippet
 {
     private const SNIPPET_LINE_COUNT = 3;
@@ -50,22 +53,12 @@ class Snippet
         return $this;
     }
 
-    /**
-     * TODO why not to delete?
-     *
-     * @return SnippetLine[]
-     */
-    public function getSnippetLines(): array
-    {
-        return $this->snippetLines;
-    }
-
     public function getTextIntroduction(): string
     {
         return $this->textIntroduction;
     }
 
-    public function toString(float $acceptableRelevance = 0.6): ?string
+    public function toString(float $acceptableRelevance = 0.6, bool $includeFormatting = false): ?string
     {
         $stat = [];
         foreach ($this->snippetLines as $index => $snippetLine) {
@@ -87,7 +80,7 @@ class Snippet
         arsort($uniqueLines);
 
         // Obtaining top of meaningful lines
-        $slice = array_slice($uniqueLines, 0, self::SNIPPET_LINE_COUNT, true);
+        $slice = \array_slice($uniqueLines, 0, self::SNIPPET_LINE_COUNT, true);
 
         // Sort by natural position
         ksort($slice);
@@ -101,7 +94,7 @@ class Snippet
             return null;
         }
 
-        return $this->implodeLines($resultSnippetLines);
+        return $this->implodeLines($resultSnippetLines, $includeFormatting);
     }
 
     /**
@@ -109,7 +102,7 @@ class Snippet
      *
      * @return string
      */
-    private function implodeLines(array $snippetLines): string
+    private function implodeLines(array $snippetLines, bool $includeFormatting): string
     {
         $result              = '';
         $previousMaxPosition = -1;
@@ -118,6 +111,14 @@ class Snippet
         foreach ($snippetLines as $index => $snippetLine) {
             $lineStr = $snippetLine->getHighlighted($this->highlightTemplate);
             $lineStr = trim($lineStr);
+
+            if ($snippetLine->getFormatId() === SnippetSource::FORMAT_INTERNAL) {
+                if ($includeFormatting) {
+                    $lineStr = StringHelper::convertInternalFormattingToHtml($lineStr);
+                } else {
+                    $lineStr = StringHelper::clearInternalFormatting($lineStr);
+                }
+            }
 
             // Cleaning up unbalanced quotation marks
             /** @noinspection NotOptimalRegularExpressionsInspection */
@@ -166,6 +167,6 @@ class Snippet
             }
         }
 
-        return count($foundWords) * 1.0 / $this->foundWordCount;
+        return \count($foundWords) * 1.0 / $this->foundWordCount;
     }
 }

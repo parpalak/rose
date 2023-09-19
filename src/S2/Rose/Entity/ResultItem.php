@@ -7,6 +7,7 @@
 namespace S2\Rose\Entity;
 
 use S2\Rose\Entity\Metadata\ImgCollection;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\RuntimeException;
 use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
@@ -120,6 +121,20 @@ class ResultItem
         return $this->description ?: $this->snippet->getTextIntroduction();
     }
 
+    public function getFormattedSnippet(): string
+    {
+        if ($this->snippet === null) {
+            return $this->description;
+        }
+
+        $snippet = $this->snippet->toString(0.3, true);
+        if ($snippet) {
+            return $snippet;
+        }
+
+        return $this->description ?: $this->snippet->getTextIntroduction();
+    }
+
     /**
      * @param string[] $words
      *
@@ -182,6 +197,7 @@ class ResultItem
 
         $snippetLine = new SnippetLine(
             $this->title,
+            SnippetSource::FORMAT_PLAIN_TEXT,
             array_keys($foundWords),
             \count($foundWords)
         );

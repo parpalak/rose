@@ -26,6 +26,12 @@ class SentenceMap
      * @var array[]
      */
     private array $paragraphs = [];
+    private int $formatId;
+
+    public function __construct(int $formatId)
+    {
+        $this->formatId = $formatId;
+    }
 
     /**
      * @param int    $paragraphIndex Number of current paragraph. Must be detected outside based on formatting.
@@ -44,7 +50,7 @@ class SentenceMap
 
     public function toSentenceCollection(): SentenceCollection
     {
-        $sentenceCollection = new SentenceCollection();
+        $sentenceCollection = new SentenceCollection($this->formatId);
 
         foreach ($this->paragraphs as $paragraphSentences) {
             $accumulatedRegularSentences = '';
@@ -73,11 +79,13 @@ class SentenceMap
      */
     private function processRegularSentences(string $text, SentenceCollection $sentenceCollection): void
     {
-        $text = trim($text);
+        $text      = trim($text);
         $sentences = StringHelper::sentencesFromText($text);
 
         if (($linesNum = 1 + substr_count($text, self::LINE_SEPARATOR)) > 3) {
-            $totalWordNum          = \count(SentenceCollection::breakIntoWords($text));
+            $totalWordNum          = \count(SentenceCollection::breakIntoWords(
+                $this->formatId === SnippetSource::FORMAT_INTERNAL ? StringHelper::clearInternalFormatting($text) : $text
+            ));
             $avgWordNumInSentences = 1.0 * $totalWordNum / \count($sentences);
             $avgWordNumInLines     = 1.0 * $totalWordNum / $linesNum;
 
@@ -92,7 +100,6 @@ class SentenceMap
             if ($sentence === '') {
                 continue;
             }
-            // TODO transfer information about formatting?
             $sentenceCollection->attach($sentence);
         }
     }

@@ -306,6 +306,7 @@ LIMIT :limit";
 			toc_id INT(11) UNSIGNED NOT NULL,
 			max_word_pos INT(11) UNSIGNED NOT NULL,
 			min_word_pos INT(11) UNSIGNED NOT NULL,
+			format_id INT(11) UNSIGNED NOT NULL,
 			snippet LONGTEXT NOT NULL,
 			PRIMARY KEY (toc_id, max_word_pos)
 		) ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4 ENGINE=InnoDB CHARACTER SET ' . $charset);

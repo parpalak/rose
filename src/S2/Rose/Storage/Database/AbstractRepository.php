@@ -272,10 +272,11 @@ abstract class AbstractRepository
         $data = array_map(fn(SnippetSource $s) => $s->getMinPosition() . ','
             . $s->getMaxPosition() . ','
             . $this->pdo->quote($s->getText()) . ','
+            . $s->getFormatId() . ','
             . $internalId, $snippetInfo);
 
         $sql = 'INSERT INTO ' . $this->getTableName(self::SNIPPET)
-            . ' (min_word_pos, max_word_pos, snippet, toc_id) VALUES ( ' . implode('),(', $data) . ')';
+            . ' (min_word_pos, max_word_pos, snippet, format_id, toc_id) VALUES ( ' . implode('),(', $data) . ')';
         try {
             $this->pdo->exec($sql);
         } catch (\PDOException $e) {

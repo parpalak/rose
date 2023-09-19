@@ -7,6 +7,7 @@
 namespace S2\Rose\Test\Entity;
 
 use Codeception\Test\Unit;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
 
@@ -19,12 +20,14 @@ class SnippetTest extends Unit
     {
         $snippetLine1 = new SnippetLine(
             'Testing string to highlight some test values.',
+            SnippetSource::FORMAT_PLAIN_TEXT,
             ['test'],
             1
         );
 
         $snippetLine2 = new SnippetLine(
             'Test is case-sensitive.',
+            SnippetSource::FORMAT_PLAIN_TEXT,
             ['Test', 'is'],
             2
         );
@@ -61,7 +64,7 @@ class SnippetTest extends Unit
         $snippet = new Snippet('introduction', 2, '<i>%s</i>');
 
         foreach ($data as $row) {
-            $snippet->attachSnippetLine($row[0], $row[1], new SnippetLine($row[2], $row[3], count($row[3])));
+            $snippet->attachSnippetLine($row[0], $row[1], new SnippetLine($row[2], SnippetSource::FORMAT_PLAIN_TEXT, $row[3], count($row[3])));
         }
 
         $this->assertEquals(
@@ -74,13 +77,13 @@ class SnippetTest extends Unit
     {
         $snippet = new Snippet('introduction', 1, '<i>%s</i>');
         $snippet
-            ->attachSnippetLine(0, 3, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(4, 7, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(8, 11, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(12, 15, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(16, 19, new SnippetLine('Try to test 2.', ['test'], 1))
-            ->attachSnippetLine(20, 23, new SnippetLine('Try to test 2.', ['test'], 1))
-            ->attachSnippetLine(24, 27, new SnippetLine('Try to test 2.', ['test'], 1))
+            ->attachSnippetLine(0, 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(4, 7, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(8, 11, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(12, 15, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(16, 19, new SnippetLine('Try to test 2.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(20, 23, new SnippetLine('Try to test 2.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(24, 27, new SnippetLine('Try to test 2.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
         ;
 
         $this->assertEquals(
@@ -90,18 +93,18 @@ class SnippetTest extends Unit
 
         $snippet = new Snippet('introduction', 1, '<i>%s</i>');
         $snippet
-            ->attachSnippetLine(0 * 4, 0 * 4 + 3, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(1 * 4, 1 * 4 + 3, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(2 * 4, 2 * 4 + 3, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(3 * 4, 3 * 4 + 3, new SnippetLine('Try to test 1.', ['test'], 1))
-            ->attachSnippetLine(4 * 4, 4 * 4 + 3, new SnippetLine('Try to test 2.', ['test'], 1))
-            ->attachSnippetLine(5 * 4, 5 * 4 + 3, new SnippetLine('Try to test 2.', ['test'], 1))
-            ->attachSnippetLine(6 * 4, 6 * 4 + 3, new SnippetLine('Try to test 2.', ['test'], 1))
-            ->attachSnippetLine(7 * 4, 7 * 4 + 3, new SnippetLine('Try to test 3.', ['test'], 1))
-            ->attachSnippetLine(8 * 4, 8 * 4 + 3, new SnippetLine('Try to test 3.', ['test'], 1))
-            ->attachSnippetLine(9 * 4, 9 * 4 + 3, new SnippetLine('Try to test 3.', ['test'], 1))
-            ->attachSnippetLine(10 * 4, 10 * 4 + 3, new SnippetLine('Try to test 4.', ['test'], 1))
-            ->attachSnippetLine(11 * 4, 11 * 4 + 3, new SnippetLine('Try to test 4.', ['test'], 2))
+            ->attachSnippetLine(0 * 4, 0 * 4 + 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(1 * 4, 1 * 4 + 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(2 * 4, 2 * 4 + 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(3 * 4, 3 * 4 + 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(4 * 4, 4 * 4 + 3, new SnippetLine('Try to test 2.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(5 * 4, 5 * 4 + 3, new SnippetLine('Try to test 2.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(6 * 4, 6 * 4 + 3, new SnippetLine('Try to test 2.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(7 * 4, 7 * 4 + 3, new SnippetLine('Try to test 3.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(8 * 4, 8 * 4 + 3, new SnippetLine('Try to test 3.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(9 * 4, 9 * 4 + 3, new SnippetLine('Try to test 3.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(10 * 4, 10 * 4 + 3, new SnippetLine('Try to test 4.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
+            ->attachSnippetLine(11 * 4, 11 * 4 + 3, new SnippetLine('Try to test 4.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 2))
         ;
 
         $this->assertEquals(
@@ -116,7 +119,7 @@ class SnippetTest extends Unit
         $snippet->toString();
 
         $snippet = new Snippet('introduction', 0, '<i>%s</i>');
-        $snippet->attachSnippetLine(1, 1, new SnippetLine('line1', [], 0));
+        $snippet->attachSnippetLine(1, 1, new SnippetLine('line1', SnippetSource::FORMAT_PLAIN_TEXT, [], 0));
         $snippet->toString();
     }
 }

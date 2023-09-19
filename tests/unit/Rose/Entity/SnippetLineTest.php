@@ -7,6 +7,7 @@
 namespace S2\Rose\Test\Entity;
 
 use Codeception\Test\Unit;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\RuntimeException;
 
@@ -21,6 +22,7 @@ class SnippetLineTest extends Unit
     {
         $snippetLine = new SnippetLine(
             'Testing string to highlight some test values, Test is case-sensitive.',
+            SnippetSource::FORMAT_PLAIN_TEXT,
             ['test', 'is'],
             2
         );
@@ -32,6 +34,7 @@ class SnippetLineTest extends Unit
     {
         $snippetLine = new SnippetLine(
             'Testing string to highlight some test values, Test is case-sensitive.',
+            SnippetSource::FORMAT_PLAIN_TEXT,
             ['Test'],
             1
         );
@@ -43,6 +46,7 @@ class SnippetLineTest extends Unit
     {
         $snippetLine = new SnippetLine(
             'Testing string to highlight some test values, Test is case-sensitive.',
+            SnippetSource::FORMAT_PLAIN_TEXT,
             ['to', 'highlight'],
             1
         );
@@ -52,12 +56,13 @@ class SnippetLineTest extends Unit
 
     public function testCreateHighlightedFail()
     {
-        $this->expectException(RuntimeException::class);
         $snippetLine = new SnippetLine(
             'Testing string to highlight some test values, Test is case-sensitive.',
+            SnippetSource::FORMAT_PLAIN_TEXT,
             ['test', 'is'],
             2
         );
+        $this->expectException(RuntimeException::class);
         $snippetLine->getHighlighted('<i></i>');
     }
 }

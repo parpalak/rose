@@ -12,12 +12,17 @@ use S2\Rose\Entity\Metadata\SentenceMap;
 use S2\Rose\Extractor\ExtractionErrors;
 use S2\Rose\Extractor\ExtractionResult;
 use S2\Rose\Extractor\ExtractorInterface;
+use S2\Rose\Helper\StringHelper;
 
 class DomExtractor implements ExtractorInterface
 {
-    private const NODE_SKIP   = 'node_skip';
-    private const NODE_BLOCK  = 'node_block';
-    private const NODE_INLINE = 'node_inline';
+    private const NODE_SKIP         = 'node_skip';
+    private const NODE_BLOCK        = 'node_block';
+    private const NODE_BOLD         = 'node_bold';
+    private const NODE_ITALIC       = 'node_italic';
+    private const NODE_SUPERSCRIPT  = 'node_superscript';
+    private const NODE_SUBSCRIPT    = 'node_subscript';
+    private const NODE_OTHER_INLINE = 'node_inline';
 
     use LoggerAwareTrait;
 
@@ -111,28 +116,51 @@ class DomExtractor implements ExtractorInterface
             return;
         }
 
-        $newBlock = false;
-
         if ($domNode instanceof \DOMElement) {
             $nodeType = static::processDomElement($domNode, $domState);
-            if ($nodeType === self::NODE_SKIP) {
-                return;
+            switch ($nodeType) {
+                case self::NODE_SKIP:
+                    return;
+                case self::NODE_BLOCK:
+                    $domState->startNewParagraph();
+                    break;
+                case self::NODE_ITALIC:
+                    $domState->startFormatting(StringHelper::ITALIC);
+                    break;
+                case self::NODE_BOLD:
+                    $domState->startFormatting(StringHelper::BOLD);
+                    break;
+                case self::NODE_SUPERSCRIPT:
+                    $domState->startFormatting(StringHelper::SUPERSCRIPT);
+                    break;
+                case self::NODE_SUBSCRIPT:
+                    $domState->startFormatting(StringHelper::SUBSCRIPT);
+                    break;
             }
-            if ($nodeType === self::NODE_BLOCK) {
-                $newBlock = true;
-            }
-        }
-
-        if ($newBlock) {
-            $domState->startNewParagraph();
         }
 
         foreach ($domNode->childNodes as $childNode) {
             static::walkDomNode($childNode, $domState, $extractionErrors, $level + 1);
         }
 
-        if ($newBlock) {
-            $domState->startNewParagraph();
+        if ($domNode instanceof \DOMElement) {
+            switch ($nodeType) {
+                case self::NODE_BLOCK:
+                    $domState->startNewParagraph();
+                    break;
+                case self::NODE_ITALIC:
+                    $domState->stopFormatting(StringHelper::ITALIC);
+                    break;
+                case self::NODE_BOLD:
+                    $domState->stopFormatting(StringHelper::BOLD);
+                    break;
+                case self::NODE_SUPERSCRIPT:
+                    $domState->stopFormatting(StringHelper::SUPERSCRIPT);
+                    break;
+                case self::NODE_SUBSCRIPT:
+                    $domState->stopFormatting(StringHelper::SUBSCRIPT);
+                    break;
+            }
         }
     }
 
@@ -230,8 +258,22 @@ class DomExtractor implements ExtractorInterface
             case 'style':
             case 'script':
                 return self::NODE_SKIP;
+
+            case 'b':
+            case 'strong':
+                return self::NODE_BOLD;
+
+            case 'i':
+            case 'em':
+                return self::NODE_ITALIC;
+
+            case 'sup':
+                return self::NODE_SUPERSCRIPT;
+
+            case 'sub':
+                return self::NODE_SUBSCRIPT;
         }
 
-        return self::NODE_INLINE;
+        return self::NODE_OTHER_INLINE;
     }
 }

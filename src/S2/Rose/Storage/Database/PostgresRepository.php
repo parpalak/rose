@@ -277,6 +277,7 @@ LIMIT :limit";
             toc_id INT NOT NULL,
             max_word_pos INT NOT NULL,
             min_word_pos INT NOT NULL,
+            format_id INT NOT NULL,
             snippet TEXT NOT NULL,
             PRIMARY KEY (toc_id, max_word_pos)
 		)');

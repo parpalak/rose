@@ -292,6 +292,7 @@ class SqliteRepository extends AbstractRepository
             toc_id INTEGER NOT NULL,
             max_word_pos INTEGER NOT NULL,
             min_word_pos INTEGER NOT NULL,
+            format_id INTEGER NOT NULL,
             snippet TEXT NOT NULL,
             PRIMARY KEY (toc_id, max_word_pos)
 		)');

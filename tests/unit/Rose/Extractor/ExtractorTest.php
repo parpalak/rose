@@ -10,6 +10,7 @@ use Codeception\Test\Unit;
 use S2\Rose\Extractor\ExtractorInterface;
 use S2\Rose\Extractor\HtmlDom\DomExtractor;
 use S2\Rose\Extractor\HtmlRegex\RegexExtractor;
+use S2\Rose\Helper\StringHelper;
 
 /**
  * @group extract
@@ -36,7 +37,7 @@ class ExtractorTest extends Unit
         $extractionResult = $this->regexExtractor->extract($htmlText);
         $sentenceMap      = $extractionResult->getContentWithMetadata()->getSentenceMap();
 
-        self::assertEquals($resultText, $sentenceMap->toSentenceCollection()->getText());
+        self::assertEquals(StringHelper::clearInternalFormatting($resultText), $sentenceMap->toSentenceCollection()->getText());
     }
 
     /**
@@ -78,11 +79,11 @@ class ExtractorTest extends Unit
             ['<P>One sentence.</P><noindex><p>Another<br>sentence.</p></noindex>', 'One sentence. Another sentence.'],
             ['<P>One sentence.</P><p>Another<img src="1.png" alt="" />sentence.</p>', 'One sentence. Another sentence.'],
             ['<p>One sentence.</p>List:<ul><li>First</li>  <li> Second<p>and a half  </p></li></ul>', 'One sentence. List: First Second and a half'],
-            ['<P><i>This</i> sentence is a little bit <em>longer. And</em> this is not.</p>', 'This sentence is a little bit longer. And this is not.'],
-            ['<p>This <table><tr><td>is broken</td><td>HTML.</td></tr></table>I <b>want <i>to</b> test a</i> real-word <img><unknown-tag>example</p>', 'This is broken HTML. I want to test a real-word example', ['this', 'is', 'broken', 'html', 'i', 'want', 'to', 'test', 'a', 'real-word', 'example']],
+            ['<P><i>This</i> sentence is a little bit <em>longer. And</em> this is not.</p>', '\\iThis\\I sentence is a little bit \\ilonger. And\\I this is not.'],
+            ['<p>This <table><tr><td>is broken</td><td>HTML.</td></tr></table>I <b>want <i>to</b> test a</i> real-word <img><unknown-tag>example</p>', 'This is broken HTML. I \bwant \ito\I\B test a real-word example', ['this', 'is', 'broken', 'html', 'i', 'want', 'to', 'test', 'a', 'real-word', 'example']],
             [
                 '<P><i>This</i> sentence&nbsp;contains entities like &#43;, &plus;, &planck;, &amp;, &lt;, &quot;, &#8212;, &laquo;, &#x2603;, &#x1D306;, &#xA9;, &copy;. &amp;plus; is not an entity.</p>',
-                'This sentence contains entities like +, +, ℏ, &, <, ", —, «, ☃, 𝌆, ©, ©. &plus; is not an entity.',
+                '\\iThis\\I sentence contains entities like +, +, ℏ, &, <, ", —, «, ☃, 𝌆, ©, ©. &plus; is not an entity.',
                 ['this', 'sentence', 'contains', 'entities', 'like', 'ℏ', 'plus', 'is', 'not', 'an', 'entity'],
             ],
             [
@@ -127,7 +128,7 @@ div {
 <p>Ошибка <i>астатически</i> даёт более простую систему.</p>
 
 <p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>',
-                'Должно проиндексироваться. Внешнее кольцо позволяет пренебречь. А это цитата, ее тоже надо индексировать. В цитате могут быть абзацы. Ошибка астатически даёт более простую систему. Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
+                'Должно проиндексироваться. Внешнее кольцо позволяет пренебречь. А это цитата, ее тоже надо индексировать. В цитате могут быть абзацы. Ошибка \\iастатически\\I даёт более простую систему. Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
                 null,
                 '[{"src":"1.jpg","width":"300","height":"200","alt":""},{"src":"https:\/\/localhost\/2.jpg&test=1","width":"300","height":"200","alt":"valid escaped src and alt & → &rarr;"},{"src":"https:\/\/localhost\/3.jpg&test=1","width":"300","height":"200","alt":"invalid escaped src and alt &"}]'
             ],
@@ -213,10 +214,10 @@ $url
 <p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>';
 
         $sourceWithCodeSentences = [
-            'Ошибка астатически даёт более простую систему.',
+            'Ошибка \\iастатически\\I даёт более простую систему.',
             '<?php',
             'require \'vendor/autoload.php\';',
-            'use GuzzleHttp\Client; use GuzzleHttp\Psr7\Request; use GuzzleHttp\Psr7\ServerRequest;',
+            'use GuzzleHttp\\\\Client; use GuzzleHttp\\\\Psr7\\\\Request; use GuzzleHttp\\\\Psr7\\\\ServerRequest;',
             '// Создание экземпляра клиента Guzzle $client = new Client();',
             '// Обработка входящего запроса $request = ServerRequest::fromGlobals();',
             '// Получение URL-адреса запрашиваемого сайта $url = $request->getUri(); $url // Я собирался ходить на https-сайты, поэтому подменил протокол и порт ->withScheme(\'https\') ->withPort(443) // Подменяем хост (видимо, тут и есть обработка протокола http-прокси) ->withHost($request->getHeaderLine(\'host\')) ->withQuery($request->getUri()->getQuery()) ;',

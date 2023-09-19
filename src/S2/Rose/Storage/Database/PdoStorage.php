@@ -138,7 +138,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
 
         $result = new SnippetResult();
         foreach ($data as $row) {
-            $result->attach($row['externalId'], new SnippetSource($row['snippet'], $row['min_word_pos'], $row['max_word_pos']));
+            $result->attach($row['externalId'], new SnippetSource($row['snippet'], $row['format_id'] ?? SnippetSource::FORMAT_PLAIN_TEXT, $row['min_word_pos'], $row['max_word_pos']));
         }
 
         return $result;

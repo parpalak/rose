@@ -27,12 +27,14 @@ class SnippetLine
      * @var string[]
      */
     protected array $storedEntities = [];
+    private int $formatId;
 
-    public function __construct(string $line, array $foundWords, float $relevance)
+    public function __construct(string $line, int $formatId, array $foundWords, float $relevance)
     {
         $this->line       = $line;
         $this->foundWords = $foundWords;
         $this->relevance  = $relevance;
+        $this->formatId = $formatId;
     }
 
     /**
@@ -54,6 +56,11 @@ class SnippetLine
     public function getLine(): string
     {
         return $this->line;
+    }
+
+    public function getFormatId(): int
+    {
+        return $this->formatId;
     }
 
     /**

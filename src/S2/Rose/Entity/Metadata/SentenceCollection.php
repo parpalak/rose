@@ -16,9 +16,15 @@ class SentenceCollection
     private array $sentences = [];
     private ?array $cachedWords = null;
     private ?array $cachedSnippetSources = null;
+    private int $formatId;
+
+    public function __construct(int $formatId)
+    {
+        $this->formatId = $formatId;
+    }
 
     /**
-     * @param string $text Raw text content of a sentence. No formatting is supported now. TODO add simple formatting?
+     * @param string $text Text content of a sentence. Must be formatted according to the constructor parameter.
      * @return void
      */
     public function attach(string $text): void
@@ -71,7 +77,9 @@ class SentenceCollection
         $oldSize                    = 0;
         foreach ($this->sentences as $idx => $sentence) {
             // NOTE: maybe it's worth to join sentences somehow before exploding for optimization reasons
-            $contentWords        = self::breakIntoWords($sentence);
+            $contentWords        = self::breakIntoWords(
+                $this->formatId === SnippetSource::FORMAT_INTERNAL ? StringHelper::clearInternalFormatting($sentence) : $sentence
+            );
             $this->cachedWords[] = $contentWords;
             $wordsInSentence     = \count($contentWords);
             if ($wordsInSentence === 0) {
@@ -80,8 +88,7 @@ class SentenceCollection
             $newSize = $wordsInSentence + $oldSize;
 
             if ($wordsInSentence >= 3) { // Skip too short snippets
-                // TODO transfer formatting data
-                $this->cachedSnippetSources[$idx] = new SnippetSource($sentence, $oldSize, $newSize - 1);
+                $this->cachedSnippetSources[$idx] = new SnippetSource($sentence, $this->formatId, $oldSize, $newSize - 1);
             }
 
             $oldSize = $newSize;
