@@ -9,10 +9,11 @@ namespace S2\Rose\Test\Entity;
 
 use Codeception\Test\Unit;
 use S2\Rose\Entity\ExternalId;
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\ResultSet;
 use S2\Rose\Entity\Snippet;
+use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\ImmutableException;
-use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\UnknownIdException;
 
 /**
@@ -63,7 +64,7 @@ class ResultSetTest extends Unit
     {
         $this->expectException(UnknownIdException::class);
         $resultSet = new ResultSet();
-        $resultSet->attachSnippet(new ExternalId('not found'), new Snippet('', 0, '<i>%s</i>'));
+        $resultSet->attachSnippet(new ExternalId('not found'), new Snippet(0, '<i>%s</i>', new SnippetLine('', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0)));
     }
 
     public function testNotFrozenGetFoundExternalIds()

@@ -21,6 +21,10 @@ class Snippet
     protected array $snippetLines = [];
     protected array $snippetLineWeights = [];
 
+    /**
+     * @var SnippetLine[]
+     */
+    protected array $introductionSnippetLines;
     protected string $textIntroduction = '';
 
     protected int $foundWordCount = 0;
@@ -29,11 +33,11 @@ class Snippet
     private array $snippetMinWordPositions = [];
     private array $snippetMaxWordPositions = [];
 
-    public function __construct(string $textIntroduction, int $foundWordNum, string $highlightTemplate)
+    public function __construct(int $foundWordNum, string $highlightTemplate, SnippetLine ...$introductionSnippetLines)
     {
-        $this->textIntroduction  = $textIntroduction;
-        $this->foundWordCount    = $foundWordNum;
-        $this->highlightTemplate = $highlightTemplate;
+        $this->foundWordCount           = $foundWordNum;
+        $this->highlightTemplate        = $highlightTemplate;
+        $this->introductionSnippetLines = $introductionSnippetLines;
     }
 
     public function setLineSeparator(string $lineSeparator): self
@@ -53,9 +57,14 @@ class Snippet
         return $this;
     }
 
-    public function getTextIntroduction(): string
+    public function getTextIntroduction(bool $includeFormatting = false): string
     {
-        return $this->textIntroduction;
+        $result = [];
+        foreach ($this->introductionSnippetLines as $snippetLine) {
+            $result[] = $snippetLine->getHighlighted($this->highlightTemplate, $includeFormatting);
+        }
+
+        return implode(' ', $result);
     }
 
     public function toString(float $acceptableRelevance = 0.6, bool $includeFormatting = false): ?string
@@ -109,16 +118,8 @@ class Snippet
 
         $foundStrings = [];
         foreach ($snippetLines as $index => $snippetLine) {
-            $lineStr = $snippetLine->getHighlighted($this->highlightTemplate);
+            $lineStr = $snippetLine->getHighlighted($this->highlightTemplate, $includeFormatting);
             $lineStr = trim($lineStr);
-
-            if ($snippetLine->getFormatId() === SnippetSource::FORMAT_INTERNAL) {
-                if ($includeFormatting) {
-                    $lineStr = StringHelper::convertInternalFormattingToHtml($lineStr);
-                } else {
-                    $lineStr = StringHelper::clearInternalFormatting($lineStr);
-                }
-            }
 
             // Cleaning up unbalanced quotation marks
             /** @noinspection NotOptimalRegularExpressionsInspection */

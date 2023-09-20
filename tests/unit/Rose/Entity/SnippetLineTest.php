@@ -27,7 +27,7 @@ class SnippetLineTest extends Unit
             2
         );
 
-        $this->assertEquals('Testing string to highlight some <i>test</i> values, Test <i>is</i> case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
+        $this->assertEquals('Testing string to highlight some <i>test</i> values, Test <i>is</i> case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>', false));
     }
 
     public function testCreateHighlighted2()
@@ -39,7 +39,7 @@ class SnippetLineTest extends Unit
             1
         );
 
-        $this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
+        $this->assertEquals('Testing string to highlight some test values, <i>Test</i> is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>', false));
     }
 
     public function testJoinHighlighted()
@@ -51,7 +51,7 @@ class SnippetLineTest extends Unit
             1
         );
 
-        $this->assertEquals('Testing string <i>to highlight</i> some test values, Test is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>'));
+        $this->assertEquals('Testing string <i>to highlight</i> some test values, Test is case-sensitive.', $snippetLine->getHighlighted('<i>%s</i>',false));
     }
 
     public function testCreateHighlightedFail()
@@ -63,6 +63,6 @@ class SnippetLineTest extends Unit
             2
         );
         $this->expectException(RuntimeException::class);
-        $snippetLine->getHighlighted('<i></i>');
+        $snippetLine->getHighlighted('<i></i>', false);
     }
 }

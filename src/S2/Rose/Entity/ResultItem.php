@@ -202,7 +202,7 @@ class ResultItem
             \count($foundWords)
         );
 
-        return $snippetLine->getHighlighted($template);
+        return $snippetLine->getHighlighted($template, false);
     }
 
     public function getImageCollection(): ImgCollection

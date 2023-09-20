@@ -32,7 +32,7 @@ class SnippetTest extends Unit
             2
         );
 
-        $snippet = new Snippet('introduction', 2, '<i>%s</i>');
+        $snippet = new Snippet(2, '<i>%s</i>', new SnippetLine('introduction', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0));
         $snippet
             ->attachSnippetLine(0, 6, $snippetLine1)
             ->attachSnippetLine(7, 9, $snippetLine2)
@@ -61,7 +61,7 @@ class SnippetTest extends Unit
             ],
         ];
 
-        $snippet = new Snippet('introduction', 2, '<i>%s</i>');
+        $snippet = new Snippet(2, '<i>%s</i>', new SnippetLine('introduction', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0));
 
         foreach ($data as $row) {
             $snippet->attachSnippetLine($row[0], $row[1], new SnippetLine($row[2], SnippetSource::FORMAT_PLAIN_TEXT, $row[3], count($row[3])));
@@ -75,7 +75,7 @@ class SnippetTest extends Unit
 
     public function testSnippetsUnique()
     {
-        $snippet = new Snippet('introduction', 1, '<i>%s</i>');
+        $snippet = new Snippet(1, '<i>%s</i>', new SnippetLine('introduction', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0));
         $snippet
             ->attachSnippetLine(0, 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
             ->attachSnippetLine(4, 7, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
@@ -91,7 +91,7 @@ class SnippetTest extends Unit
             $snippet->toString(0.6)
         );
 
-        $snippet = new Snippet('introduction', 1, '<i>%s</i>');
+        $snippet = new Snippet(1, '<i>%s</i>', new SnippetLine('introduction', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0));
         $snippet
             ->attachSnippetLine(0 * 4, 0 * 4 + 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
             ->attachSnippetLine(1 * 4, 1 * 4 + 3, new SnippetLine('Try to test 1.', SnippetSource::FORMAT_PLAIN_TEXT, ['test'], 1))
@@ -115,10 +115,10 @@ class SnippetTest extends Unit
 
     public function testEmptySnippet()
     {
-        $snippet = new Snippet('introduction', 0, '<i>%s</i>');
+        $snippet = new Snippet(0, '<i>%s</i>', new SnippetLine('introduction', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0));
         $snippet->toString();
 
-        $snippet = new Snippet('introduction', 0, '<i>%s</i>');
+        $snippet = new Snippet(0, '<i>%s</i>', new SnippetLine('introduction', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0));
         $snippet->attachSnippetLine(1, 1, new SnippetLine('line1', SnippetSource::FORMAT_PLAIN_TEXT, [], 0));
         $snippet->toString();
     }

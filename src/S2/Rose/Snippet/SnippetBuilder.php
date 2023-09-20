@@ -64,8 +64,13 @@ class SnippetBuilder
             $foundWordNum++;
         }
 
-        $textStart = ($snippetSources[0] ?? '') . (isset($snippetSources[1]) ? ' ' . $snippetSources[1] : '');
-        $snippet   = new Snippet($textStart, $foundWordNum, $highlightTemplate);
+        $introSnippetLines = array_map(
+            static fn (SnippetSource $s) => SnippetLine::createFromSnippetSourceWithoutFoundWords($s),
+            \array_slice($snippetSources, 0, 2)
+        );
+
+        $snippet = new Snippet($foundWordNum, $highlightTemplate, ...$introSnippetLines);
+
         if ($this->snippetLineSeparator !== null) {
             $snippet->setLineSeparator($this->snippetLineSeparator);
         }
@@ -83,10 +88,12 @@ class SnippetBuilder
 
         foreach ($snippetSources as $snippetSource) {
             // Check the text for the query words
-            // TODO: Make sure the modifier S works correct on cyrillic
-            $formattingSymbols = StringHelper::BOLD . StringHelper::ITALIC . StringHelper::SUPERSCRIPT . StringHelper::SUBSCRIPT;
+            // NOTE: Make sure the modifier S works correct on cyrillic
+            // TODO: After implementing formatting this regex became a set of crutches.
+            // One has to break the snippets into words, clear formatting, convert words to stems
+            // and detect what stems has been found. Then highlight the original text based on words source offset.
             preg_match_all(
-                '#(?<=[^\\p{L}]|^|\\\\[' . $formattingSymbols . '])(' . $joinedStems . ')\\p{L}*#Ssui',
+                '#(?<=[^\\p{L}]|^|\\\\[' . StringHelper::FORMATTING_SYMBOLS . '])(' . $joinedStems . ')\\p{L}*#Ssui',
                 $snippetSource->getText(),
                 $matches,
                 PREG_OFFSET_CAPTURE

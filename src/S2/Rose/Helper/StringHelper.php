@@ -13,6 +13,8 @@ class StringHelper
     public const  SUPERSCRIPT = 'u';
     public const  SUBSCRIPT   = 'd';
 
+    public const  FORMATTING_SYMBOLS = self::BOLD . self::ITALIC . self::SUPERSCRIPT . self::SUBSCRIPT;
+
     public static function removeLongWords(array &$words): void
     {
         $removed = false;

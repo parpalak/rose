@@ -6,7 +6,9 @@
 
 namespace S2\Rose\Entity;
 
+use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Helper\StringHelper;
 
 class SnippetLine
 {
@@ -34,7 +36,12 @@ class SnippetLine
         $this->line       = $line;
         $this->foundWords = $foundWords;
         $this->relevance  = $relevance;
-        $this->formatId = $formatId;
+        $this->formatId   = $formatId;
+    }
+
+    public static function createFromSnippetSourceWithoutFoundWords(SnippetSource $snippetSource): self
+    {
+        return new static($snippetSource->getText(), $snippetSource->getFormatId(), [], 0.0);
     }
 
     /**
@@ -66,26 +73,40 @@ class SnippetLine
     /**
      * @throws RuntimeException
      */
-    public function getHighlighted(string $highlightTemplate): string
+    public function getHighlighted(string $highlightTemplate, bool $includeFormatting): string
     {
         if (strpos($highlightTemplate, '%s') === false) {
             throw new RuntimeException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
         if (\count($this->foundWords) === 0) {
-            return $this->line;
+            $result = $this->line;
+        } else {
+            $line = $this->getLineWithoutEntities();
+
+            // TODO: After implementing formatting this regex became a set of crutches.
+            // One has to break the snippets into words, clear formatting, convert words to stems
+            // and detect what stems has been found. Then highlight the original text based on words source offset.
+            $wordPattern               = implode('|', $this->foundWords);
+            $wordPatternWithFormatting = '(?:\\\\[' . StringHelper::FORMATTING_SYMBOLS . '])*(?:' . $wordPattern . ')(?:\\\\[' . strtoupper(StringHelper::FORMATTING_SYMBOLS) . '])*';
+            $replacedLine              = preg_replace_callback(
+                '#(?:\\s|^|\p{P})\\K' . $wordPatternWithFormatting . '(?:\\s+(?:' . $wordPatternWithFormatting . '))*\\b#su',
+                static fn($matches) => sprintf($highlightTemplate, $matches[0]),
+                $line
+            );
+
+            $result = $this->restoreEntities($replacedLine);
         }
 
-        $line = $this->getLineWithoutEntities();
+        if ($this->formatId === SnippetSource::FORMAT_INTERNAL) {
+            if ($includeFormatting) {
+                $result = StringHelper::convertInternalFormattingToHtml($result);
+            } else {
+                $result = StringHelper::clearInternalFormatting($result);
+            }
+        }
 
-        /** @noinspection RegExpUnnecessaryNonCapturingGroup */
-        $replacedLine = preg_replace_callback(
-            '#\b(?:' . implode('|', $this->foundWords) . ')(?:\s+(?:' . implode('|', $this->foundWords) . '))*\b#su',
-            static fn($matches) => sprintf($highlightTemplate, $matches[0]),
-            $line
-        );
-
-        return $this->restoreEntities($replacedLine);
+        return $result;
     }
 
     protected function getLineWithoutEntities(): string
@@ -121,7 +142,7 @@ class SnippetLine
                 break;
             }
 
-            $line = substr_replace($line, $this->storedEntities[$i], $pos, strlen(self::STORE_MARKER));
+            $line = substr_replace($line, $this->storedEntities[$i], $pos, \strlen(self::STORE_MARKER));
             $i++;
         }
 
