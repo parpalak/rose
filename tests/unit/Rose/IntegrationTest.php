@@ -245,7 +245,7 @@ class IntegrationTest extends Unit
         $this->assertEquals('Alternative text', $img1->getAlt());
 
         if ($readStorage instanceof PdoStorage && strpos($GLOBALS['s2_rose_test_db']['dsn'], 'sqlite') !== 0) {
-            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20));
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), false);
             $this->assertInstanceOf(TocEntryWithMetadata::class, $similarItems[0]['tocWithMetadata']);
             $this->assertEquals($right = [
                 'toc_id'      => '1',
@@ -257,13 +257,18 @@ class IntegrationTest extends Unit
                 'snippet2'    => 'I have changed the content.',
             ], array_intersect_key($similarItems[0], $right));
 
-            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), 10);
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), true);
+            $this->assertEquals($right = [
+                'snippet'     => 'This is the first page to be <i>indexed</i>.',
+            ], array_intersect_key($similarItems[0], $right));
+
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), false, 10);
             $this->assertEquals($right = [
                 'external_id' => 'id_1',
                 'instance_id' => '10',
             ], array_intersect_key($similarItems[0], $right));
 
-            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), 999);
+            $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), false, 999);
             $this->assertCount(0, $similarItems);
         }
     }
@@ -349,7 +354,7 @@ class IntegrationTest extends Unit
         $pdoStorage = new PdoStorage($pdo, 'test_');
         $stemmer    = new PorterStemmerRussian();
         $indexer    = new Indexer($pdoStorage, $stemmer);
-        $indexable  = new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have to make up a content.', 10);
+        $indexable  = new Indexable('id_1', 'Test page title', 'This is the first page to be <i>indexed</i>. I have to make up a content.', 10);
 
         $e = null;
         try {
@@ -365,7 +370,7 @@ class IntegrationTest extends Unit
     public function indexableProvider()
     {
         $indexables = [
-            (new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have to make up a content.', 10))
+            (new Indexable('id_1', 'Test page title', 'This is the first page to be <i>indexed</i>. I have to make up a content.', 10))
                 ->setKeywords('singlekeyword, multiple keywords')
                 ->setDescription('Description can be used in snippets')
                 ->setDate(new \DateTime('2016-08-24 00:00:00'))
@@ -385,7 +390,7 @@ class IntegrationTest extends Unit
                 ->setUrl('/якобы.урл')
             ,
             // overwrite the previous one
-            (new Indexable('id_1', 'Test page title', 'This is the first page to be indexed. I have changed the content.', 10))
+            (new Indexable('id_1', 'Test page title', 'This is the first page to be <i>indexed</i>. I have changed the content.', 10))
                 ->setKeywords('singlekeyword, multiple keywords')
                 ->setDescription('Description can be used in snippets')
                 ->setDate(new \DateTime('2016-08-24 00:00:00'))

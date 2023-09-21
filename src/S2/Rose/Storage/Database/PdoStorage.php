@@ -17,6 +17,7 @@ use S2\Rose\Entity\TocEntryWithMetadata;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Helper\StringHelper;
 use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Exception\EmptyIndexException;
@@ -333,6 +334,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
 
     /**
      * @param ExternalId $externalId An id of indexed item to search other similar items
+     * @param bool       $includeFormatting Switch the snippets to HTML formatting if available
      * @param int|null   $instanceId Id of instance where to search these similar items
      * @param int        $minCommonWords Lower limit for common words. The less common words,
      *                                   the more items are returned, but among them the proportion
@@ -343,13 +345,16 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws \JsonException
      * @throws InvalidEnvironmentException
      */
-    public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
+    public function getSimilar(ExternalId $externalId, bool $includeFormatting, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
     {
         $data = $this->getRepository()->getSimilar($externalId, $instanceId, $minCommonWords, $limit);
 
         foreach ($data as &$row) {
             [$tocWithMetadata] = $this->transformDataToTocEntries([$row]);
             $row['tocWithMetadata'] = $tocWithMetadata;
+            // TODO take into account format_id of these snippets
+            $row['snippet'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet']) : StringHelper::clearInternalFormatting($row['snippet']);
+            $row['snippet2'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet2']) : StringHelper::clearInternalFormatting($row['snippet2']);
         }
 
         return $data;
