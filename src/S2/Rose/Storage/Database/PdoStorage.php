@@ -352,6 +352,12 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         foreach ($data as &$row) {
             [$tocWithMetadata] = $this->transformDataToTocEntries([$row]);
             $row['tocWithMetadata'] = $tocWithMetadata;
+            if (!isset($row['snippet'])) {
+                $row['snippet'] = '';
+            }
+            if (!isset($row['snippet2'])) {
+                $row['snippet2'] = '';
+            }
             // TODO take into account format_id of these snippets
             $row['snippet'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet']) : StringHelper::clearInternalFormatting($row['snippet']);
             $row['snippet2'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet2']) : StringHelper::clearInternalFormatting($row['snippet2']);
