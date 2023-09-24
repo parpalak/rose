@@ -79,7 +79,7 @@ class ExtractorTest extends Unit
             ['<P>One sentence.</P><noindex><p>Another<br>sentence.</p></noindex>', 'One sentence. Another sentence.'],
             ['<P>One sentence.</P><p>Another<img src="1.png" alt="" />sentence.</p>', 'One sentence. Another sentence.'],
             ['<p>One sentence.</p>List:<ul><li>First</li>  <li> Second<p>and a half  </p></li></ul>', 'One sentence. List: First Second and a half'],
-            ['<P><i>This</i> sentence is a little bit <em>longer. And</em> this is not.</p>', '\\iThis\\I sentence is a little bit \\ilonger. And\\I this is not.'],
+            ['<P><i>This</i> sentence is a little bit <em>longer. And</em> this is not.</p>', '\\iThis\\I sentence is a little bit \\ilonger.\\I \\iAnd\\I this is not.'],
             ['<p>This <table><tr><td>is broken</td><td>HTML.</td></tr></table>I <b>want <i>to</b> test a</i> real-word <img><unknown-tag>example</p>', 'This is broken HTML. I \bwant \ito\I\B test a real-word example', ['this', 'is', 'broken', 'html', 'i', 'want', 'to', 'test', 'a', 'real-word', 'example']],
             [
                 '<P><i>This</i> sentence&nbsp;contains entities like &#43;, &plus;, &planck;, &amp;, &lt;, &quot;, &#8212;, &laquo;, &#x2603;, &#x1D306;, &#xA9;, &copy;. &amp;plus; is not an entity.</p>',
@@ -219,6 +219,8 @@ $url
 
 <p><strong>Полностью курсивное предложение.</strong></p>
 
+<p>Два <i>предложения. И оба</i> с курсивом.</p>
+
 <p>Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>';
 
         $sourceWithCodeSentences = [
@@ -233,6 +235,8 @@ $url
             '\\bПолностью жирное предложение.\\B',
             '\\b\\B',
             '\\bПолностью курсивное предложение.\\B',
+            'Два \iпредложения.\I',
+            '\iИ оба\I с курсивом.',
             'Еще 1 раз проверим, как gt работает защита против <script>alert();</script> xss-уязвимостей.',
 
         ];

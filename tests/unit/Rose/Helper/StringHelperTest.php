@@ -19,7 +19,7 @@ class StringHelperTest extends Unit
      */
     public function testSentences(string $text, array $sentences): void
     {
-        foreach (StringHelper::sentencesFromText($text) as $i => $str) {
+        foreach (StringHelper::sentencesFromText($text, false) as $i => $str) {
             $this->assertEquals($sentences[$i], $str);
         }
     }
@@ -55,6 +55,24 @@ class StringHelperTest extends Unit
                 ]
             ],
             [
+                '- Прямая речь тоже разбивается на предложения? – Да, безусловно! — Отлично, то, что нужно. - Пожалуйста.',
+                [
+                    '- Прямая речь тоже разбивается на предложения?',
+                    '– Да, безусловно!',
+                    '— Отлично, то, что нужно.',
+                    '- Пожалуйста.',
+                ]
+            ],
+            [
+                '"Прямая речь может быть в другом синтаксисе", - сказал я. Противник добавил: «Как это скучно!» И следом: «Как это так». Такие дела.',
+                [
+                    '"Прямая речь может быть в другом синтаксисе", - сказал я.',
+                    'Противник добавил: «Как это скучно!»',
+                    'И следом: «Как это так».',
+                    'Такие дела.',
+                ]
+            ],
+            [
                 'На первом курсе А. П. Петров вел математику. А. П. Петров делал это хорошо. Все радовались А.П. Петрову. А.П. Петров пел математику.',
                 [
                     'На первом курсе А. П. Петров вел математику.',
@@ -77,5 +95,15 @@ class StringHelperTest extends Unit
                 ]
             ],
         ];
+    }
+
+    public function testFixUnbalancedInternalFormatting(): void
+    {
+        $this->assertEquals('\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.\\I', StringHelper::fixUnbalancedInternalFormatting('\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.'));
+        $this->assertEquals('', StringHelper::fixUnbalancedInternalFormatting(''));
+        $this->assertEquals('456789i', StringHelper::fixUnbalancedInternalFormatting('456789i'));
+        $this->assertEquals('\\i456789\\I', StringHelper::fixUnbalancedInternalFormatting('456789\\I'));
+        $this->assertEquals('\\u456789\\U', StringHelper::fixUnbalancedInternalFormatting('\\u456789'));
+        $this->assertEquals('\\i\\d\\u\\D\\\\I\\b\\B\\U', StringHelper::fixUnbalancedInternalFormatting('\\u\\D\\\\I\\b'));
     }
 }

@@ -93,7 +93,7 @@ class SentenceMap
     private function processRegularSentences(string $text, SentenceCollection $sentenceCollection): void
     {
         $text      = trim($text);
-        $sentences = StringHelper::sentencesFromText($text);
+        $sentences = StringHelper::sentencesFromText($text, $this->formatId === SnippetSource::FORMAT_INTERNAL);
 
         if (($linesNum = 1 + substr_count($text, self::LINE_SEPARATOR)) > 3) {
             $totalWordNum          = \count(SentenceCollection::breakIntoWords(
