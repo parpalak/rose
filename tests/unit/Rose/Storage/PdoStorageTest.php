@@ -169,6 +169,7 @@ class PdoStorageTest extends Unit
     public function testUpdateToc(): void
     {
         $storage = new PdoStorage($this->pdo, 'test_');
+        $this->pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
         $storage->erase();
 
         $externalId = new ExternalId('id_1');

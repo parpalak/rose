@@ -109,20 +109,29 @@ class MysqlRepository extends AbstractRepository
         $sql = 'INSERT INTO ' . $this->getTableName(self::TOC) .
             ' (external_id, instance_id, title, description, added_at, timezone, url, relevance_ratio, hash)' .
             ' VALUES (:external_id, :instance_id, :title, :description, :added_at, :timezone, :url, :relevance_ratio, :hash)' .
-            ' ON DUPLICATE KEY UPDATE title = :title, description = :description, added_at = :added_at, timezone = :timezone, url = :url, relevance_ratio = :relevance_ratio, hash = :hash';
+            ' ON DUPLICATE KEY UPDATE title = :title2, description = :description2, added_at = :added_at2, timezone = :timezone2, url = :url2, relevance_ratio = :relevance_ratio2, hash = :hash2';
 
         try {
             $statement = $this->pdo->prepare($sql);
             $statement->execute([
-                'external_id'     => $externalId->getId(),
-                'instance_id'     => (int)$externalId->getInstanceId(),
-                'title'           => $entry->getTitle(),
-                'description'     => $entry->getDescription(),
-                'added_at'        => $entry->getFormattedDate(),
-                'timezone'        => $entry->getTimeZone(),
-                'url'             => $entry->getUrl(),
-                'relevance_ratio' => $entry->getRelevanceRatio(),
-                'hash'            => $entry->getHash(),
+                'external_id'      => $externalId->getId(),
+                'instance_id'      => (int)$externalId->getInstanceId(),
+
+                'title'            => $entry->getTitle(),
+                'description'      => $entry->getDescription(),
+                'added_at'         => $entry->getFormattedDate(),
+                'timezone'         => $entry->getTimeZone(),
+                'url'              => $entry->getUrl(),
+                'relevance_ratio'  => $entry->getRelevanceRatio(),
+                'hash'             => $entry->getHash(),
+
+                'title2'           => $entry->getTitle(),
+                'description2'     => $entry->getDescription(),
+                'added_at2'        => $entry->getFormattedDate(),
+                'timezone2'        => $entry->getTimeZone(),
+                'url2'             => $entry->getUrl(),
+                'relevance_ratio2' => $entry->getRelevanceRatio(),
+                'hash2'            => $entry->getHash(),
             ]);
         } catch (\PDOException $e) {
             if ($e->getCode() === '42S02') {
