@@ -166,6 +166,22 @@ class PdoStorageTest extends Unit
         $this->assertEquals('111111', $storage2->getTocByExternalId($externalId)->getHash());
     }
 
+    public function testUpdateToc(): void
+    {
+        $storage = new PdoStorage($this->pdo, 'test_');
+        $storage->erase();
+
+        $externalId = new ExternalId('id_1');
+
+        $tocEntry1 = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '123456789');
+        $storage->addEntryToToc($tocEntry1, $externalId);
+        $this->assertEquals('123456789', $storage->getTocByExternalId($externalId)->getHash());
+
+        $tocEntry1mod = new TocEntry('test title', 'descr', new \DateTime('2014-05-28'), '', 1, '9654321');
+        $storage->addEntryToToc($tocEntry1mod, $externalId);
+        $this->assertEquals('9654321', $storage->getTocByExternalId($externalId)->getHash());
+    }
+
     public function testAddToSingleKeywordIndex()
     {
         $storage = new PdoStorage($this->pdo, 'test_');
