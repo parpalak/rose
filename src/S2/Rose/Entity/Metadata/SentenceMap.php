@@ -29,6 +29,10 @@ class SentenceMap
     private array $paragraphs = [];
     private int $formatId;
 
+    /**
+     * @param int $formatId Id of formatting.
+     * @see SnippetSource::ALLOWED_FORMATS for formatting
+     */
     public function __construct(int $formatId)
     {
         $this->formatId = $formatId;
@@ -37,7 +41,7 @@ class SentenceMap
     /**
      * @param int    $paragraphIndex Number of current paragraph. Must be detected outside based on formatting.
      * @param string $path Some identifier of a content node. Must be unique for the paragraph given.
-     * @param string $textContent Raw text content of a node. No formatting is supported now. TODO add simple formatting?
+     * @param string $textContent Raw text content of a node. Formatting must correspond to formatId constructor parameter.
      */
     public function add(int $paragraphIndex, string $path, string $textContent): self
     {

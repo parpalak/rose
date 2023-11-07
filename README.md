@@ -210,7 +210,8 @@ Then you can run queries with different restrictions:
 - `(new Query('content'))->setInstanceId(2)` searches through comments,
 - `(new Query('content'))` searches everywhere.
 
-If you omit instance_id or provide `instance_id === null`, a value `0` will be used internally. This content can match only queries without instance_id restriction.
+When indexing, if you omit instance_id or provide `instance_id === null`, a value `0` will be used internally.
+Such content can only match queries without instance_id restrictions.
 
 ### Content format and extraction
 

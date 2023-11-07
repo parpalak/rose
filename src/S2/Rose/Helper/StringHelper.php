@@ -50,7 +50,7 @@ class StringHelper
             // For example, consider the input: 'Sentence <i>1. Sentence 2. Sentence</i> 3.'
             // After processing, it becomes ['Sentence <i>1.</i>', 'Sentence 2.', '<i>Sentence</i> 3.'].
             //
-            // This approach is reasonable because sentences are typically divided into snippets,
+            // This approach is reasonable because individual sentences are typically joined into snippets,
             // and preserving formatting across multiple sentences may not be meaningful.
             array_walk($substrings, static function (string &$text) {
                 $text = self::fixUnbalancedInternalFormatting($text);
