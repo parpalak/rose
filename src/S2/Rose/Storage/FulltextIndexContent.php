@@ -14,25 +14,21 @@ class FulltextIndexContent
     protected array $dataByWord = [];
     protected array $dataByExternalId = [];
 
-    public function add(string $word, ExternalId $externalId, array $titlePositions, array $keywordPositions, array $contentPositions, int $wordCount = 0): void
+    public function add(string $word, FulltextIndexPositionBag $positionBag): void
     {
-        $serializedExtId = $externalId->toString();
+        $serializedExtId = $positionBag->getExternalId()->toString();
 
+        $contentPositions = $positionBag->getContentPositions();
         if (\count($contentPositions) > 0) {
             $this->dataByExternalId[$serializedExtId][$word] = $contentPositions;
         }
 
-        // TODO refactor this data transformation
-        $this->dataByWord[$word][$serializedExtId]['extId']     = $externalId;
-        $this->dataByWord[$word][$serializedExtId]['wordCount'] = $wordCount;
-        $this->dataByWord[$word][$serializedExtId]['tpos']      = $titlePositions;
-        $this->dataByWord[$word][$serializedExtId]['kpos']      = $keywordPositions;
-        $this->dataByWord[$word][$serializedExtId]['pos']       = $contentPositions;
+        $this->dataByWord[$word][$serializedExtId] = $positionBag;
     }
 
     /**
-     * @return array|int[][][]
-     * @deprecated TODO refactor this data transformation
+     * @return FulltextIndexPositionBag[][]
+     * @deprecated TODO rename or refactor this data transformation
      */
     public function toArray(): array
     {

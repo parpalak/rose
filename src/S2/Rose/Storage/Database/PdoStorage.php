@@ -23,6 +23,7 @@ use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
+use S2\Rose\Storage\FulltextIndexPositionBag;
 use S2\Rose\Storage\StorageEraseInterface;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
@@ -79,7 +80,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $generator = $this->getRepository()->findFulltextByWords($words, $instanceId);
 
         foreach ($generator as $row) {
-            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['title_positions'], $row['keyword_positions'], $row['content_positions'], $row['word_count']);
+            $result->add($row['word'], new FulltextIndexPositionBag($this->getExternalIdFromRow($row), $row['title_positions'], $row['keyword_positions'], $row['content_positions'], $row['word_count']));
         }
 
         return $result;

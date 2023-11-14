@@ -233,16 +233,15 @@ abstract class AbstractRepository
             ), 0, $e);
         }
 
-         // TODO think about DTO
         while ($row = $statement->fetch(\PDO::FETCH_ASSOC)) {
             $row['title_positions'] = $row['keyword_positions'] = $row['content_positions'] = [];
             foreach (explode(',', $row['positions']) as $positionWithPrefix) {
                 if ($positionWithPrefix[0] === self::POSITION_PREFIX_TITLE) {
-                    $row['title_positions'][] = substr($positionWithPrefix, 1);
+                    $row['title_positions'][] = (int)substr($positionWithPrefix, 1);
                 } else if ($positionWithPrefix[0] === self::POSITION_PREFIX_KEYWORD) {
-                    $row['keyword_positions'][] = substr($positionWithPrefix, 1);
+                    $row['keyword_positions'][] = (int)substr($positionWithPrefix, 1);
                 } else {
-                    $row['content_positions'][] = $positionWithPrefix;
+                    $row['content_positions'][] = (int)$positionWithPrefix;
                 }
             }
             yield $row;

@@ -75,25 +75,28 @@ class FulltextResult
             $reductionRatio             = self::frequencyReduction($this->tocSize, \count($indexedItems));
             $wordReductionRatios[$word] = $reductionRatio;
 
-            foreach ($indexedItems as $positions) {
-                $externalId = $positions['extId'];
-                if (\count($positions['pos']) > 0) {
+            foreach ($indexedItems as $positionBag) {
+                $externalId          = $positionBag->getExternalId();
+                $contentPositionsNum = \count($positionBag->getContentPositions());
+                if ($contentPositionsNum > 0) {
                     $weights = [
                         'abundance_reduction' => $reductionRatio,
-                        'repeat_multiply'     => self::repeatWeightRatio(\count($positions['pos'])),
-                        'entry_size'          => self::entrySizeWeightRatio($positions['wordCount']),
+                        'repeat_multiply'     => self::repeatWeightRatio($contentPositionsNum),
+                        'entry_size'          => self::entrySizeWeightRatio($positionBag->getWordCount()),
                     ];
-                    $resultSet->addWordWeight($word, $externalId, $weights, $positions['pos']);
+                    $resultSet->addWordWeight($word, $externalId, $weights, $positionBag->getContentPositions());
                 }
-                if (\count($positions['kpos']) > 0) {
+
+                if (\count($positionBag->getKeywordPositions()) > 0) {
                     $resultSet->addWordWeight($word, $externalId, [
                         'keyword'             => 15,
                         'abundance_reduction' => $reductionRatio,
                     ]);
                 }
-                if (\count($positions['tpos']) > 0) {
+
+                if (\count($positionBag->getTitlePositions()) > 0) {
                     $resultSet->addWordWeight($word, $externalId, [
-                        'title'               => 25,
+                        'title' => 25,
                         // TODO seems like this was not used before
                         // 'abundance_reduction' => $reductionRatio,
                     ]);
