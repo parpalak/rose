@@ -74,4 +74,5 @@ jobs:
         run: php bin/codecept run --skip-group profile
 
       - name: Run profiling
+        if: success() || failure()
         run: php bin/codecept run -g profile -d

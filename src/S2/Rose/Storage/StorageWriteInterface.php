@@ -14,56 +14,24 @@ use S2\Rose\Entity\TocEntry;
 interface StorageWriteInterface
 {
     /**
-     * @param array      $words Keys are the positions of corresponding words.
-     * @param ExternalId $externalId
+     * @param array $titleWords Keys are the positions of corresponding words.
+     * @param array $keywords Keys are the positions of corresponding words.
+     * @param array $contentWords Keys are the positions of corresponding words.
      */
-    public function addToFulltext(array $words, ExternalId $externalId);
+    public function addToFulltextIndex(array $titleWords, array $keywords, array $contentWords, ExternalId $externalId): void;
 
-    /**
-     * @param ExternalId $externalId
-     */
-    public function removeFromIndex(ExternalId $externalId);
+    public function removeFromIndex(ExternalId $externalId): void;
 
-    /**
-     * @param string $word
-     *
-     * @return bool
-     */
-    public function isExcluded($word);
+    public function isExcludedWord(string $word): bool;
 
-    /**
-     * @param string     $word
-     * @param ExternalId $externalId
-     * @param string     $type
-     */
-    public function addToSingleKeywordIndex($word, ExternalId $externalId, $type);
-
-    /**
-     * @param string     $string
-     * @param ExternalId $externalId
-     * @param string     $type
-     */
-    public function addToMultipleKeywordIndex($string, ExternalId $externalId, $type);
-
-    /**
-     * @param TocEntry   $entry
-     * @param ExternalId $externalId
-     */
-    public function addEntryToToc(TocEntry $entry, ExternalId $externalId);
+    public function addEntryToToc(TocEntry $entry, ExternalId $externalId): void;
 
     /**
      * TODO How can a read method be eliminated from the writer interface?
-     *
-     * @param ExternalId $externalId
-     *
-     * @return TocEntry
      */
-    public function getTocByExternalId(ExternalId $externalId);
+    public function getTocByExternalId(ExternalId $externalId): ?TocEntry;
 
-    /**
-     * @param ExternalId $externalId
-     */
-    public function removeFromToc(ExternalId $externalId);
+    public function removeFromToc(ExternalId $externalId): void;
 
     /**
      * Save some additional info about indexing items

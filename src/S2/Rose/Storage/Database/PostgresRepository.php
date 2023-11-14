@@ -300,35 +300,5 @@ LIMIT :limit";
             name VARCHAR(255) NOT NULL DEFAULT \'\',
             UNIQUE (name)
 		)');
-
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
-        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
-            keyword VARCHAR(255) NOT NULL,
-            toc_id INT NOT NULL,
-            type INT NOT NULL
-		)');
-        $this->pdo->exec(sprintf(
-            'CREATE INDEX idx_%1$s_toc_id ON %1$s (toc_id);',
-            $this->getTableName(self::KEYWORD_INDEX)
-        ));
-        $this->pdo->exec(sprintf(
-            'CREATE INDEX idx_%1$s_keyword ON %1$s (keyword);',
-            $this->getTableName(self::KEYWORD_INDEX)
-        ));
-
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
-        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
-            keyword VARCHAR(255) NOT NULL,
-            toc_id INT NOT NULL,
-            type INT NOT NULL
-		)');
-        $this->pdo->exec(sprintf(
-            'CREATE INDEX idx_%1$s_toc_id ON %1$s (toc_id);',
-            $this->getTableName(self::KEYWORD_MULTIPLE_INDEX)
-        ));
-        $this->pdo->exec(sprintf(
-            'CREATE INDEX idx_%1$s_keyword ON %1$s (keyword);',
-            $this->getTableName(self::KEYWORD_MULTIPLE_INDEX)
-        ));
     }
 }

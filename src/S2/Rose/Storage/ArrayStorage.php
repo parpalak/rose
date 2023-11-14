@@ -63,7 +63,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function fulltextResultByWords(array $words, $instanceId = null)
+    public function fulltextResultByWords(array $words, ?int $instanceId): FulltextIndexContent
     {
         $result = new FulltextIndexContent();
         foreach ($words as $word) {
@@ -75,49 +75,6 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
                 }
                 if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
                     $result->add($word, $externalId, $positions, isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0);
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
-    {
-        $result = [];
-        foreach ($words as $word) {
-            $result[$word] = new KeywordIndexContent();
-            if (isset($this->indexSingleKeywords[$word])) {
-                foreach ($this->indexSingleKeywords[$word] as $id => $type) {
-                    $externalId = $this->externalIdFromInternalId($id);
-                    if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
-                        $result[$word]->add($externalId, $type, $this->getTocSize($instanceId), $this->fulltextProxy->countByWord($word));
-                    }
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getMultipleKeywordIndexByString($string, $instanceId = null)
-    {
-        $string = ' ' . $string . ' ';
-
-        $result = new KeywordIndexContent();
-        foreach ($this->indexMultiKeywords as $keyword => $typesById) {
-            if (strpos($string, ' ' . $keyword . ' ') !== false) {
-                foreach ($typesById as $id => $type) {
-                    $externalId = $this->externalIdFromInternalId($id);
-                    if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
-                        $result->add($externalId, $type);
-                    }
                 }
             }
         }
@@ -151,10 +108,11 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
      * {@inheritdoc}
      * @throws UnknownIdException
      */
-    public function addToFulltext(array $words, ExternalId $externalId)
+    public function addToFulltextIndex(array $contentWords, array $titleWords, array $keywords, ExternalId $externalId): void
     {
+        // TODO
         $id = $this->internalIdFromExternalId($externalId);
-        foreach ($words as $position => $word) {
+        foreach ($contentWords as $position => $word) {
             $this->fulltextProxy->addWord($word, $id, (int)$position);
         }
     }
@@ -162,7 +120,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function isExcluded($word)
+    public function isExcludedWord(string $word): bool
     {
         return isset($this->excludedWords[$word]);
     }
@@ -170,9 +128,9 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * Drops frequent words from index.
      */
-    public function cleanup()
+    public function cleanup(): void
     {
-        $threshold = Finder::fulltextRateExcludeNum(count($this->toc));
+        $threshold = Finder::fulltextRateExcludeNum(\count($this->toc));
 
         foreach ($this->fulltextProxy->getFrequentWords($threshold) as $word => $stat) {
             // Drop fulltext frequent or empty items
@@ -185,25 +143,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
      * {@inheritdoc}
      * @throws UnknownIdException
      */
-    public function addToSingleKeywordIndex($word, ExternalId $externalId, $type)
-    {
-        $this->indexSingleKeywords[$word][$this->internalIdFromExternalId($externalId)] = $type;
-    }
-
-    /**
-     * {@inheritdoc}
-     * @throws UnknownIdException
-     */
-    public function addToMultipleKeywordIndex($string, ExternalId $externalId, $type)
-    {
-        $this->indexMultiKeywords[$string][$this->internalIdFromExternalId($externalId)] = $type;
-    }
-
-    /**
-     * {@inheritdoc}
-     * @throws UnknownIdException
-     */
-    public function removeFromIndex(ExternalId $externalId)
+    public function removeFromIndex(ExternalId $externalId): void
     {
         $internalId = $this->internalIdFromExternalId($externalId);
 
@@ -241,7 +181,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function addEntryToToc(TocEntry $entry, ExternalId $externalId)
+    public function addEntryToToc(TocEntry $entry, ExternalId $externalId): void
     {
         try {
             $internalId = $this->internalIdFromExternalId($externalId);
@@ -285,7 +225,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function getTocByExternalIds(ExternalIdCollection $externalIds, $instanceId = null)
+    public function getTocByExternalIds(ExternalIdCollection $externalIds): array
     {
         $result = [];
         foreach ($externalIds->toArray() as $externalId) {
@@ -305,7 +245,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function getTocByExternalId(ExternalId $externalId)
+    public function getTocByExternalId(ExternalId $externalId): ?TocEntry
     {
         $serializedExtId = $externalId->toString();
 
@@ -315,7 +255,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function removeFromToc(ExternalId $externalId)
+    public function removeFromToc(ExternalId $externalId): void
     {
         $serializedExtId = $externalId->toString();
         if (!isset($this->toc[$serializedExtId])) {
@@ -329,18 +269,15 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     /**
      * {@inheritdoc}
      */
-    public function getTocSize($instanceId)
+    public function getTocSize(?int $instanceId): int
     {
-        return count($this->toc);
+        return \count($this->toc);
     }
 
     /**
-     * @param ExternalId $externalId
-     *
-     * @return int
      * @throws UnknownIdException
      */
-    private function internalIdFromExternalId(ExternalId $externalId)
+    private function internalIdFromExternalId(ExternalId $externalId): int
     {
         $serializedExtId = $externalId->toString();
         if (!isset($this->toc[$serializedExtId])) {
@@ -350,13 +287,8 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
         return $this->toc[$serializedExtId]->getInternalId();
     }
 
-    /**
-     * @param int $internalId
-     *
-     * @return ExternalId
-     */
-    private function externalIdFromInternalId($internalId)
+    private function externalIdFromInternalId(int $internalId): ?ExternalId
     {
-        return isset($this->externalIdMap[$internalId]) ? $this->externalIdMap[$internalId] : null;
+        return $this->externalIdMap[$internalId] ?? null;
     }
 }

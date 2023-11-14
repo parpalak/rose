@@ -15,48 +15,17 @@ interface StorageReadInterface
 {
     /**
      * @param string[] $words
-     * @param null     $instanceId
-     *
-     * @return FulltextIndexContent
      */
-    public function fulltextResultByWords(array $words, $instanceId = null);
+    public function fulltextResultByWords(array $words, ?int $instanceId): FulltextIndexContent;
+
+    public function isExcludedWord(string $word): bool;
 
     /**
-     * @param string $word
-     *
-     * @return bool
-     */
-    public function isExcluded($word);
-
-    /**
-     * @param string[] $words
-     * @param int|null $instanceId
-     *
-     * @return array|KeywordIndexContent[]
-     */
-    public function getSingleKeywordIndexByWords(array $words, $instanceId = null);
-
-    /**
-     * @param string   $string
-     * @param int|null $instanceId
-     *
-     * @return KeywordIndexContent
-     */
-    public function getMultipleKeywordIndexByString($string, $instanceId = null);
-
-    /**
-     * @param ExternalIdCollection $externalIds
-     *
      * @return TocEntryWithMetadata[]
      */
-    public function getTocByExternalIds(ExternalIdCollection $externalIds);
+    public function getTocByExternalIds(ExternalIdCollection $externalIds): array;
 
     public function getSnippets(SnippetQuery $snippetQuery): SnippetResult;
 
-    /**
-     * @param int|null $instanceId
-     *
-     * @return int
-     */
-    public function getTocSize($instanceId);
+    public function getTocSize(?int $instanceId): int;
 }

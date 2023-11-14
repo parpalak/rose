@@ -76,65 +76,26 @@ class Indexer
         return $words;
     }
 
-    protected function addKeywordToIndex(string $word, ExternalId $externalId, int $type): void
-    {
-        if ($word === '') {
-            return;
-        }
-
-        $word = str_replace('ё', 'е', $word);
-
-        if (strpos($word, ' ') !== false) {
-            $this->storage->addToMultipleKeywordIndex($word, $externalId, $type);
-        } else {
-            $this->storage->addToSingleKeywordIndex($word, $externalId, $type);
-        }
-    }
-
     protected function addToIndex(ExternalId $externalId, string $title, ContentWithMetadata $content, string $keywords): void
     {
-        // Processing title
-        foreach (self::arrayFromStr($title) as $titleWord) {
-            $this->addKeywordToIndex($this->stemmer->stemWord(trim($titleWord)), $externalId, Finder::TYPE_TITLE);
-        }
-
-        // Processing keywords
-        foreach (explode(',', $keywords) as $item) {
-            $this->addKeywordToIndex($this->stemmer->stemWord(trim($item)), $externalId, Finder::TYPE_KEYWORD);
-        }
-
-        // Fulltext index
-
         $sentenceCollection = $content->getSentenceMap()->toSentenceCollection();
         $words              = $sentenceCollection->getWordsArray();
         $words              = array_merge($words, self::arrayFromStr(str_replace(', ', ' ', $keywords)));
 
-        $subWords = [];
-
-        foreach ($words as $i => &$word) {
-            if ($this->storage->isExcluded($word)) {
+        foreach ($words as $i => $word) {
+            if ($this->storage->isExcludedWord($word)) {
                 unset($words[$i]);
-                continue;
             }
-
-            $stemmedWord = $this->stemmer->stemWord($word, false);
-
-            // If the word contains punctuation marks like hyphen, add a variant without it
-            if (false !== strpbrk($stemmedWord, '-.,')) {
-                foreach (preg_split('#[\-.,]#', $word) as $k => $subWord) {
-                    if ($subWord) {
-                        $subWords[(string)($i + 0.001 * ($k + 1))] = $this->stemmer->stemWord($subWord, false);
-                    }
-                }
-            }
-
-            $word = $stemmedWord;
         }
-        unset($word);
 
         $this->storage->addMetadata($externalId, \count($words), $content->getImageCollection());
         $this->storage->addSnippets($externalId, ...$sentenceCollection->getSnippetSources());
-        $this->storage->addToFulltext(array_merge($words, $subWords), $externalId);
+        $this->storage->addToFulltextIndex(
+            $this->getStemsWithComponents(self::arrayFromStr($title)),
+            $this->getStemsWithComponents(self::arrayFromStr($keywords)), // TODO consider different semantics of space and comma?
+            $this->getStemsWithComponents($words),
+            $externalId
+        );
     }
 
     public function removeById(string $id, ?int $instanceId): void
@@ -183,7 +144,7 @@ class Indexer
 
             $this->storage->addEntryToToc($indexable->toTocEntry(), $externalId);
 
-            if (!$oldTocEntry || $oldTocEntry->getHash() !== $indexable->calcHash()) {
+            if ($oldTocEntry === null || $oldTocEntry->getHash() !== $indexable->calcHash()) {
                 $this->storage->removeFromIndex($externalId);
 
                 $extractionResult = $this->extractor->extract($indexable->getContent());
@@ -218,5 +179,42 @@ class Indexer
             }
             throw $e;
         }
+    }
+
+    /**
+     * Replaces words with stems. Also, this method detects compound words and adds the component stems to the result.
+     *
+     * The keys in the result arrays are the positions of the word. For compound words a string representation
+     * of a float is used to map one index to several words. For example, for input
+     *
+     * [10 => 'well-known', 11 => 'facts']
+     *
+     * this method returns
+     *
+     * [10 => 'well-known', '10.001' => 'well', '10.002' => 'known', 11 => 'fact']
+     *
+     * @param array $words
+     * @return array
+     */
+    private function getStemsWithComponents(array $words): array
+    {
+        $componentsOfCompoundWords = [];
+        foreach ($words as $i => &$word) {
+            $stemmedWord = $this->stemmer->stemWord($word, false);
+
+            // If the word contains punctuation marks like hyphen, add a variant without it
+            if (false !== strpbrk($stemmedWord, '-.,')) {
+                foreach (preg_split('#[\-.,]#', $word) as $k => $subWord) {
+                    if ($subWord) {
+                        $componentsOfCompoundWords[(string)($i + 0.001 * ($k + 1))] = $this->stemmer->stemWord($subWord, false);
+                    }
+                }
+            }
+
+            $word = $stemmedWord;
+        }
+        unset($word);
+
+        return array_merge($words, $componentsOfCompoundWords);
     }
 }

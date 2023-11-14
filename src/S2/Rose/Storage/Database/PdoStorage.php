@@ -23,7 +23,6 @@ use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Exception\EmptyIndexException;
 use S2\Rose\Storage\Exception\InvalidEnvironmentException;
 use S2\Rose\Storage\FulltextIndexContent;
-use S2\Rose\Storage\KeywordIndexContent;
 use S2\Rose\Storage\StorageEraseInterface;
 use S2\Rose\Storage\StorageReadInterface;
 use S2\Rose\Storage\StorageWriteInterface;
@@ -70,60 +69,17 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function fulltextResultByWords(array $words, $instanceId = null)
+    public function fulltextResultByWords(array $words, $instanceId = null): FulltextIndexContent
     {
         $result = new FulltextIndexContent();
-        if (empty($words)) {
+        if (\count($words) === 0) {
             return $result;
         }
 
-        $data = $this->getRepository()->findFulltextByWords($words, $instanceId);
+        $generator = $this->getRepository()->findFulltextByWords($words, $instanceId);
 
-        foreach ($data as $row) {
-            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['positions'], $row['word_count']);
-        }
-
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     * @throws EmptyIndexException
-     * @throws UnknownException
-     * @throws InvalidEnvironmentException
-     */
-    public function getSingleKeywordIndexByWords(array $words, $instanceId = null)
-    {
-        $data    = $this->getRepository()->findSingleKeywordIndex($words, $instanceId);
-        $tocSize = $this->getTocSize($instanceId);
-
-        /** @var KeywordIndexContent[]|array $result */
-        $result = [];
-        foreach ($data as $row) {
-            if (!isset($result[$row['keyword']])) {
-                $result[$row['keyword']] = new KeywordIndexContent();
-            }
-
-            // TODO Making items unique seems to be a hack for caller. Rewrite indexing using INSERT IGNORE?  @see \S2\Rose\Storage\KeywordIndexContent::add
-            $result[$row['keyword']]->add($this->getExternalIdFromRow($row), $row['type'], $tocSize, $row['usage_num']);
-        }
-
-        return $result;
-    }
-
-    /**
-     * {@inheritdoc}
-     * @throws UnknownException
-     * @throws EmptyIndexException
-     * @throws InvalidEnvironmentException
-     */
-    public function getMultipleKeywordIndexByString($string, $instanceId = null)
-    {
-        $data = $this->getRepository()->findMultipleKeywordIndex($string, $instanceId);
-
-        $result = new KeywordIndexContent();
-        foreach ($data as $row) {
-            $result->add($this->getExternalIdFromRow($row), $row['type']);
+        foreach ($generator as $row) {
+            $result->add($row['word'], $this->getExternalIdFromRow($row), $row['title_positions'], $row['keyword_positions'], $row['content_positions'], $row['word_count']);
         }
 
         return $result;
@@ -153,55 +109,25 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownIdException
      * @throws \S2\Rose\Exception\RuntimeException
      */
-    public function addToFulltext(array $words, ExternalId $externalId)
+    public function addToFulltextIndex(array $titleWords, array $keywords, array $contentWords, ExternalId $externalId): void
     {
-        if (empty($words)) {
+        if (empty($contentWords)) {
             return;
         }
 
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $wordIds    = $this->getWordIds($words);
+        $wordIds    = $this->getWordIds(array_merge($contentWords, $titleWords, $keywords));
 
-        $this->getRepository()->insertFulltext($words, $wordIds, $internalId);
+        $this->getRepository()->insertFulltext($titleWords, $keywords, $contentWords, $wordIds, $internalId);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function isExcluded($word)
+    public function isExcludedWord(string $word): bool
     {
         // Nothing is excluded in current DB storage implementation.
         return false;
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws UnknownException
-     * @throws UnknownIdException
-     */
-    public function addToSingleKeywordIndex($word, ExternalId $externalId, $type)
-    {
-        try {
-            $this->addKeywordToDb($word, $externalId, $type, MysqlRepository::KEYWORD_INDEX);
-        } catch (\PDOException $e) {
-            throw new UnknownException('Unknown exception occurred while single keyword indexing:' . $e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @throws UnknownException
-     * @throws UnknownIdException
-     */
-    public function addToMultipleKeywordIndex($string, ExternalId $externalId, $type)
-    {
-        try {
-            $this->addKeywordToDb($string, $externalId, $type, MysqlRepository::KEYWORD_MULTIPLE_INDEX);
-        } catch (\PDOException $e) {
-            throw new UnknownException('Unknown exception occurred while multiple keyword indexing:' . $e->getMessage(), $e->getCode(), $e);
-        }
     }
 
     /**
@@ -239,7 +165,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function removeFromIndex(ExternalId $externalId)
+    public function removeFromIndex(ExternalId $externalId): void
     {
         $this->getRepository()->removeFromIndex($externalId);
     }
@@ -251,7 +177,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function addEntryToToc(TocEntry $entry, ExternalId $externalId)
+    public function addEntryToToc(TocEntry $entry, ExternalId $externalId): void
     {
         $this->getRepository()->addToToc($entry, $externalId);
 
@@ -272,7 +198,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function getTocByExternalIds(ExternalIdCollection $externalIds, $instanceId = null)
+    public function getTocByExternalIds(ExternalIdCollection $externalIds): array
     {
         $data = $this->getRepository()->getTocEntries(['ids' => $externalIds]);
 
@@ -300,7 +226,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function getTocByExternalId(ExternalId $externalId)
+    public function getTocByExternalId(ExternalId $externalId): ?TocEntry
     {
         $entries = $this->getTocByExternalIds(new ExternalIdCollection([$externalId]));
 
@@ -314,7 +240,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function getTocSize($instanceId)
+    public function getTocSize(?int $instanceId): int
     {
         return $this->getRepository()->getTocSize($instanceId);
     }
@@ -326,7 +252,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      * @throws UnknownException
      * @throws InvalidEnvironmentException
      */
-    public function removeFromToc(ExternalId $externalId)
+    public function removeFromToc(ExternalId $externalId): void
     {
         $this->getRepository()->removeFromToc($externalId);
         $this->mapping->remove($externalId);
@@ -408,20 +334,19 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     }
 
     /**
-     * TODO move to another class
+     * TODO move to another class?
      *
      * @param string[] $words
      *
-     * @return int[]
-     * @throws EmptyIndexException
+     * @return int[]|array
      * @throws UnknownException
      * @throws \S2\Rose\Exception\RuntimeException
      */
-    protected function getWordIds(array $words)
+    protected function getWordIds(array $words): array
     {
         $knownWords   = [];
         $unknownWords = [];
-        foreach ($words as $k => $word) {
+        foreach ($words as $word) {
             if (isset($this->cachedWordIds[$word])) {
                 $knownWords[$word] = $this->cachedWordIds[$word];
             } else {
@@ -458,21 +383,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         }
 
         throw new LogicException('Inserted words not found. Unknown words: ' . var_export($unknownWords, true));
-    }
-
-    /**
-     * @param string     $word
-     * @param ExternalId $externalId
-     * @param int        $type
-     * @param string     $tableKey
-     *
-     * @throws UnknownIdException
-     * @throws InvalidEnvironmentException
-     */
-    private function addKeywordToDb($word, ExternalId $externalId, $type, $tableKey)
-    {
-        $internalId = $this->getInternalIdFromExternalId($externalId);
-        $this->getRepository()->insertKeywords([$word], $internalId, $type, $tableKey);
     }
 
     /**

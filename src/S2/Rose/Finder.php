@@ -1,6 +1,6 @@
 <?php
 /**
- * Fulltext and keyword search
+ * Fulltext search
  *
  * @copyright 2010-2023 Roman Parpalak
  * @license   MIT
@@ -17,7 +17,6 @@ use S2\Rose\Entity\ResultSet;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownIdException;
-use S2\Rose\Exception\UnknownKeywordTypeException;
 use S2\Rose\Snippet\SnippetBuilder;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Dto\SnippetQuery;
@@ -25,9 +24,6 @@ use S2\Rose\Storage\StorageReadInterface;
 
 class Finder
 {
-    public const TYPE_TITLE   = 1;
-    public const TYPE_KEYWORD = 2;
-
     protected StorageReadInterface $storage;
     protected StemmerInterface $stemmer;
     protected ?string $highlightTemplate = null;
@@ -63,19 +59,10 @@ class Finder
             $resultSet->setHighlightTemplate($this->highlightTemplate);
         }
 
-        $rawWords     = $query->valueToArray();
-        $cleanedQuery = implode(' ', $rawWords);
+        $rawWords = $query->valueToArray();
         $resultSet->addProfilePoint('Input cleanup');
 
-        if (\count($rawWords) > 1) {
-            $this->findSpacedKeywords($cleanedQuery, $query->getInstanceId(), $resultSet);
-            $resultSet->addProfilePoint('Keywords with space');
-        }
-
         if (\count($rawWords) > 0) {
-            $this->findSimpleKeywords($rawWords, $query->getInstanceId(), $resultSet);
-            $resultSet->addProfilePoint('Simple keywords');
-
             $this->findFulltext($rawWords, $query->getInstanceId(), $resultSet);
             $resultSet->addProfilePoint('Fulltext search');
         }
@@ -109,23 +96,6 @@ class Finder
     }
 
     /**
-     * @return int[]|array
-     * @throws UnknownKeywordTypeException
-     */
-    protected static function getKeywordWeight(int $type): array
-    {
-        if ($type === self::TYPE_KEYWORD) {
-            return ['keyword' => 15];
-        }
-
-        if ($type === self::TYPE_TITLE) {
-            return ['title' => 25];
-        }
-
-        throw new UnknownKeywordTypeException(sprintf('Unknown type "%s"', $type));
-    }
-
-    /**
      * @throws ImmutableException
      */
     protected function findFulltext(array $words, ?int $instanceId, ResultSet $resultSet): void
@@ -139,36 +109,6 @@ class Finder
         );
 
         $fulltextResult->fillResultSet($resultSet);
-    }
-
-    /**
-     * @param string[] $words
-     */
-    protected function findSimpleKeywords(array $words, ?int $instanceId, ResultSet $result): void
-    {
-        $wordsWithStems = $words;
-        foreach ($words as $word) {
-            $stem             = $this->stemmer->stemWord($word);
-            $wordsWithStems[] = $stem;
-        }
-
-        foreach ($this->storage->getSingleKeywordIndexByWords($wordsWithStems, $instanceId) as $word => $content) {
-            $content->iterate(static function (ExternalId $externalId, $type, $tocSize, $foundTocEntriesNum) use ($word, $result) {
-                $weights = self::getKeywordWeight($type);
-                if ($tocSize !== null && $foundTocEntriesNum !== null) {
-                    $weights['abundance_reduction'] = FulltextResult::frequencyReduction($tocSize, $foundTocEntriesNum);
-                }
-                $result->addWordWeight($word, $externalId, $weights);
-            });
-        }
-    }
-
-    protected function findSpacedKeywords(string $string, ?int $instanceId, ResultSet $result): void
-    {
-        $content = $this->storage->getMultipleKeywordIndexByString($string, $instanceId);
-        $content->iterate(static function (ExternalId $externalId, $type) use ($string, $result) {
-            $result->addWordWeight($string, $externalId, self::getKeywordWeight($type));
-        });
     }
 
     public function buildSnippets(array $relevanceByExternalIds, ResultSet $resultSet): void

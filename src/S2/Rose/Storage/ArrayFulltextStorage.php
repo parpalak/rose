@@ -1,35 +1,24 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Storage;
 
-/**
- * Class ArrayFulltextStorage
- */
 class ArrayFulltextStorage implements FulltextProxyInterface
 {
     /**
      * @var array|string[][]
      */
-    protected $fulltextIndex = [];
+    protected array $fulltextIndex = [];
 
-    /**
-     * @return array
-     */
-    public function getFulltextIndex()
+    public function getFulltextIndex(): array
     {
         return $this->fulltextIndex;
     }
 
-    /**
-     * @param array $fulltextIndex
-     *
-     * @return ArrayFulltextStorage
-     */
-    public function setFulltextIndex(array $fulltextIndex = null)
+    public function setFulltextIndex(array $fulltextIndex): self
     {
         $this->fulltextIndex = $fulltextIndex;
 
@@ -39,7 +28,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
     /**
      * {@inheritdoc}
      */
-    public function getByWord($word)
+    public function getByWord(string $word): array
     {
         if (!isset($this->fulltextIndex[$word])) {
             return [];
@@ -47,7 +36,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
 
         $result = [];
         foreach ($this->fulltextIndex[$word] as $id => $entries) {
-            if (is_int($entries)) {
+            if (\is_int($entries)) {
                 $result[$id][] = $entries;
             } else {
                 $entries = explode('|', $entries);
@@ -63,19 +52,19 @@ class ArrayFulltextStorage implements FulltextProxyInterface
     /**
      * {@inheritdoc}
      */
-    public function countByWord($word)
+    public function countByWord(string $word): int
     {
         if (!isset($this->fulltextIndex[$word])) {
             return 0;
         }
 
-        return count($this->fulltextIndex[$word]);
+        return \count($this->fulltextIndex[$word]);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function addWord($word, $id, $position)
+    public function addWord(string $word, int $id, int $position): void
     {
         $word = (string)$word;
         if ($word === '') {
@@ -84,7 +73,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
 
         if (isset($this->fulltextIndex[$word][$id])) {
             $value = $this->fulltextIndex[$word][$id];
-            if (is_int($value)) {
+            if (\is_int($value)) {
                 // There was the only one position, but it's no longer the case.
                 // Convert to the 36-based number system.
                 $this->fulltextIndex[$word][$id] = base_convert($value, 10, 36) . '|' . base_convert($position, 10, 36);
@@ -101,7 +90,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
     /**
      * {@inheritdoc}
      */
-    public function removeWord($word)
+    public function removeWord(string $word): void
     {
         unset($this->fulltextIndex[$word]);
     }
@@ -109,13 +98,13 @@ class ArrayFulltextStorage implements FulltextProxyInterface
     /**
      * {@inheritdoc}
      */
-    public function getFrequentWords($threshold)
+    public function getFrequentWords(int $threshold): array
     {
         $result = [];
         $link   = &$this->fulltextIndex; // for memory optimization
         foreach ($this->fulltextIndex as $word => $stat) {
             // Drop fulltext frequent or empty items
-            $num = count($stat);
+            $num = \count($stat);
             if ($num > $threshold) {
                 $result[$word] = $num;
             }
@@ -127,7 +116,7 @@ class ArrayFulltextStorage implements FulltextProxyInterface
     /**
      * {@inheritdoc}
      */
-    public function removeById($id)
+    public function removeById(int $id): void
     {
         foreach ($this->fulltextIndex as &$data) {
             if (isset($data[$id])) {

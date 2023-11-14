@@ -1,51 +1,28 @@
 <?php
 /**
- * @copyright 2016 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Storage;
 
-/**
- * Interface FulltextProxyInterface
- */
 interface FulltextProxyInterface
 {
     /**
-     * @param string $word
-     *
      * @return array[]
      */
-    public function getByWord($word);
+    public function getByWord(string $word): array;
+
+    public function countByWord(string $word): int;
+
+    public function addWord(string $word, int $id, int $position): void;
+
+    public function removeWord(string $word): void;
 
     /**
-     * @param string $word
-     *
-     * @return int
-     */
-    public function countByWord($word);
-
-    /**
-     * @param string $word
-     * @param int    $id
-     * @param int    $position
-     */
-    public function addWord($word, $id, $position);
-
-    /**
-     * @param string $word
-     */
-    public function removeWord($word);
-
-    /**
-     * @param int $threshold
-     *
      * @return array|int[]
      */
-    public function getFrequentWords($threshold);
+    public function getFrequentWords(int $threshold): array;
 
-    /**
-     * @param int $id
-     */
-    public function removeById($id);
+    public function removeById(int $id): void;
 }

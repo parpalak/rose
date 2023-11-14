@@ -50,7 +50,7 @@ class SingleFileArrayStorageTest extends Unit
         $this->assertEquals(1, $entry1->getInternalId());
         $this->assertEquals(2, $entry2->getInternalId());
 
-        $storage->addToFulltext([1 => 'hello', 2 => 'world'], new ExternalId('test_id_1'));
+        $storage->addToFulltextIndex([1 => 'hello', 2 => 'world'], new ExternalId('test_id_1'));
 
         $fulltextResult = $storage->fulltextResultByWords(['hello']);
         $info           = $fulltextResult->toArray()['hello'];
@@ -74,7 +74,7 @@ class SingleFileArrayStorageTest extends Unit
         $entry3 = $storage->getTocByExternalId(new ExternalId('test_id_3'));
         $this->assertNull($entry3);
 
-        $storage->addToFulltext([10 => 'hello', 20 => 'world'], new ExternalId('test_id_2'));
+        $storage->addToFulltextIndex([10 => 'hello', 20 => 'world'], new ExternalId('test_id_2'));
 
         $fulltextResult = $storage->fulltextResultByWords(['world']);
         $info           = $fulltextResult->toArray()['world'];

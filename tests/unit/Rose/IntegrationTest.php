@@ -166,7 +166,7 @@ class IntegrationTest extends Unit
             'Русский текст. <b>Красным заголовком</b>',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
-        $this->assertEquals(44.89947331141201, $resultSet4->getItems()[0]->getRelevance());
+        $this->assertEquals(50.9482683735414, $resultSet4->getItems()[0]->getRelevance());
 
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));

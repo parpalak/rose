@@ -27,18 +27,17 @@ abstract class AbstractRepository
     public const METADATA               = 'metadata';
     public const SNIPPET                = 'snippet';
     public const FULLTEXT_INDEX         = 'fulltext_index';
-    public const KEYWORD_INDEX          = 'keyword_index';
-    public const KEYWORD_MULTIPLE_INDEX = 'keyword_multiple_index';
 
-    protected const DEFAULT_TABLE_NAMES = [
+    protected const DEFAULT_TABLE_NAMES     = [
         self::TOC                    => 'toc',
         self::WORD                   => 'word',
         self::METADATA               => 'metadata',
         self::SNIPPET                => 'snippet',
         self::FULLTEXT_INDEX         => 'fulltext_index',
-        self::KEYWORD_INDEX          => 'keyword_index',
-        self::KEYWORD_MULTIPLE_INDEX => 'keyword_multiple_index',
     ];
+
+    protected const POSITION_PREFIX_KEYWORD = 'k';
+    protected const POSITION_PREFIX_TITLE   = 't';
 
     protected string $prefix;
     protected array $options;
@@ -158,20 +157,28 @@ abstract class AbstractRepository
     /**
      * @throws UnknownException
      */
-    public function insertFulltext(array $words, array $wordIds, int $internalId): void
+    public function insertFulltext(array $titleWords, array $keywords, array $contentWords, array $wordIds, int $internalId): void
     {
         $data = [];
-        foreach ($words as $position => $word) {
-            $key          = $wordIds[$word];
-            $data[$key][] = (int)$position;
+        foreach (
+            [
+                [$titleWords, self::POSITION_PREFIX_TITLE],
+                [$keywords, self::POSITION_PREFIX_KEYWORD],
+                [$contentWords, ''],
+            ] as [$words, $prefix]
+        ) {
+            foreach ($words as $position => $word) { // float $position
+                $wordId          = $wordIds[$word];
+                $data[$wordId][] = $prefix . ((string)(int)$position);
+            }
         }
 
         if (\count($data) === 0) {
             return;
         }
         $sqlParts = '';
-        foreach ($data as $wordId => $positions) {
-            $sqlParts .= ($sqlParts !== '' ? ',' : '') . '(' . $wordId . ',' . $internalId . ',\'' . implode(',', $positions) . '\')';
+        foreach ($data as $wordId => $prefixedPositions) {
+            $sqlParts .= ($sqlParts !== '' ? ',' : '') . '(' . $wordId . ',' . $internalId . ',\'' . implode(',', $prefixedPositions) . '\')';
         }
 
         $sql = 'INSERT INTO ' . $this->getTableName(self::FULLTEXT_INDEX)
@@ -192,7 +199,7 @@ abstract class AbstractRepository
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function findFulltextByWords(array $words, int $instanceId = null): array
+    public function findFulltextByWords(array $words, int $instanceId = null): \Generator
     {
         $sql = '
 			SELECT w.name AS word, t.external_id, t.instance_id, f.positions, COALESCE(m.word_count, 0) AS word_count
@@ -226,28 +233,20 @@ abstract class AbstractRepository
             ), 0, $e);
         }
 
-        $data = $statement->fetchAll(\PDO::FETCH_ASSOC);
-
-        foreach ($data as &$row) {
-            $row['positions'] = explode(',', $row['positions']);
+         // TODO think about DTO
+        while ($row = $statement->fetch(\PDO::FETCH_ASSOC)) {
+            $row['title_positions'] = $row['keyword_positions'] = $row['content_positions'] = [];
+            foreach (explode(',', $row['positions']) as $positionWithPrefix) {
+                if ($positionWithPrefix[0] === self::POSITION_PREFIX_TITLE) {
+                    $row['title_positions'][] = substr($positionWithPrefix, 1);
+                } else if ($positionWithPrefix[0] === self::POSITION_PREFIX_KEYWORD) {
+                    $row['keyword_positions'][] = substr($positionWithPrefix, 1);
+                } else {
+                    $row['content_positions'][] = $positionWithPrefix;
+                }
+            }
+            yield $row;
         }
-        unset($row);
-
-        return $data;
-    }
-
-    /**
-     * @param string[] $words
-     */
-    public function insertKeywords(array $words, int $internalId, int $type, string $tableKey): void
-    {
-        $data = [];
-        foreach ($words as $keyword) {// Ready for bulk insert
-            $data[] = $this->pdo->quote($keyword) . ',' . $internalId . ',' . $type;
-        }
-
-        $sql = 'INSERT INTO ' . $this->getTableName($tableKey) . ' (keyword, toc_id, type) VALUES ( ' . implode('),(', $data) . ')';
-        $this->pdo->exec($sql);
     }
 
     /**
@@ -286,100 +285,6 @@ abstract class AbstractRepository
                 $e->getMessage()
             ), 0, $e);
         }
-    }
-
-    /**
-     * @param string[] $words
-     *
-     * @throws EmptyIndexException
-     * @throws UnknownException
-     */
-    public function findSingleKeywordIndex(array $words, ?int $instanceId): array
-    {
-        $usageSql = '
-            SELECT COUNT(DISTINCT f.toc_id)
-            FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' AS f
-            JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
-            ' . (
-            $instanceId !== null
-                ? 'JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id AND t.instance_id = ' . $instanceId . ' '
-                : ''
-            ) . ' WHERE k.keyword = w.name';
-
-        $sql = '
-			SELECT
-				k.keyword,
-				t.external_id,
-				t.instance_id,
-				k.type,
-				(' . $usageSql . ') AS usage_num
-			FROM ' . $this->getTableName(self::KEYWORD_INDEX) . ' AS k
-			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = k.toc_id
-			WHERE k.keyword IN (' . implode(',', array_fill(0, \count($words), '?')) . ')
-		';
-
-        $parameters = $words;
-        if ($instanceId !== null) {
-            $sql          .= ' AND t.instance_id = ?';
-            $parameters[] = $instanceId;
-        }
-
-        try {
-            $st = $this->pdo->prepare($sql);
-            $st->execute($parameters);
-        } catch (\PDOException $e) {
-            if ($this->isUnknownTableException($e)) {
-                throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
-            }
-            throw new UnknownException(sprintf(
-                'Unknown exception "%s" occurred while single keywords searching: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
-
-        $data = $st->fetchAll(\PDO::FETCH_ASSOC);
-
-        return $data;
-    }
-
-    /**
-     * @throws EmptyIndexException
-     * @throws UnknownException
-     */
-    public function findMultipleKeywordIndex(string $string, ?int $instanceId): array
-    {
-        $sql = '
-			SELECT t.external_id, t.instance_id, k.type
-			FROM ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' AS k
-			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = k.toc_id
-			WHERE k.keyword LIKE ? ESCAPE \'=\'
-		';
-
-        $parameters = ['% ' . $this->escapeLike($string, '=') . ' %'];
-        if ($instanceId !== null) {
-            $sql          .= ' AND t.instance_id = ?';
-            $parameters[] = $instanceId;
-        }
-
-        try {
-            $statement = $this->pdo->prepare($sql);
-            $statement->execute($parameters);
-        } catch (\PDOException $e) {
-            if ($this->isUnknownTableException($e)) {
-                throw new EmptyIndexException('There are no storage tables in the database. Call ' . __CLASS__ . '::erase() first.', 0, $e);
-            }
-            throw new UnknownException(sprintf(
-                'Unknown exception "%s" occurred while multiple keywords searching: "%s".',
-                $e->getCode(),
-                $e->getMessage()
-            ), 0, $e);
-        }
-
-        // TODO \PDO::FETCH_UNIQUE seems to be a hack for caller. Rewrite using INSERT IGNORE? @see \S2\Rose\Storage\KeywordIndexContent::add
-        $data = $statement->fetchAll(\PDO::FETCH_COLUMN | \PDO::FETCH_GROUP | \PDO::FETCH_UNIQUE);
-
-        return $data;
     }
 
     public function getSnippets(SnippetQuery $snippetQuery): array
@@ -451,12 +356,6 @@ abstract class AbstractRepository
 
         try {
             $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::FULLTEXT_INDEX)} WHERE toc_id = ?");
-            $st->execute([$tocId]);
-
-            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::KEYWORD_INDEX)} WHERE toc_id = ?");
-            $st->execute([$tocId]);
-
-            $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::KEYWORD_MULTIPLE_INDEX)} WHERE toc_id = ?");
             $st->execute([$tocId]);
 
             $st = $this->pdo->prepare("DELETE FROM {$this->getTableName(self::METADATA)} WHERE toc_id = ?");

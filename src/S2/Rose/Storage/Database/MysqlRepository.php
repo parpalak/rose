@@ -336,23 +336,5 @@ LIMIT :limit";
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (name(' . $keyLen . '))
 		) ENGINE=InnoDB CHARACTER SET ' . $charset . ' COLLATE ' . $charset . '_bin');
-
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_INDEX) . ';');
-        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_INDEX) . ' (
-			keyword VARCHAR(255) NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			type INT(11) UNSIGNED NOT NULL,
-			KEY (keyword(' . $keyLen . ')),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
-
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ';');
-        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::KEYWORD_MULTIPLE_INDEX) . ' (
-			keyword VARCHAR(255) NOT NULL,
-			toc_id INT(11) UNSIGNED NOT NULL,
-			type INT(11) UNSIGNED NOT NULL,
-			KEY (keyword(' . $keyLen . ')),
-			KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
     }
 }

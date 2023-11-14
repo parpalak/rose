@@ -65,8 +65,8 @@ class PdoStorageTest extends Unit
         $tocEntry2 = new TocEntry('', '', new \DateTime('2014-05-28'), '', 1, 'pokjhgtyuio');
         $storage->addEntryToToc($tocEntry2, $externalId2);
 
-        $storage->addToFulltext([1 => 'word1', 2 => 'word2'], $externalId1);
-        $storage->addToFulltext([1 => 'word2', 10 => 'word2'], $externalId2);
+        $storage->addToFulltextIndex([1 => 'word1', 2 => 'word2'], $externalId1);
+        $storage->addToFulltextIndex([1 => 'word2', 10 => 'word2'], $externalId2);
 
         $stat = $storage->getIndexStat();
         $this->assertGreaterThan(0, $stat['bytes']);
@@ -232,8 +232,8 @@ class PdoStorageTest extends Unit
             new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', 1, '123456789'),
             new ExternalId('id_1')
         );
-        $storage->addToFulltext(['Flugel', 'Shlomo', 'Tormented'], new ExternalId('id_1'));
-        $storage->addToFulltext(['Flügel', 'Shlømo', 'Tørmented'], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['Flugel', 'Shlomo', 'Tormented'], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['Flügel', 'Shlømo', 'Tørmented'], new ExternalId('id_1'));
     }
 
     public function testLongWords()
@@ -251,29 +251,29 @@ class PdoStorageTest extends Unit
             new ExternalId('id_2')
         );
 
-        $storage->addToFulltext(['word', 'iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8cim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_1'));
-        $storage->addToFulltext(['word', 'iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8cim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_2'));
+        $storage->addToFulltextIndex(['word', 'iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8cim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['word', 'iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8cim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_2'));
 
-        $storage->addToFulltext(['word2', '9siufiai279837jz972q39z78qao298m3apq8n9283j298cnq08498908ks09809r8mc9o90q7808sdolfjlis39w8kso0sdu87j934797239478o7o3j4d573p985jkdx37oc8so89o3849os8l948o9l8884iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8is8ajpk9xox8jo9834k0ax8k4r9o8wk9o38rmoc8mo95m8co83km898madkjflikjiuroiuiweru0198390u90qu0p98784kqz8p94xco8mcim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_1'));
-        $storage->addToFulltext(['word2', '9siufiai279837jz972q39z78qao298m3apq8n9283j298cnq08498908ks09809r8mc9o90q7808sdolfjlis39w8kso0sdu87j934797239478o7o3j4d573p985jkdx37oc8so89o3849os8l948o9l8884iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8is8ajpk9xox8jo9834k0ax8k4r9o8wk9o38rmoc8mo95m8co83km898madkjflikjiuroiuiweru0198390u90qu0p98784kqz8p94xco8mcim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_2'));
+        $storage->addToFulltextIndex(['word2', '9siufiai279837jz972q39z78qao298m3apq8n9283j298cnq08498908ks09809r8mc9o90q7808sdolfjlis39w8kso0sdu87j934797239478o7o3j4d573p985jkdx37oc8so89o3849os8l948o9l8884iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8is8ajpk9xox8jo9834k0ax8k4r9o8wk9o38rmoc8mo95m8co83km898madkjflikjiuroiuiweru0198390u90qu0p98784kqz8p94xco8mcim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['word2', '9siufiai279837jz972q39z78qao298m3apq8n9283j298cnq08498908ks09809r8mc9o90q7808sdolfjlis39w8kso0sdu87j934797239478o7o3j4d573p985jkdx37oc8so89o3849os8l948o9l8884iu9304809n87908p08309xm8938noue09x78349c7m3098kx09237498xn89738j9457xp98q754891209834xm928349o7978x94987n89o7908x98984390n2cj347x89793857c9879oxieru9084920x83497nm37nosaujwaeuj034iroefjj98r3epw8is8ajpk9xox8jo9834k0ax8k4r9o8wk9o38rmoc8mo95m8co83km898madkjflikjiuroiuiweru0198390u90qu0p98784kqz8p94xco8mcim9or8439urno9eufoluia039480pifou93'], new ExternalId('id_2'));
 
-        $storage->addToFulltext(['word21',
+        $storage->addToFulltextIndex(['word21',
             'wwjfau8wmtbmse9uvlr2ynrlkzlvdhe3mvgytjvls1jkvm1qmjvnk2jsbeYxcvznqk9or3a4vu1luzzwy1lcevltndvsskfmufnsrwt3cxduYytxqlhnyk5bbnvozkttmujlrwqyawxfexrsr1zcvzvnsgjru0tlvvr0mjryr2hxbxpaznrnywrzv0vnbmpjdja5t1rzzefkallmmevysva3zkv3cju5dvvazjbmaju5bdixvkewbuqvsuvywgdqatc5wejyt2tvntvswwx1tezhqxb1l3dkuxl5awpoqllev245vstiajfddxphwfqxvgvpegjdv3jseu9lbe1vqmxhrklla3bsrm9xukntakirwxldc3i5zjdzoggwymplmfpgrgrxkzg3qtjfsgpknwh5rmdxzzhptxvvtuv5sfznm2dznhvqwkjratlwdmhkcleYnvndshjsvkzzevpbagc1zmq0nlhlsg43ynvhruvdl0zmuhvielnhrkrzsvfyls05ukjqm24ym0d4bjfbrwfvqjlyszjnpt0',
             'wwjfau8wmtbmse9uvlr2ynrlkzlvdhe3mvgytjvls1jkvm1qmjvnk2jsbeYxcvznqk9or3a4vu1luzzwy1lcevltndvsskfmufnsrwt3cxduYytxqlhnyk5bbnvozkttmujlrwqyawxfexrsr1zcvzvnsgjru0tlvvr0mjryr2hxbxpaznrnywrzv0vnbmpjdja5t1rzzefkallmmevysva3zkv3cju5dvvazjbmaju5bdixvkewbuqvsuvywgdqatc5wejyt2tvntvswwx1tezhqxb1l3dkuxl5awpoqllev245vstiajfddxphwfqxvgvpegjdv3jseu9lbe1vqmxhrklla3bsrm9xukntakirwxldc3i5zjdzoggwymplmfpgrgrxkzg3qtjfsgpknwh5rmdxzzhptxvvtuv5sfznm2dznhvqwkjratlwdmhkcleYnvndshjsvkzzevpbagc1zmq0nlhlsg43ynvhruvdl0zmuhvielnhrkrzsvfyls05ukjqm24ym0d4bjfbrwfvqjlyszjnpt1',
             'wwjfau8wmtbmse9uvlr2ynrlkzlvdhe3mvgytjvls1jkvm1qmjvnk2jsbeYxcvznqk9or3a4vu1luzzwy1lcevltndvsskfmufnsrwt3cxduYytxqlhnyk5bbnvozkttmujlrwqyawxfexrsr1zcvzvnsgjru0tlvvr0mjryr2hxbxpaznrnywrzv0vnbmpjdja5t1rzzefkallmmevysva3zkv3cju5dvvazjbmaju5bdixvkewbuqvsuvywgdqatc5wejyt2tvntvswwx1tezhqxb1l3dkuxl5awpoqllev245vstiajfddxphwfqxvgvpegjdv3jseu9lbe1vqmxhrklla3bsrm9xukntakirwxldc3i5zjdzoggwymplmfpgrgrxkzg3qtjfsgpknwh5rmdxzzhptxvvtuv5sfznm2dznhvqwkjratlwdmhkcleYnvndshjsvkzzevpbagc1zmq0nlhlsg43ynvhruvdl0zmuhvielnhrkrzsvfyls05ukjqm24ym0d4bjfbrwfvqjlyszjnpt1',
         ], new ExternalId('id_1'));
 
-        $storage->addToFulltext(['word21',
+        $storage->addToFulltextIndex(['word21',
             'wwjfau8wmtbmse9uvlr2ynrlkzlvdhe3mvgytjvls1jkvm1qmjvnk2jsbeYxcvznqk9or3a4vu1luzzwy1lcevltndvsskfmufnsrwt3cxduYytxqlhnyk5bbnvozkttmujlrwqyawxfexrsr1zcvzvnsgjru0tlvvr0mjryr2hxbxpaznrnywrzv0vnbmpjdja5t1rzzefkallmmevysva3zkv3cju5dvvazjbmaju5bdixvkewbuqvsuvywgdqatc5wejyt2tvntvswwx1tezhqxb1l3dkuxl5awpoqllev245vstiajfddxphwfqxvgvpegjdv3jseu9lbe1vqmxhrklla3bsrm9xukntakirwxldc3i5zjdzoggwymplmfpgrgrxkzg3qtjfsgpknwh5rmdxzzhptxvvtuv5sfznm2dznhvqwkjratlwdmhkcleYnvndshjsvkzzevpbagc1zmq0nlhlsg43ynvhruvdl0zmuhvielnhrkrzsvfyls05ukjqm24ym0d4bjfbrwfvqjlyszjnpt0',
             'wwjfau8wmtbmse9uvlr2ynrlkzlvdhe3mvgytjvls1jkvm1qmjvnk2jsbeYxcvznqk9or3a4vu1luzzwy1lcevltndvsskfmufnsrwt3cxduYytxqlhnyk5bbnvozkttmujlrwqyawxfexrsr1zcvzvnsgjru0tlvvr0mjryr2hxbxpaznrnywrzv0vnbmpjdja5t1rzzefkallmmevysva3zkv3cju5dvvazjbmaju5bdixvkewbuqvsuvywgdqatc5wejyt2tvntvswwx1tezhqxb1l3dkuxl5awpoqllev245vstiajfddxphwfqxvgvpegjdv3jseu9lbe1vqmxhrklla3bsrm9xukntakirwxldc3i5zjdzoggwymplmfpgrgrxkzg3qtjfsgpknwh5rmdxzzhptxvvtuv5sfznm2dznhvqwkjratlwdmhkcleYnvndshjsvkzzevpbagc1zmq0nlhlsg43ynvhruvdl0zmuhvielnhrkrzsvfyls05ukjqm24ym0d4bjfbrwfvqjlyszjnpt0',
             'wwjfau8wmtbmse9uvlr2ynrlkzlvdhe3mvgytjvls1jkvm1qmjvnk2jsbeYxcvznqk9or3a4vu1luzzwy1lcevltndvsskfmufnsrwt3cxduYytxqlhnyk5bbnvozkttmujlrwqyawxfexrsr1zcvzvnsgjru0tlvvr0mjryr2hxbxpaznrnywrzv0vnbmpjdja5t1rzzefkallmmevysva3zkv3cju5dvvazjbmaju5bdixvkewbuqvsuvywgdqatc5wejyt2tvntvswwx1tezhqxb1l3dkuxl5awpoqllev245vstiajfddxphwfqxvgvpegjdv3jseu9lbe1vqmxhrklla3bsrm9xukntakirwxldc3i5zjdzoggwymplmfpgrgrxkzg3qtjfsgpknwh5rmdxzzhptxvvtuv5sfznm2dznhvqwkjratlwdmhkcleYnvndshjsvkzzevpbagc1zmq0nlhlsg43ynvhruvdl0zmuhvielnhrkrzsvfyls05ukjqm24ym0d4bjfbrwfvqjlyszjnpt1',
         ], new ExternalId('id_2'));
 
-        $storage->addToFulltext(['word3', '1' . str_repeat('ю', 200)], new ExternalId('id_1'));
-        $storage->addToFulltext(['word3', '1' . str_repeat('ю', 200)], new ExternalId('id_2'));
+        $storage->addToFulltextIndex(['word3', '1' . str_repeat('ю', 200)], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['word3', '1' . str_repeat('ю', 200)], new ExternalId('id_2'));
 
-        $storage->addToFulltext(['word4', '1' . str_repeat('я', 255)], new ExternalId('id_1'));
-        $storage->addToFulltext(['word4', '1' . str_repeat('я', 255)], new ExternalId('id_2'));
+        $storage->addToFulltextIndex(['word4', '1' . str_repeat('я', 255)], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['word4', '1' . str_repeat('я', 255)], new ExternalId('id_2'));
     }
 
     public function testParallelAddingInTransactions(): void
@@ -302,7 +302,7 @@ class PdoStorageTest extends Unit
             new TocEntry('title 1', 'descr 1', new \DateTime('2014-05-28'), '', 1, '123456789'),
             new ExternalId('id_1')
         );
-        $storage->addToFulltext(['word1', 'word2', 'word3'], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['word1', 'word2', 'word3'], new ExternalId('id_1'));
 
         $storage2 = new PdoStorage($pdo2, 'test_tr_');
         $storage2->startTransaction();
@@ -319,7 +319,7 @@ class PdoStorageTest extends Unit
         if ($driverName !== 'sqlite') {
             $this->expectException(RuntimeException::class);
             $this->expectExceptionMessage('Cannot insert words. Possible deadlock?');
-            $storage2->addToFulltext(['word1', 'word5'], new ExternalId('id_2'));
+            $storage2->addToFulltextIndex(['word1', 'word5'], new ExternalId('id_2'));
 //        $storage2->commitTransaction();
 //
 //        $storage->addToFulltext(['word4', 'word5', 'word6'], new ExternalId('id_1'));
@@ -369,7 +369,7 @@ class PdoStorageTest extends Unit
             new ExternalId('id_1')
         );
 
-        $this->pdo->exec('DROP TABLE test_keyword_multiple_index;');
+        $this->pdo->exec('DROP TABLE test_fulltext_index;');
 
         $storage->removeFromIndex(new ExternalId('id_1'));
     }
@@ -399,7 +399,7 @@ class PdoStorageTest extends Unit
     {
         $this->expectException(UnknownIdException::class);
         $storage = new PdoStorage($this->pdo, 'non_existent_');
-        $storage->addToFulltext(['word'], new ExternalId('id_1'));
+        $storage->addToFulltextIndex(['word'], new ExternalId('id_1'));
     }
 
     public function testNonExistentDbAddToSingleKeywordIndex()
