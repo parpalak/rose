@@ -191,7 +191,7 @@ class Indexer
      *
      * this method returns
      *
-     * [10 => 'well-known', '10.001' => 'well', '10.002' => 'known', 11 => 'fact']
+     * [10 => 'well-known', 11 => 'fact', '10.001' => 'well', '10.002' => 'known']
      *
      * @param array $words
      * @return array

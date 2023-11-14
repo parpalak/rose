@@ -27,13 +27,15 @@ class WordPositionContainer
     {
         $this->data[$word][] = $position;
 
+        sort($this->data[$word]); // TODO make more reliable requirement of input arrays to be sorted.
+
         return $this;
     }
 
     public function compareWith(self $referenceContainer): array
     {
         $wordMap = array_keys($this->data);
-        $len     = count($wordMap);
+        $len     = \count($wordMap);
 
         $result = [];
         /** @noinspection ForeachInvariantsInspection */
@@ -57,17 +59,38 @@ class WordPositionContainer
     }
 
     /**
+     * This method uses linear algorithm, therefore input arrays must be sorted.
+     * Otherwise, the output is incorrect.
+     *
      * @param int[] $a1
      * @param int[] $a2
+     *
+     * @return int It's important to return a signed value, not an absolute value.
      */
     protected static function compareArrays(array $a1, array $a2, int $shift): int
     {
+        $len1 = \count($a1);
+        $len2 = \count($a2);
+
         $result = self::INFINITY;
-        foreach ($a1 as $x) {
-            foreach ($a2 as $y) {
-                if (abs($y - $x - $shift) < abs($result)) {
-                    $result = $y - $x - $shift;
-                }
+        $index1 = 0;
+        $index2 = 0;
+
+        while ($index1 < $len1 && $index2 < $len2) {
+            $diff = $a2[$index2] - $a1[$index1] - $shift;
+
+            if ($diff === 0) {
+                return 0;
+            }
+
+            if (abs($result) > abs($diff)) {
+                $result = $diff;
+            }
+
+            if ($diff < 0) {
+                $index2++;
+            } else {
+                $index1++;
             }
         }
 

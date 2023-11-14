@@ -117,8 +117,14 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         }
 
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $wordIds    = $this->getWordIds(array_merge($contentWords, $titleWords, $keywords));
+        $wordIds    = $this->getWordIds(array_merge(array_values($contentWords), array_values($titleWords), array_values($keywords)));
 
+        /**
+         * @see \S2\Rose\Entity\WordPositionContainer::compareArrays for sorting requirement
+         */
+        ksort($titleWords);
+        ksort($keywords);
+        ksort($contentWords);
         $this->getRepository()->insertFulltext($titleWords, $keywords, $contentWords, $wordIds, $internalId);
     }
 

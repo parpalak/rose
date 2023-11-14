@@ -8,15 +8,13 @@ namespace S2\Rose\Entity;
 
 class ResultTrace
 {
-    protected $data = [];
+    protected array $data = [];
 
     /**
-     * @param string        $word
-     * @param string        $serializedExtId
      * @param float[]|array $weights
      * @param int[]         $positions
      */
-    public function addWordWeight($word, $serializedExtId, array $weights, $positions)
+    public function addWordWeight(string $word, string $serializedExtId, array $weights, array $positions): void
     {
         $this->data[$serializedExtId]['fulltext ' . $word][] = [
             sprintf(
@@ -28,33 +26,21 @@ class ResultTrace
     }
 
     /**
-     * @param string        $word
-     * @param string        $serializedExtId
      * @param float[]|array $weights
      */
-    public function addKeywordWeight($word, $serializedExtId, array $weights)
+    public function addKeywordWeight(string $word, string $serializedExtId, array $weights): void
     {
         $this->data[$serializedExtId]['keyword ' . $word][] = [
             (string)array_product($weights) => $weights,
         ];
     }
 
-    /**
-     * @param string $word1
-     * @param string $word2
-     * @param string $serializedExtId
-     * @param float  $weight
-     * @param int    $distance
-     */
-    public function addNeighbourWeight($word1, $word2, $serializedExtId, $weight, $distance)
+    public function addNeighbourWeight(string $word1, string $word2, string $serializedExtId, float $weight, int $distance): void
     {
-        $this->data[$serializedExtId]['fulltext ' . $word1 . ' - ' . $word2][] = sprintf('%s: matches are close (shift = %s)', $weight, $distance);
+        $this->data[$serializedExtId]['fulltext ' . $word1 . ' - ' . $word2][] = $weight . ': matches are close (shift = ' . $distance . ')';
     }
 
-    /**
-     * @return array
-     */
-    public function toArray()
+    public function toArray(): array
     {
         return $this->data;
     }

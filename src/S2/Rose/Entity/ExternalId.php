@@ -22,7 +22,7 @@ class ExternalId
             throw new InvalidArgumentException('Instance id must be positive.');
         }
 
-        if (!is_string($id) && !is_int($id) && !is_float($id)) {
+        if (!\is_string($id) && !\is_int($id) && !\is_float($id)) {
             throw new InvalidArgumentException('External id must be string or int or float.');
         }
 
