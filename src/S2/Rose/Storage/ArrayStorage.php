@@ -48,12 +48,14 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
                     continue;
                 }
                 if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
+                    $serializedExtId = $externalId->toString();
                     $result->add($word, new FulltextIndexPositionBag(
                         $externalId,
                         $positionsByType[FulltextProxyInterface::TYPE_TITLE] ?? [],
                         $positionsByType[FulltextProxyInterface::TYPE_KEYWORD] ?? [],
                         $positionsByType[FulltextProxyInterface::TYPE_CONTENT] ?? [],
-                        isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0
+                        isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0,
+                        isset($this->toc[$serializedExtId]) ? $this->toc[$serializedExtId]->getRelevanceRatio() : 1.0
                     ));
                 }
             }

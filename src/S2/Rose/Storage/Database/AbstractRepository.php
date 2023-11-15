@@ -202,7 +202,7 @@ abstract class AbstractRepository
     public function findFulltextByWords(array $words, int $instanceId = null): \Generator
     {
         $sql = '
-			SELECT w.name AS word, t.external_id, t.instance_id, f.positions, COALESCE(m.word_count, 0) AS word_count
+			SELECT w.name AS word, t.external_id, t.instance_id, f.positions, COALESCE(m.word_count, 0) AS word_count, t.relevance_ratio
 			FROM ' . $this->getTableName(self::FULLTEXT_INDEX) . ' AS f
 			JOIN ' . $this->getTableName(self::WORD) . ' AS w ON w.id = f.word_id
 			JOIN ' . $this->getTableName(self::TOC) . ' AS t ON t.id = f.toc_id

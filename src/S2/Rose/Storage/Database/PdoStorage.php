@@ -80,7 +80,14 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $generator = $this->getRepository()->findFulltextByWords($words, $instanceId);
 
         foreach ($generator as $row) {
-            $result->add($row['word'], new FulltextIndexPositionBag($this->getExternalIdFromRow($row), $row['title_positions'], $row['keyword_positions'], $row['content_positions'], $row['word_count']));
+            $result->add($row['word'], new FulltextIndexPositionBag(
+                $this->getExternalIdFromRow($row),
+                $row['title_positions'],
+                $row['keyword_positions'],
+                $row['content_positions'],
+                $row['word_count'],
+                $row['relevance_ratio']
+            ));
         }
 
         return $result;

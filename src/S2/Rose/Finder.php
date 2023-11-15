@@ -69,8 +69,11 @@ class Finder
 
         $resultSet->freeze();
 
-        $foundExternalIds = $resultSet->getFoundExternalIds();
-        foreach ($this->storage->getTocByExternalIds($foundExternalIds) as $tocEntryWithExternalId) {
+        $sortedExternalIds = $resultSet->getSortedExternalIds();
+
+        $resultSet->addProfilePoint('Sort results');
+
+        foreach ($this->storage->getTocByExternalIds($sortedExternalIds) as $tocEntryWithExternalId) {
             $resultSet->attachToc($tocEntryWithExternalId);
         }
 
@@ -79,7 +82,6 @@ class Finder
         $resultSet->removeDataWithoutToc();
 
         $relevanceByExternalIds = $resultSet->getSortedRelevanceByExternalId();
-
         if (\count($relevanceByExternalIds) > 0) {
             $this->buildSnippets($relevanceByExternalIds, $resultSet);
         }

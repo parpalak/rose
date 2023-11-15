@@ -136,9 +136,6 @@ class ResultSet
         $this->sortedRelevance = [];
         foreach ($this->data as $serializedExtId => $stat) {
             $relevance = array_sum($stat);
-            if (isset($this->items[$serializedExtId])) {
-                $relevance *= $this->items[$serializedExtId]->getRelevanceRatio();
-            }
             $this->sortedRelevance[$serializedExtId] = $relevance;
         }
 
@@ -156,15 +153,8 @@ class ResultSet
         return $this->sortedRelevance;
     }
 
-    /**
-     * @throws ImmutableException
-     */
     public function removeDataWithoutToc(): void
     {
-        if ($this->sortedRelevance !== null) {
-            throw new ImmutableException('One cannot remove results after sorting the result set.');
-        }
-
         foreach ($this->data as $serializedExtId => $stat) {
             if (!isset($this->items[$serializedExtId])) {
                 // We found a result just before it was deleted.

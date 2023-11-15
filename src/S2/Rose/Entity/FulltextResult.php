@@ -78,28 +78,40 @@ class FulltextResult
             foreach ($indexedItems as $positionBag) {
                 $externalId          = $positionBag->getExternalId();
                 $contentPositionsNum = \count($positionBag->getContentPositions());
+
                 if ($contentPositionsNum > 0) {
                     $weights = [
                         'abundance_reduction' => $reductionRatio,
                         'repeat_multiply'     => self::repeatWeightRatio($contentPositionsNum),
                         'entry_size'          => self::entrySizeWeightRatio($positionBag->getWordCount()),
                     ];
+                    if ($positionBag->hasExternalRelevanceRatio()) {
+                        $weights['external_ratio'] = $positionBag->getExternalRelevanceRatio();
+                    }
                     $resultSet->addWordWeight($word, $externalId, $weights, $positionBag->getContentPositions());
                 }
 
                 if (\count($positionBag->getKeywordPositions()) > 0) {
-                    $resultSet->addWordWeight($word, $externalId, [
+                    $weights = [
                         'keyword'             => 15,
                         'abundance_reduction' => $reductionRatio,
-                    ]);
+                    ];
+                    if ($positionBag->hasExternalRelevanceRatio()) {
+                        $weights['external_ratio'] = $positionBag->getExternalRelevanceRatio();
+                    }
+                    $resultSet->addWordWeight($word, $externalId, $weights);
                 }
 
                 if (\count($positionBag->getTitlePositions()) > 0) {
-                    $resultSet->addWordWeight($word, $externalId, [
+                    $weights = [
                         'title' => 25,
                         // TODO seems like this was not used before
                         // 'abundance_reduction' => $reductionRatio,
-                    ]);
+                    ];
+                    if ($positionBag->hasExternalRelevanceRatio()) {
+                        $weights['external_ratio'] = $positionBag->getExternalRelevanceRatio();
+                    }
+                    $resultSet->addWordWeight($word, $externalId, $weights);
                 }
             }
         }

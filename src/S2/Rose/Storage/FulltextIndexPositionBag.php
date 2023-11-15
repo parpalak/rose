@@ -15,14 +15,22 @@ class FulltextIndexPositionBag
     private array $keywordPositions;
     private array $contentPositions;
     private int $wordCount;
+    private float $externalRelevanceRatio;
 
-    public function __construct(ExternalId $externalId, array $titlePositions, array $keywordPositions, array $contentPositions, int $wordCount)
-    {
-        $this->externalId       = $externalId;
-        $this->titlePositions   = $titlePositions;
-        $this->keywordPositions = $keywordPositions;
-        $this->contentPositions = $contentPositions;
-        $this->wordCount        = $wordCount;
+    public function __construct(
+        ExternalId $externalId,
+        array      $titlePositions,
+        array      $keywordPositions,
+        array      $contentPositions,
+        int        $wordCount,
+        float      $externalRelevanceRatio
+    ) {
+        $this->externalId             = $externalId;
+        $this->titlePositions         = $titlePositions;
+        $this->keywordPositions       = $keywordPositions;
+        $this->contentPositions       = $contentPositions;
+        $this->wordCount              = $wordCount;
+        $this->externalRelevanceRatio = $externalRelevanceRatio;
     }
 
     public function getExternalId(): ExternalId
@@ -48,5 +56,15 @@ class FulltextIndexPositionBag
     public function getWordCount(): int
     {
         return $this->wordCount;
+    }
+
+    public function getExternalRelevanceRatio(): float
+    {
+        return $this->externalRelevanceRatio;
+    }
+
+    public function hasExternalRelevanceRatio(): bool
+    {
+        return $this->externalRelevanceRatio !== 1.0;
     }
 }
