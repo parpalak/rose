@@ -80,7 +80,6 @@ class Indexer
     {
         $sentenceCollection = $content->getSentenceMap()->toSentenceCollection();
         $contentWords       = $sentenceCollection->getWordsArray();
-        $contentWords       = array_merge($contentWords, self::arrayFromStr(str_replace(', ', ' ', $keywords))); // TODO not to merge
 
         foreach ($contentWords as $i => $word) {
             if ($this->storage->isExcludedWord($word)) {

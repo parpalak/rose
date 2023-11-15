@@ -89,9 +89,9 @@ class IntegrationTest extends Unit
         $resultSet2 = $finder->find(new Query('content'));
 
         $this->assertEquals([
-            '20:id_2' => 4.1610856664112195,
+            '20:id_2' => 3.8930706202455925,
             '20:id_1' => 0.12778564557899275,
-            '10:id_1' => 0.08569157515491249,
+            '10:id_1' => 0.08519043038599518,
         ], $resultSet2->getSortedRelevanceByExternalId());
 
         $items = $resultSet2->getItems();
@@ -101,22 +101,22 @@ class IntegrationTest extends Unit
         $this->assertEquals('url1', $items[2]->getUrl());
         $this->assertEquals('Description can be used in snippets', $items[2]->getDescription());
         $this->assertEquals(new \DateTime('2016-08-24 00:00:00'), $items[2]->getDate());
-        $this->assertEquals(0.08569157515491249, $items[2]->getRelevance());
+        $this->assertEquals(0.08519043038599518, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
-        $this->assertEquals(4.1610856664112195, $items[0]->getRelevance());
+        $this->assertEquals(3.8930706202455925, $items[0]->getRelevance());
         $this->assertEquals(new \DateTime('2016-08-20 00:00:00+00:00'), $items[0]->getDate());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
 
         $resultSet2 = $finder->find(new Query('content'));
 
-        $this->assertEquals(['20:id_2' => 4.1610856664112195, '10:id_1' => 0.08569157515491249, '20:id_1' => 0.12778564557899275], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals(['20:id_2' => 3.8930706202455925, '10:id_1' => 0.08519043038599518, '20:id_1' => 0.12778564557899275], $resultSet2->getSortedRelevanceByExternalId());
 
         $resultSet2 = $finder->find(new Query('content'));
 
         $resultItems = $resultSet2->getItems();
         $this->assertCount(3, $resultItems);
-        $this->assertEquals(4.1610856664112195, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
+        $this->assertEquals(3.8930706202455925, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
 
         $resultSet2 = $finder->find(new Query('title'));
         $this->assertEquals('id_1', $resultSet2->getItems()[0]->getId());
@@ -141,7 +141,7 @@ class IntegrationTest extends Unit
             'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде + и &amp;<i>plus</i>;. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
             $resultSet3->getItems()[0]->getSnippet()
         );
-        $this->assertEquals(18.30871796292043, $resultSet3->getItems()[0]->getRelevance());
+        $this->assertEquals(18.29895819783989, $resultSet3->getItems()[0]->getRelevance());
 
         // Query 4
         $resultSet4 = $finder->find(new Query('эпл'));
@@ -166,7 +166,7 @@ class IntegrationTest extends Unit
             'Русский текст. <b>Красным заголовком</b>',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
-        $this->assertEquals(50.9482683735414, $resultSet4->getItems()[0]->getRelevance());
+        $this->assertEquals(50.94436446750919, $resultSet4->getItems()[0]->getRelevance());
 
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));
@@ -180,7 +180,7 @@ class IntegrationTest extends Unit
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(55.03627558538758, $resultSet6->getItems()[0]->getRelevance());
+        $this->assertEquals(55.02261191427482, $resultSet6->getItems()[0]->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));
@@ -249,7 +249,7 @@ class IntegrationTest extends Unit
             $this->assertInstanceOf(TocEntryWithMetadata::class, $similarItems[0]['tocWithMetadata']);
             $this->assertEquals($right = [
                 'toc_id'      => '1',
-                'word_count'  => '16',
+                'word_count'  => '13',
                 'external_id' => 'id_1',
                 'instance_id' => '10',
                 'title'       => 'Test page title',
