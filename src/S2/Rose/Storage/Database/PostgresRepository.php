@@ -170,17 +170,32 @@ JOIN {$metadataTable} AS m ON m.toc_id = t.id
 {$where}
 ORDER BY relevance DESC
 LIMIT :limit";
-        $st  = $this->pdo->prepare($sql);
-        $st->bindValue('external_id', $externalId->getId(), \PDO::PARAM_STR);
-        $st->bindValue('instance_id', (int)$externalId->getInstanceId(), \PDO::PARAM_INT);
-        $st->bindValue('limit', $limit, \PDO::PARAM_INT);
-        $st->bindValue('min_common_words', $minCommonWords, \PDO::PARAM_INT);
-        $st->execute();
+
+        try {
+            $st  = $this->pdo->prepare($sql);
+            $st->bindValue('external_id', $externalId->getId(), \PDO::PARAM_STR);
+            $st->bindValue('instance_id', (int)$externalId->getInstanceId(), \PDO::PARAM_INT);
+            $st->bindValue('limit', $limit, \PDO::PARAM_INT);
+            $st->bindValue('min_common_words', $minCommonWords, \PDO::PARAM_INT);
+            $st->execute();
+        } catch (\PDOException $e) {
+            if ($this->isUnknownTableException($e)) {
+                throw new EmptyIndexException(
+                    'There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?',
+                    0,
+                    $e
+                );
+            }
+            throw new UnknownException(sprintf(
+                'Unknown exception with code "%s" occurred while fetching similar items: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
         $recommendations = $st->fetchAll(\PDO::FETCH_ASSOC);
 
         return $recommendations;
     }
-
 
     /**
      * {@inheritdoc}
@@ -242,6 +257,9 @@ LIMIT :limit";
         return 7 === $e->errorInfo[1] && ('55P03' === $e->errorInfo[0] || '40P01' === $e->errorInfo[0]);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function isUnknownColumnException(\PDOException $e): bool
     {
         return $e->getCode() === '42703'; // e.g. SQLSTATE[42703]: Undefined column: 7 ERROR:  column f.positions does not exist...

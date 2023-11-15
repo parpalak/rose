@@ -134,7 +134,7 @@ class MysqlRepository extends AbstractRepository
                 'hash2'            => $entry->getHash(),
             ]);
         } catch (\PDOException $e) {
-            if ($e->getCode() === '42S02') {
+            if ($this->isUnknownTableException($e)) {
                 throw new EmptyIndexException(
                     'There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?',
                     0,
@@ -151,6 +151,8 @@ class MysqlRepository extends AbstractRepository
 
     /**
      * {@inheritdoc}
+     * @throws UnknownException
+     * @throws EmptyIndexException
      */
     public function getSimilar(ExternalId $externalId, ?int $instanceId = null, int $minCommonWords = 4, int $limit = 10): array
     {
@@ -205,12 +207,28 @@ JOIN {$metadataTable} AS m FORCE INDEX FOR JOIN(PRIMARY) on m.toc_id = t.id
 {$where}
 ORDER BY relevance DESC
 LIMIT :limit";
-        $st  = $this->pdo->prepare($sql);
-        $st->bindValue('external_id', $externalId->getId(), \PDO::PARAM_STR);
-        $st->bindValue('instance_id', (int)$externalId->getInstanceId(), \PDO::PARAM_INT);
-        $st->bindValue('limit', $limit, \PDO::PARAM_INT);
-        $st->bindValue('min_common_words', $minCommonWords, \PDO::PARAM_INT);
-        $st->execute();
+
+        try {
+            $st = $this->pdo->prepare($sql);
+            $st->bindValue('external_id', $externalId->getId(), \PDO::PARAM_STR);
+            $st->bindValue('instance_id', (int)$externalId->getInstanceId(), \PDO::PARAM_INT);
+            $st->bindValue('limit', $limit, \PDO::PARAM_INT);
+            $st->bindValue('min_common_words', $minCommonWords, \PDO::PARAM_INT);
+            $st->execute();
+        } catch (\PDOException $e) {
+            if ($this->isUnknownTableException($e)) {
+                throw new EmptyIndexException(
+                    'There are missing storage tables in the database. Is ' . __CLASS__ . '::erase() running in another process?',
+                    0,
+                    $e
+                );
+            }
+            throw new UnknownException(sprintf(
+                'Unknown exception with code "%s" occurred while fetching similar items: "%s".',
+                $e->getCode(),
+                $e->getMessage()
+            ), 0, $e);
+        }
         $recommendations = $st->fetchAll(\PDO::FETCH_ASSOC);
 
         return $recommendations;

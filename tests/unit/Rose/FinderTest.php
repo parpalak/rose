@@ -20,6 +20,7 @@ use S2\Rose\Stemmer\PorterStemmerRussian;
 use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\FulltextIndexContent;
+use S2\Rose\Storage\FulltextIndexPositionBag;
 use S2\Rose\Storage\StorageReadInterface;
 
 /**
@@ -39,37 +40,37 @@ class FinderTest extends Unit
                 $result = new FulltextIndexContent();
                 foreach ($words as $k => $word) {
                     if ($word === 'find') {
-                        $result->add($word, new ExternalId('id_3'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_2'), [], [1], [10, 20]);
-                        $result->add($word, new ExternalId('id_1'), [1], [], []);
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_3'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_2'), [], [1], [10, 20], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_1'), [1], [], [], 0));
                     }
                     if ($word === 'and') {
-                        $result->add($word, new ExternalId('id_1'), [], [], [4, 8]);
-                        $result->add($word, new ExternalId('id_2'), [], [], [7, 11, 34]);
-                        $result->add($word, new ExternalId('id_3'), [], [], [28, 65]);
-                        $result->add($word, new ExternalId('id_4'), [], [], [45, 9]);
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_1'), [], [], [4, 8], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_2'), [], [], [7, 11, 34], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_3'), [], [], [28, 65], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_4'), [], [], [45, 9], 0));
 
-                        $result->add($word, new ExternalId('id_5'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_6'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_7'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_8'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_9'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_10'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_11'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_12'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_13'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_14'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_15'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_16'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_17'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_18'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_19'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_20'), [], [], [1]);
-                        $result->add($word, new ExternalId('id_21'), [], [], [1]);
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_5'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_6'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_7'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_8'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_9'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_10'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_11'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_12'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_13'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_14'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_15'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_16'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_17'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_18'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_19'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_20'), [], [], [1], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_21'), [], [], [1], 0));
                     }
                     if ($word === 'replace') {
-                        $result->add($word, new ExternalId('id_2'), [], [], [12]);
-                        $result->add($word, new ExternalId('id_1'), [1], [], []);
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_2'), [], [], [12], 0));
+                        $result->add($word, new FulltextIndexPositionBag(new ExternalId('id_1'), [1], [], [], 0));
                     }
 
                     unset($words[$k]);

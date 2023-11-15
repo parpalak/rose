@@ -112,12 +112,13 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function addToFulltextIndex(array $titleWords, array $keywords, array $contentWords, ExternalId $externalId): void
     {
-        if (empty($contentWords)) {
+        $allWords = array_merge(array_values($contentWords), array_values($titleWords), array_values($keywords));
+        if (\count($allWords) === 0) {
             return;
         }
 
         $internalId = $this->getInternalIdFromExternalId($externalId);
-        $wordIds    = $this->getWordIds(array_merge(array_values($contentWords), array_values($titleWords), array_values($keywords)));
+        $wordIds    = $this->getWordIds($allWords);
 
         /**
          * @see \S2\Rose\Entity\WordPositionContainer::compareArrays for sorting requirement
@@ -292,7 +293,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
                 $row['snippet2'] = '';
             }
             // TODO take into account format_id of these snippets
-            $row['snippet'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet']) : StringHelper::clearInternalFormatting($row['snippet']);
+            $row['snippet']  = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet']) : StringHelper::clearInternalFormatting($row['snippet']);
             $row['snippet2'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet2']) : StringHelper::clearInternalFormatting($row['snippet2']);
         }
 

@@ -1,27 +1,25 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
 namespace S2\Rose\Storage\File;
 
 use S2\Rose\Entity\ExternalId;
+use S2\Rose\Entity\Metadata\Img;
+use S2\Rose\Entity\Metadata\ImgCollection;
+use S2\Rose\Entity\Metadata\SnippetSource;
+use S2\Rose\Entity\TocEntry;
 use S2\Rose\Helper\ProfileHelper;
 use S2\Rose\Storage\ArrayFulltextStorage;
 use S2\Rose\Storage\ArrayStorage;
+use S2\Rose\Storage\FulltextProxyInterface;
 
 class SingleFileArrayStorage extends ArrayStorage
 {
-    /**
-     * @var ArrayFulltextStorage
-     */
-    protected $fulltextProxy;
-
-    /**
-     * @var string
-     */
-    protected $filename;
+    protected FulltextProxyInterface $fulltextProxy;
+    protected string $filename;
 
     public function __construct($filename)
     {
@@ -29,15 +27,10 @@ class SingleFileArrayStorage extends ArrayStorage
         $this->fulltextProxy = new ArrayFulltextStorage();
     }
 
-    /**
-     * @param bool $isDebug
-     *
-     * @return array
-     */
-    public function load($isDebug = false)
+    public function load(bool $isDebug = false): array
     {
         $return = [];
-        if (count($this->toc)) {
+        if (\count($this->toc)) {
             return $return;
         }
 
@@ -55,40 +48,32 @@ class SingleFileArrayStorage extends ArrayStorage
             $return[] = ProfileHelper::getProfilePoint('Reading index file', -$start_time + ($start_time = microtime(true)));
         }
 
-        $end     = strpos($data, "\n");
-        $my_data = substr($data, 8, $end);
-        $data    = substr($data, $end + 1);
-        $this->fulltextProxy->setFulltextIndex(unserialize($my_data) ?: []);
+        $end    = strpos($data, "\n");
+        $myData = substr($data, 8, $end);
+        $data   = substr($data, $end + 1);
+        $unserializeOptions = ['allowed_classes' => [
+            \DateTime::class,
+            TocEntry::class,
+            Img::class,
+            ImgCollection::class,
+            SnippetSource::class,
+        ]];
+        $this->fulltextProxy->setFulltextIndex(unserialize($myData, $unserializeOptions) ?: []);
 
         $end                 = strpos($data, "\n");
-        $my_data             = substr($data, 8, $end);
+        $myData              = substr($data, 8, $end);
         $data                = substr($data, $end + 1);
-        $this->excludedWords = unserialize($my_data) ?: [];
-
-        $end                       = strpos($data, "\n");
-        $my_data                   = substr($data, 8, $end);
-        $data                      = substr($data, $end + 1);
-        $this->indexSingleKeywords = unserialize($my_data) ?: [];
-
-        $end                     = strpos($data, "\n");
-        $my_data                 = substr($data, 8, $end);
-        $data                    = substr($data, $end + 1);
-        $this->indexBaseKeywords = unserialize($my_data) ?: [];
-
-        $end                      = strpos($data, "\n");
-        $my_data                  = substr($data, 8, $end);
-        $data                     = substr($data, $end + 1);
-        $this->indexMultiKeywords = unserialize($my_data) ?: [];
+        $this->excludedWords = unserialize($myData, $unserializeOptions) ?: [];
 
         $end            = strpos($data, "\n");
-        $my_data        = substr($data, 8, $end);
+        $myData         = substr($data, 8, $end);
         $data           = substr($data, $end + 1);
-        $this->metadata = unserialize($my_data) ?: [];
+        $this->metadata = unserialize($myData, $unserializeOptions) ?: [];
 
-        $end     = strpos($data, "\n");
-        $my_data = substr($data, 8, $end);
+        $end    = strpos($data, "\n");
+        $myData = substr($data, 8, $end);
         // $data      = substr($data, $end + 1);
-        $this->toc = unserialize($my_data) ?: [];
+        $this->toc = unserialize($myData, $unserializeOptions) ?: [];
 
 
         if ($isDebug) {
@@ -103,15 +88,15 @@ class SingleFileArrayStorage extends ArrayStorage
         return $return;
     }
 
-    public function save()
+    public function save(): void
     {
         @unlink($this->filename);
-        file_put_contents($this->filename, '<?php //' . 'a:' . count($this->fulltextProxy->getFulltextIndex()) . ':{');
+        file_put_contents($this->filename, '<?php //' . 'a:' . \count($this->fulltextProxy->getFulltextIndex()) . ':{');
         $buffer = '';
         $length = 0;
         foreach ($this->fulltextProxy->getFulltextIndex() as $word => $data) {
             $chunk  = serialize($word) . serialize($data);
-            $length += strlen($chunk);
+            $length += \strlen($chunk);
             $buffer .= $chunk;
             if ($length > 100000) {
                 file_put_contents($this->filename, $buffer, FILE_APPEND);
@@ -124,15 +109,6 @@ class SingleFileArrayStorage extends ArrayStorage
 
         file_put_contents($this->filename, '      //' . serialize($this->excludedWords) . "\n", FILE_APPEND);
         $this->excludedWords = [];
-
-        file_put_contents($this->filename, '      //' . serialize($this->indexSingleKeywords) . "\n", FILE_APPEND);
-        $this->indexSingleKeywords = [];
-
-        file_put_contents($this->filename, '      //' . serialize($this->indexBaseKeywords) . "\n", FILE_APPEND);
-        $this->indexBaseKeywords = [];
-
-        file_put_contents($this->filename, '      //' . serialize($this->indexMultiKeywords) . "\n", FILE_APPEND);
-        $this->indexMultiKeywords = [];
 
         file_put_contents($this->filename, '      //' . serialize($this->metadata) . "\n", FILE_APPEND);
         $this->metadata = [];

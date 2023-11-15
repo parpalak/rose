@@ -79,21 +79,21 @@ class Indexer
     protected function addToIndex(ExternalId $externalId, string $title, ContentWithMetadata $content, string $keywords): void
     {
         $sentenceCollection = $content->getSentenceMap()->toSentenceCollection();
-        $words              = $sentenceCollection->getWordsArray();
-        $words              = array_merge($words, self::arrayFromStr(str_replace(', ', ' ', $keywords)));
+        $contentWords       = $sentenceCollection->getWordsArray();
+        $contentWords       = array_merge($contentWords, self::arrayFromStr(str_replace(', ', ' ', $keywords))); // TODO not to merge
 
-        foreach ($words as $i => $word) {
+        foreach ($contentWords as $i => $word) {
             if ($this->storage->isExcludedWord($word)) {
-                unset($words[$i]);
+                unset($contentWords[$i]);
             }
         }
 
-        $this->storage->addMetadata($externalId, \count($words), $content->getImageCollection());
+        $this->storage->addMetadata($externalId, \count($contentWords), $content->getImageCollection());
         $this->storage->addSnippets($externalId, ...$sentenceCollection->getSnippetSources());
         $this->storage->addToFulltextIndex(
             $this->getStemsWithComponents(self::arrayFromStr($title)),
             $this->getStemsWithComponents(self::arrayFromStr($keywords)), // TODO consider different semantics of space and comma?
-            $this->getStemsWithComponents($words),
+            $this->getStemsWithComponents($contentWords),
             $externalId
         );
     }

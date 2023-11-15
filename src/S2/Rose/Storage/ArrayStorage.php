@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2023 Roman Parpalak
  * @license   MIT
  */
 
@@ -20,40 +20,14 @@ use S2\Rose\Storage\Dto\SnippetResult;
 
 abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterface
 {
-    /**
-     * @var array
-     */
-    protected $excludedWords = [];
-
-    /**
-     * @var array
-     */
-    protected $indexSingleKeywords = [];
-
-    /**
-     * @var array
-     */
-    protected $indexBaseKeywords = [];
-
-    /**
-     * @var array
-     */
-    protected $indexMultiKeywords = [];
-
-    /**
-     * @var array
-     */
-    protected $metadata = [];
+    protected array $excludedWords = [];
+    protected array $metadata = [];
 
     /**
      * @var TocEntry[]
      */
-    protected $toc = [];
-
-    /**
-     * @var FulltextProxyInterface
-     */
-    protected $fulltextProxy;
+    protected array $toc = [];
+    protected FulltextProxyInterface $fulltextProxy;
 
     /**
      * @var array|ExternalId
@@ -68,13 +42,19 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
         $result = new FulltextIndexContent();
         foreach ($words as $word) {
             $data = $this->fulltextProxy->getByWord($word);
-            foreach ($data as $id => $positions) {
+            foreach ($data as $id => $positionsByType) {
                 $externalId = $this->externalIdFromInternalId($id);
                 if ($externalId === null) {
                     continue;
                 }
                 if ($instanceId === null || $externalId->getInstanceId() === $instanceId) {
-                    $result->add($word, $externalId, $positions, isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0);
+                    $result->add($word, new FulltextIndexPositionBag(
+                        $externalId,
+                        $positionsByType[FulltextProxyInterface::TYPE_TITLE] ?? [],
+                        $positionsByType[FulltextProxyInterface::TYPE_KEYWORD] ?? [],
+                        $positionsByType[FulltextProxyInterface::TYPE_CONTENT] ?? [],
+                        isset($this->metadata[$id]) ? $this->metadata[$id]['wordCount'] : 0
+                    ));
                 }
             }
         }
@@ -84,6 +64,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 
     /**
      * {@inheritdoc}
+     * @throws UnknownIdException
      */
     public function getSnippets(SnippetQuery $snippetQuery): SnippetResult
     {
@@ -108,12 +89,17 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
      * {@inheritdoc}
      * @throws UnknownIdException
      */
-    public function addToFulltextIndex(array $contentWords, array $titleWords, array $keywords, ExternalId $externalId): void
+    public function addToFulltextIndex(array $titleWords, array $keywords, array $contentWords, ExternalId $externalId): void
     {
-        // TODO
         $id = $this->internalIdFromExternalId($externalId);
+        foreach ($titleWords as $position => $word) {
+            $this->fulltextProxy->addWord($word, $id, FulltextProxyInterface::TYPE_TITLE, (int)$position);
+        }
+        foreach ($keywords as $position => $word) {
+            $this->fulltextProxy->addWord($word, $id, FulltextProxyInterface::TYPE_KEYWORD, (int)$position);
+        }
         foreach ($contentWords as $position => $word) {
-            $this->fulltextProxy->addWord($word, $id, (int)$position);
+            $this->fulltextProxy->addWord($word, $id, FulltextProxyInterface::TYPE_CONTENT, (int)$position);
         }
     }
 
@@ -149,33 +135,12 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
 
         $this->fulltextProxy->removeById($internalId);
 
-        foreach ($this->indexSingleKeywords as &$data) {
+        foreach ($this->metadata as &$data) {
             if (isset($data[$internalId])) {
                 unset($data[$internalId]);
             }
         }
         unset($data);
-
-        foreach ($this->indexBaseKeywords as &$data2) {
-            if (isset($data2[$internalId])) {
-                unset($data2[$internalId]);
-            }
-        }
-        unset($data2);
-
-        foreach ($this->indexMultiKeywords as &$data3) {
-            if (isset($data3[$internalId])) {
-                unset($data3[$internalId]);
-            }
-        }
-        unset($data3);
-
-        foreach ($this->metadata as &$data4) {
-            if (isset($data4[$internalId])) {
-                unset($data4[$internalId]);
-            }
-        }
-        unset($data4);
     }
 
     /**
@@ -249,7 +214,7 @@ abstract class ArrayStorage implements StorageReadInterface, StorageWriteInterfa
     {
         $serializedExtId = $externalId->toString();
 
-        return isset($this->toc[$serializedExtId]) ? $this->toc[$serializedExtId] : null;
+        return $this->toc[$serializedExtId] ?? null;
     }
 
     /**

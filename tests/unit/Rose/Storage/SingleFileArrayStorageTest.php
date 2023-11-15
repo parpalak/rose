@@ -14,6 +14,7 @@ use S2\Rose\Storage\File\SingleFileArrayStorage;
 
 /**
  * @group storage
+ * @group arr-storage
  */
 class SingleFileArrayStorageTest extends Unit
 {
@@ -50,17 +51,21 @@ class SingleFileArrayStorageTest extends Unit
         $this->assertEquals(1, $entry1->getInternalId());
         $this->assertEquals(2, $entry2->getInternalId());
 
-        $storage->addToFulltextIndex([1 => 'hello', 2 => 'world'], new ExternalId('test_id_1'));
+        $storage->addToFulltextIndex(['titleword'], ['keyword1', 'keyword2'], [1 => 'hello', 2 => 'world', 3=>'world'], new ExternalId('test_id_1'));
 
-        $fulltextResult = $storage->fulltextResultByWords(['hello']);
+        $fulltextResult = $storage->fulltextResultByWords(['hello'], null);
         $info           = $fulltextResult->toArray()['hello'];
         $this->assertArrayHasKey(':test_id_1', $info);
-        $this->assertEquals([1], $info[':test_id_1']['pos']);
+        $this->assertEquals([1], $info[':test_id_1']->getContentPositions());
+        $this->assertEquals([], $info[':test_id_1']->getTitlePositions());
+        $this->assertEquals([], $info[':test_id_1']->getKeywordPositions());
 
-        $fulltextResult = $storage->fulltextResultByWords(['world']);
+        $fulltextResult = $storage->fulltextResultByWords(['world'], null);
         $info           = $fulltextResult->toArray()['world'];
         $this->assertArrayHasKey(':test_id_1', $info);
-        $this->assertEquals([2], $info[':test_id_1']['pos']);
+        $this->assertEquals([2, 3], $info[':test_id_1']->getContentPositions());
+        $this->assertEquals([], $info[':test_id_1']->getTitlePositions());
+        $this->assertEquals([], $info[':test_id_1']->getKeywordPositions());
 
         $storage->save();
 
@@ -74,14 +79,14 @@ class SingleFileArrayStorageTest extends Unit
         $entry3 = $storage->getTocByExternalId(new ExternalId('test_id_3'));
         $this->assertNull($entry3);
 
-        $storage->addToFulltextIndex([10 => 'hello', 20 => 'world'], new ExternalId('test_id_2'));
+        $storage->addToFulltextIndex([], [], [10 => 'hello', 20 => 'world'], new ExternalId('test_id_2'));
 
-        $fulltextResult = $storage->fulltextResultByWords(['world']);
+        $fulltextResult = $storage->fulltextResultByWords(['world'], null);
         $info           = $fulltextResult->toArray()['world'];
         $this->assertArrayHasKey(':test_id_1', $info);
-        $this->assertEquals([2], $info[':test_id_1']['pos']);
+        $this->assertEquals([2, 3], $info[':test_id_1']->getContentPositions());
         $this->assertArrayHasKey(':test_id_2', $info);
-        $this->assertEquals([20], $info[':test_id_2']['pos']);
+        $this->assertEquals([20], $info[':test_id_2']->getContentPositions());
 
         $storage->save();
     }
