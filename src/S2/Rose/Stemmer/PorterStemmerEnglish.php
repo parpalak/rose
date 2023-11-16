@@ -10,9 +10,9 @@ namespace S2\Rose\Stemmer;
  */
 class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
 {
-    const SUPPORTS_REGEX = '#^[a-zA-Z\-0-9\'’]*$#Su';
+    private const SUPPORTS_REGEX = '#^[a-zA-Z\-0-9\'’]*$#Su';
 
-    protected static $irregularWords = [
+    protected static array $irregularWords = [
         'skis'   => 'ski',
         'skies'  => 'sky',
         'dying'  => 'die',
@@ -33,7 +33,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
         'andes'  => 'andes',
     ];
 
-    protected $cache = [];
+    protected array $cache = [];
 
     /**
      * {@inheritdoc}
@@ -84,14 +84,14 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The prepared word.
      */
-    protected static function prepare($word)
+    protected static function prepare(string $word): string
     {
         $inc = 0;
         if (strpos($word, "'") === 0) {
             $word = substr($word, 1);
         }
-        while ($inc <= strlen($word)) {
-            if (substr($word, $inc, 1) === 'y' && ($inc === 0 || self::isVowel($inc - 1, $word))) {
+        while ($inc <= mb_strlen($word)) {
+            if (mb_substr($word, $inc, 1) === 'y' && ($inc === 0 || self::isVowel($inc - 1, $word))) {
                 $word = substr_replace($word, 'Y', $inc, 1);
             }
             $inc++;
@@ -113,11 +113,11 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the character is a vowel, FALSE otherwise.
      */
-    protected static function isVowel($position, $word, array $additional = [])
+    protected static function isVowel(int $position, string $word, array $additional = []): bool
     {
         $vowels = array_merge(['a', 'e', 'i', 'o', 'u', 'y'], $additional);
 
-        return in_array(self::charAt($position, $word), $vowels);
+        return \in_array(self::charAt($position, $word), $vowels);
     }
 
     /**
@@ -133,17 +133,17 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      *   The character at the given position, or an empty string if the given
      *   position was illegal.
      */
-    protected static function charAt($position, $word)
+    protected static function charAt(int $position, string $word): string
     {
-        $length = strlen($word);
-        if (abs($position) >= $length) {
+        $length = mb_strlen($word);
+        if ($position >= $length || $position < -$length) {
             return '';
         }
         if ($position < 0) {
             $position += $length;
         }
 
-        return $word[$position];
+        return mb_substr($word, $position, 1);
     }
 
     /**
@@ -155,14 +155,12 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step0($word)
+    protected static function step0(string $word): string
     {
-        $found  = false;
         $checks = ["'s'", "'s", "'"];
         foreach ($checks as $check) {
-            if (!$found && self::hasEnding($word, $check)) {
-                $word  = self::removeEnding($word, $check);
-                $found = true;
+            if (self::hasEnding($word, $check)) {
+                return self::removeEnding($word, $check);
             }
         }
 
@@ -179,14 +177,14 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the word ends with the given string, FALSE otherwise.
      */
-    protected static function hasEnding($word, $string)
+    protected static function hasEnding(string $word, string $string): bool
     {
-        $length = strlen($string);
-        if ($length > strlen($word)) {
+        $length = \strlen($string);
+        if ($length > \strlen($word)) {
             return false;
         }
 
-        return (substr_compare($word, $string, -1 * $length, $length) === 0);
+        return (substr_compare($word, $string, -$length, $length) === 0);
     }
 
     /**
@@ -200,9 +198,9 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      *
      * @return string
      */
-    protected static function removeEnding($word, $string)
+    protected static function removeEnding(string $word, string $string): string
     {
-        return substr($word, 0, -strlen($string));
+        return substr($word, 0, -\strlen($string));
     }
 
     /**
@@ -214,37 +212,34 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step1a($word)
+    protected static function step1a(string $word): string
     {
-        $found = false;
         if (self::hasEnding($word, 'sses')) {
-            $word  = self::removeEnding($word, 'sses') . 'ss';
-            $found = true;
+            return self::removeEnding($word, 'sses') . 'ss';
         }
+
         $checks = ['ied', 'ies'];
         foreach ($checks as $check) {
-            if (!$found && self::hasEnding($word, $check)) {
+            if (self::hasEnding($word, $check)) {
                 // @todo: check order here.
-                $length = strlen($word);
+                $length = mb_strlen($word);
                 $word   = self::removeEnding($word, $check);
-                if ($length > 4) {
-                    $word .= 'i';
-                } else {
-                    $word .= 'ie';
-                }
-                $found = true;
+                return $length > 4 ? $word . 'i' : $word . 'ie';
             }
         }
+
         if (self::hasEnding($word, 'us') || self::hasEnding($word, 'ss')) {
-            $found = true;
+            return $word;
         }
+
         // Delete if preceding word part has a vowel not immediately before the s.
-        if (!$found && self::hasEnding($word, 's') && self::containsVowel(substr($word, 0, -2))) {
-            $word = self::removeEnding($word, 's');
+        if (self::hasEnding($word, 's') && self::containsVowel(mb_substr($word, 0, -2))) {
+            return self::removeEnding($word, 's');
         }
 
         return $word;
     }
+
 
     /**
      * Checks whether the given string contains a vowel.
@@ -255,19 +250,15 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the string contains a vowel, FALSE otherwise.
      */
-    protected static function containsVowel($string)
+    protected static function containsVowel(string $string): bool
     {
-        $inc    = 0;
-        $return = false;
-        while ($inc < strlen($string)) {
-            if (self::isVowel($inc, $string)) {
-                $return = true;
-                break;
+        for ($i = mb_strlen($string); $i--;) {
+            if (self::isVowel($i, $string)) {
+                return true;
             }
-            $inc++;
         }
 
-        return $return;
+        return false;
     }
 
     /**
@@ -279,7 +270,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step1b($word)
+    protected static function step1b(string $word): string
     {
         static $exceptions = [
             'inning',
@@ -291,13 +282,13 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
             'exceed',
             'succeed',
         ];
-        if (in_array($word, $exceptions)) {
+        if (\in_array($word, $exceptions)) {
             return $word;
         }
         $checks = ['eedly', 'eed'];
         foreach ($checks as $check) {
             if (self::hasEnding($word, $check)) {
-                if (self::r($word, 1) !== strlen($word)) {
+                if (self::r($word, 1) !== mb_strlen($word)) {
                     $word = self::removeEnding($word, $check) . 'ee';
                 }
 
@@ -308,7 +299,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
         $second_endings = ['at', 'bl', 'iz'];
         foreach ($checks as $check) {
             // If the ending is present and the previous part contains a vowel.
-            if (self::hasEnding($word, $check) && self::containsVowel(substr($word, 0, -strlen($check)))) {
+            if (self::hasEnding($word, $check) && self::containsVowel(substr($word, 0, -\strlen($check)))) {
                 $word = self::removeEnding($word, $check);
                 foreach ($second_endings as $ending) {
                     if (self::hasEnding($word, $ending)) {
@@ -317,7 +308,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
                 }
                 // If the word ends with a double, remove the last letter.
                 $double_removed = self::removeDoubles($word);
-                if ($double_removed != $word) {
+                if ($double_removed !== $word) {
                     $word = $double_removed;
                 } elseif (self::isShort($word)) {
                     // If the word is short, add e (so hop -> hope).
@@ -343,22 +334,22 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return int
      *   The R position.
      */
-    protected static function r($word, $type = 1)
+    protected static function r(string $word, int $type = 1): int
     {
         $inc = 1;
         if ($type === 2) {
             $inc = self::r($word, 1);
-        } elseif (strlen($word) > 5) {
-            $prefix_5 = substr($word, 0, 5);
+        } elseif (mb_strlen($word) > 5) {
+            $prefix_5 = \substr($word, 0, 5);
             if ($prefix_5 === 'gener' || $prefix_5 === 'arsen') {
                 return 5;
             }
-            if (substr($word, 0, 6) === 'commun') {
+            if ($prefix_5 === 'commu' && \substr($word, 0, 6) === 'commun') {
                 return 6;
             }
         }
 
-        while ($inc <= strlen($word)) {
+        while ($inc <= mb_strlen($word)) {
             if (!self::isVowel($inc, $word) && self::isVowel($inc - 1, $word)) {
                 $position = $inc;
                 break;
@@ -366,7 +357,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
             $inc++;
         }
         if (!isset($position)) {
-            $position = strlen($word);
+            $position = mb_strlen($word);
         } else {
             // We add one, as this is the position AFTER the first non-vowel.
             $position++;
@@ -384,14 +375,11 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function removeDoubles($word)
+    protected static function removeDoubles(string $word): string
     {
         static $doubles = ['bb', 'dd', 'ff', 'gg', 'mm', 'nn', 'pp', 'rr', 'tt'];
-        foreach ($doubles as $double) {
-            if (substr($word, -2) === $double) {
-                $word = substr($word, 0, -1);
-                break;
-            }
+        if (\in_array(mb_substr($word, -2), $doubles, true)) {
+            return mb_substr($word, 0, -1);
         }
 
         return $word;
@@ -407,9 +395,9 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the word is short, FALSE otherwise.
      */
-    protected static function isShort($word)
+    protected static function isShort(string $word): bool
     {
-        return self::isShortSyllable($word) && self::r($word, 1) == strlen($word);
+        return self::isShortSyllable($word) && self::r($word, 1) === mb_strlen($word);
     }
 
     /**
@@ -426,10 +414,10 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the word has the described suffix, FALSE otherwise.
      */
-    protected static function isShortSyllable($word, $position = null)
+    protected static function isShortSyllable(string $word, ?int $position = null): bool
     {
         if ($position === null) {
-            $position = strlen($word) - 2;
+            $position = mb_strlen($word) - 2;
         }
         // A vowel at the beginning of the word followed by a non-vowel.
         if ($position === 0) {
@@ -451,9 +439,9 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step1c($word)
+    protected static function step1c(string $word): string
     {
-        if (strlen($word) > 2 && (self::hasEnding($word, 'y') || self::hasEnding($word, 'Y')) && !self::isVowel(strlen($word) - 2, $word)) {
+        if (mb_strlen($word) > 2 && (self::hasEnding($word, 'y') || self::hasEnding($word, 'Y')) && !self::isVowel(mb_strlen($word) - 2, $word)) {
             $word = self::removeEnding($word, 'y');
             $word .= 'i';
         }
@@ -470,7 +458,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step2($word)
+    protected static function step2(string $word): string
     {
         static $checks = [
             'ization' => 'ize',
@@ -507,7 +495,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
             }
         }
         if (self::hasEnding($word, 'li')) {
-            if (strlen($word) > 4 && self::validLi(self::charAt(-3, $word))) {
+            if (mb_strlen($word) > 4 && self::validLi(self::charAt(-3, $word))) {
                 $word = self::removeEnding($word, 'li');
             }
         }
@@ -525,11 +513,11 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the string is in R1, FALSE otherwise.
      */
-    protected static function inR1($word, $string)
+    protected static function inR1(string $word, string $string): bool
     {
-        $r1 = substr($word, self::r($word, 1));
+        $r1 = mb_substr($word, self::r($word, 1));
 
-        return strpos($r1, $string) !== false;
+        return mb_strpos($r1, $string) !== false;
     }
 
     /**
@@ -541,9 +529,9 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the given string is a valid -li prefix, FALSE otherwise.
      */
-    protected static function validLi($string)
+    protected static function validLi(string $string): bool
     {
-        return in_array($string, [
+        return \in_array($string, [
             'c',
             'd',
             'e',
@@ -566,7 +554,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step3($word)
+    protected static function step3(string $word): string
     {
         static $checks = [
             'ational' => 'ate',
@@ -605,11 +593,11 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return bool
      *   TRUE if the string is in R2, FALSE otherwise.
      */
-    protected static function inR2($word, $string)
+    protected static function inR2(string $word, string $string): bool
     {
-        $r2 = substr($word, self::r($word, 2));
+        $r2 = mb_substr($word, self::r($word, 2));
 
-        return strpos($r2, $string) !== false;
+        return mb_strpos($r2, $string) !== false;
     }
 
     /**
@@ -621,7 +609,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step4($word)
+    protected static function step4(string $word): string
     {
         static $checks = [
             'ement',
@@ -647,7 +635,7 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
             // Among the suffixes, if found and in R2, delete.
             if (self::hasEnding($word, $check)) {
                 if (self::inR2($word, $check)) {
-                    if ($check !== 'ion' || in_array(self::charAt(-4, $word), ['s', 't'])) {
+                    if ($check !== 'ion' || \in_array(self::charAt(-4, $word), ['s', 't'])) {
                         $word = self::removeEnding($word, $check);
                     }
                 }
@@ -668,11 +656,11 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
      * @return string $word
      *   The modified word.
      */
-    protected static function step5($word)
+    protected static function step5(string $word): string
     {
         if (self::hasEnding($word, 'e')) {
             // Delete if in R2, or in R1 and not preceded by a short syllable.
-            if (self::inR2($word, 'e') || (self::inR1($word, 'e') && !self::isShortSyllable($word, strlen($word) - 3))) {
+            if (self::inR2($word, 'e') || (self::inR1($word, 'e') && !self::isShortSyllable($word, mb_strlen($word) - 3))) {
                 $word = self::removeEnding($word, 'e');
             }
 
