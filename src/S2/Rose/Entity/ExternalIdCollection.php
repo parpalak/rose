@@ -22,7 +22,9 @@ class ExternalIdCollection
     {
         foreach ($externalIds as $externalId) {
             if (!$externalId instanceof ExternalId) {
+                // @codeCoverageIgnoreStart
                 throw new InvalidArgumentException('External ids must be an array of ExternalId.');
+                // @codeCoverageIgnoreEnd
             }
         }
 

@@ -19,11 +19,15 @@ class ExternalId
     public function __construct($id, ?int $instanceId = null)
     {
         if (($instanceId !== null) && !($instanceId > 0)) {
+            // @codeCoverageIgnoreStart
             throw new InvalidArgumentException('Instance id must be positive.');
+            // @codeCoverageIgnoreEnd
         }
 
         if (!\is_string($id) && !\is_int($id) && !\is_float($id)) {
+            // @codeCoverageIgnoreStart
             throw new InvalidArgumentException('External id must be string or int or float.');
+            // @codeCoverageIgnoreEnd
         }
 
         $this->id         = (string)$id;
@@ -50,10 +54,5 @@ class ExternalId
         $data = explode(':', $string, 2);
 
         return new static($data[1], $data[0] !== '' ? (int)$data[0] : null);
-    }
-
-    public function equals(self $id): bool
-    {
-        return $id->toString() === $this->toString();
     }
 }
