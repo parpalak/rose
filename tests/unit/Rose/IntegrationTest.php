@@ -108,9 +108,14 @@ class IntegrationTest extends Unit
         $this->assertEquals(new \DateTime('2016-08-20 00:00:00+00:00'), $items[0]->getDate());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
 
-        $resultSet2 = $finder->find(new Query('content'));
+        $resultSet2 = $finder->find((new Query('content'))->setLimit(2));
 
-        $this->assertEquals(['20:id_2' => 3.8930706202455925, '10:id_1' => 0.08519043038599518, '20:id_1' => 0.12778564557899275], $resultSet2->getSortedRelevanceByExternalId());
+        $this->assertEquals([
+            '20:id_2' => 3.8930706202455925,
+            '20:id_1' => 0.12778564557899275
+        ], $resultSet2->getSortedRelevanceByExternalId());
+
+        $this->assertEquals(3, $resultSet2->getTotalCount());
 
         $resultSet2 = $finder->find(new Query('content'));
 

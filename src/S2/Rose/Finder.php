@@ -79,8 +79,6 @@ class Finder
 
         $resultSet->addProfilePoint('Fetch TOC');
 
-        $resultSet->removeDataWithoutToc();
-
         $relevanceByExternalIds = $resultSet->getSortedRelevanceByExternalId();
         if (\count($relevanceByExternalIds) > 0) {
             $this->buildSnippets($relevanceByExternalIds, $resultSet);
