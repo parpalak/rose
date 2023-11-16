@@ -65,7 +65,7 @@ class SnippetBuilder
         }
 
         $introSnippetLines = array_map(
-            static fn (SnippetSource $s) => SnippetLine::createFromSnippetSourceWithoutFoundWords($s),
+            static fn(SnippetSource $s) => SnippetLine::createFromSnippetSourceWithoutFoundWords($s),
             \array_slice($snippetSources, 0, 2)
         );
 
@@ -79,12 +79,19 @@ class SnippetBuilder
             return $snippet;
         }
 
+        $stemsForRegex = $stems;
         if ($this->stemmer instanceof IrregularWordsStemmerInterface) {
             $stems = array_merge($stems, $this->stemmer->irregularWordsFromStems($stems));
+
+            $regexRules = $this->stemmer->getRegexTransformationRules();
+            $stemsForRegex = array_map(static fn(string $stem): string => preg_replace(
+                array_keys($regexRules),
+                array_values($regexRules),
+                $stem
+            ), $stems);
         }
 
-        $joinedStems = implode('|', $stems);
-        $joinedStems = str_replace('е', '[её]', $joinedStems);
+        $joinedStems = implode('|', $stemsForRegex);
 
         foreach ($snippetSources as $snippetSource) {
             // Check the text for the query words

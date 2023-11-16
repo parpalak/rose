@@ -165,12 +165,20 @@ class ResultItem
             throw new InvalidArgumentException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
-        $stems = $this->foundWords;
+        $stems         = $this->foundWords;
+        $stemsForRegex = $stems;
         if ($stemmer instanceof IrregularWordsStemmerInterface) {
             $stems = array_merge($stems, $stemmer->irregularWordsFromStems($this->foundWords));
+
+            $regexRules    = $stemmer->getRegexTransformationRules();
+            $stemsForRegex = array_map(static fn(string $stem): string => preg_replace(
+                array_keys($regexRules),
+                array_values($regexRules),
+                $stem
+            ), $stems);
         }
-        $joinedStems = implode('|', $stems);
-        $joinedStems = str_replace('е', '[её]', $joinedStems);
+
+        $joinedStems = implode('|', $stemsForRegex);
 
         // Check the text for the query words
         // TODO: Make sure the modifier S works correct on cyrillic

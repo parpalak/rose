@@ -413,4 +413,14 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
     {
         return self::$irregularWords;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRegexTransformationRules(): array
+    {
+        return array_merge([
+            '#е#i' => '[её]',
+        ], $this->nextStemmer !== null ? $this->nextStemmer->getRegexTransformationRules() : []);
+    }
 }
