@@ -93,7 +93,7 @@ class FulltextResult
 
                 if (\count($positionBag->getKeywordPositions()) > 0) {
                     $weights = [
-                        'keyword'             => 15,
+                        'keyword'             => 10,
                         'abundance_reduction' => $reductionRatio,
                     ];
                     if ($positionBag->hasExternalRelevanceRatio()) {
@@ -104,9 +104,8 @@ class FulltextResult
 
                 if (\count($positionBag->getTitlePositions()) > 0) {
                     $weights = [
-                        'title' => 25,
-                        // TODO seems like this was not used before
-                        // 'abundance_reduction' => $reductionRatio,
+                        'title'               => 25,
+                        'abundance_reduction' => $reductionRatio,
                     ];
                     if ($positionBag->hasExternalRelevanceRatio()) {
                         $weights['external_ratio'] = $positionBag->getExternalRelevanceRatio();

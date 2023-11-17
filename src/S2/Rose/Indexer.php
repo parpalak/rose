@@ -158,11 +158,12 @@ class Indexer
                     ), $extractionErrors->getFormattedLines());
                 }
 
+                // strtolower in titleStrFromHtml is important
                 $this->addToIndex(
                     $externalId,
                     self::titleStrFromHtml($indexable->getTitle()),
                     $extractionResult->getContentWithMetadata(),
-                    $indexable->getKeywords()
+                    self::titleStrFromHtml($indexable->getKeywords())
                 );
             }
 

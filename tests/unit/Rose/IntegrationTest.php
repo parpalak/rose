@@ -89,7 +89,7 @@ class IntegrationTest extends Unit
         $resultSet2 = $finder->find(new Query('content'));
 
         $this->assertEquals([
-            '20:id_2' => 3.8930706202455925,
+            '20:id_2' => 2.5953804134970615,
             '20:id_1' => 0.12778564557899275,
             '10:id_1' => 0.08519043038599518,
         ], $resultSet2->getSortedRelevanceByExternalId());
@@ -104,14 +104,14 @@ class IntegrationTest extends Unit
         $this->assertEquals(0.08519043038599518, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
-        $this->assertEquals(3.8930706202455925, $items[0]->getRelevance());
+        $this->assertEquals(2.5953804134970615, $items[0]->getRelevance());
         $this->assertEquals(new \DateTime('2016-08-20 00:00:00+00:00'), $items[0]->getDate());
         $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
 
         $resultSet2 = $finder->find((new Query('content'))->setLimit(2));
 
         $this->assertEquals([
-            '20:id_2' => 3.8930706202455925,
+            '20:id_2' => 2.5953804134970615,
             '20:id_1' => 0.12778564557899275
         ], $resultSet2->getSortedRelevanceByExternalId());
 
@@ -121,7 +121,7 @@ class IntegrationTest extends Unit
 
         $resultItems = $resultSet2->getItems();
         $this->assertCount(3, $resultItems);
-        $this->assertEquals(3.8930706202455925, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
+        $this->assertEquals(2.5953804134970615, $resultItems[0]->getRelevance(), 'Setting relevance ratio or sorting by relevance is not working');
 
         $resultSet2 = $finder->find(new Query('title'));
         $this->assertEquals('id_1', $resultSet2->getItems()[0]->getId());
@@ -168,19 +168,23 @@ class IntegrationTest extends Unit
         );
         $this->assertEquals('id_3', $resultSet4->getItems()[0]->getId());
         $this->assertEquals(
-            'Русский текст. <b>Красным заголовком</b>',
+            'Русский текст. <b>Красным заголовком</b>. АБВГ',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
-        $this->assertEquals(50.95596903638126, $resultSet4->getItems()[0]->getRelevance());
+        $this->assertEquals( 38.858378912122475, $resultSet4->getItems()[0]->getRelevance());
 
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));
         $this->assertCount(1, $resultSet5->getItems());
-        $this->assertEquals(25, $resultSet5->getItems()[0]->getRelevance());
+        $this->assertEquals(18.951204937870607, $resultSet5->getItems()[0]->getRelevance());
 
         $resultSet5 = $finder->find(new Query('русскому'));
         $this->assertCount(1, $resultSet5->getItems());
-        $this->assertEquals(25, $resultSet5->getItems()[0]->getRelevance());
+        $this->assertEquals(18.951204937870607, $resultSet5->getItems()[0]->getRelevance());
+
+        $resultSet5 = $finder->find(new Query('абвг'));
+        $this->assertCount(1, $resultSet5->getItems());
+        $this->assertEquals(26.531686913018852, $resultSet5->getItems()[0]->getRelevance());
 
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
@@ -276,7 +280,7 @@ class IntegrationTest extends Unit
 
             $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), true);
             $this->assertEquals($right = [
-                'snippet'     => 'This is the first page to be <i>indexed</i>.',
+                'snippet' => 'This is the first page to be <i>indexed</i>.',
             ], array_intersect_key($similarItems[0], $right));
 
             $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), false, 10);
@@ -400,8 +404,8 @@ class IntegrationTest extends Unit
                 ->setUrl('any string')
                 ->setRelevanceRatio(3.14)
             ,
-            (new Indexable('id_3', 'Русский текст. Красным заголовком', '<p>Для проверки работы нужно написать побольше слов. В 1,7 раз больше. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus; и &amp;plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации. Встречаются и другие знаки препинания, например, цифры. Я не помню Windows 3.1, но помню Turbo Pascal 7.0. Надо отдельно посмотреть, что ищется по одной цифре 7... Учитель не должен допускать такого...</p><p>А еще текст бывает на других языках. Например, в украинском есть слово ціна. Или что-то может называться словом Gallery.</p>', 20))
-                ->setKeywords('ключевые слова')
+            (new Indexable('id_3', 'Русский текст. Красным заголовком. АБВГ', '<p>Для проверки работы нужно написать побольше слов. В 1,7 раз больше. Вот еще одно предложение.</p><p>Тут есть тонкость - нужно проверить, как происходит экранировка в сущностях вроде &plus; и &amp;plus;. Для этого нужно включить в текст само сочетание букв "plus".</p><p>Еще одна особенность - наличие слов с дефисом. Например, красно-черный, эпл-вотчем, и другие интересные комбинации. Встречаются и другие знаки препинания, например, цифры. Я не помню Windows 3.1, но помню Turbo Pascal 7.0. Надо отдельно посмотреть, что ищется по одной цифре 7... Учитель не должен допускать такого...</p><p>А еще текст бывает на других языках. Например, в украинском есть слово ціна. Или что-то может называться словом Gallery.</p>', 20))
+                ->setKeywords('ключевые слова, АБВГ')
                 ->setDescription('')
                 ->setDate(new \DateTime('2016-08-22 00:00:00'))
                 ->setUrl('/якобы.урл')
