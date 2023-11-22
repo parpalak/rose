@@ -46,8 +46,8 @@ class ExtractorTest extends Unit
     public function testDomExtractor(string $htmlText, string $resultText, ?array $words = null, $images = null): void
     {
         $extractionResult = $this->domExtractor->extract($htmlText);
-        $sentenceMap      = $extractionResult->getContentWithMetadata()->getSentenceMap();
 
+        $sentenceMap = $extractionResult->getContentWithMetadata()->getSentenceMap();
         self::assertEquals($resultText, $sentenceMap->toSentenceCollection()->getText());
         if ($words !== null) {
             self::assertEquals($words, $sentenceMap->toSentenceCollection()->getWordsArray());
@@ -55,6 +55,25 @@ class ExtractorTest extends Unit
         if ($images !== null) {
             self::assertEquals($images, $extractionResult->getContentWithMetadata()->getImageCollection()->toJson());
         }
+    }
+
+    public function testDomExtractionError(): void
+    {
+        $extractor = new DomExtractor();
+
+        $extractionResult = $extractor->extract('<p>html text</p>');
+        self::assertFalse($extractionResult->getErrors()->hasErrors());
+
+        $extractionResult = $extractor->extract('Plain text');
+        self::assertTrue($extractionResult->getErrors()->hasErrors());
+        self::assertEquals(['1:? Found anonymous text block "Plain text". Consider using <p> tag as a text container. (code=anon_text)'], $extractionResult->getErrors()->getFormattedLines());
+
+        $extractionResult = $extractor->extract('<b>unbalanced html</i>');
+        self::assertTrue($extractionResult->getErrors()->hasErrors());
+        self::assertEquals([
+            '1:152 Unexpected end tag : i (code=76)',
+            '1:159 Opening and ending tag mismatch: body and b (code=76)',
+        ], $extractionResult->getErrors()->getFormattedLines());
     }
 
     /**
