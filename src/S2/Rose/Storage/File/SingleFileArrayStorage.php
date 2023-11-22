@@ -49,7 +49,7 @@ class SingleFileArrayStorage extends ArrayStorage
         }
 
         $end    = strpos($data, "\n");
-        $myData = substr($data, 8, $end);
+        $myData = substr($data, 8, $end - 8);
         $data   = substr($data, $end + 1);
         $unserializeOptions = ['allowed_classes' => [
             \DateTime::class,
@@ -61,17 +61,17 @@ class SingleFileArrayStorage extends ArrayStorage
         $this->fulltextProxy->setFulltextIndex(unserialize($myData, $unserializeOptions) ?: []);
 
         $end                 = strpos($data, "\n");
-        $myData              = substr($data, 8, $end);
+        $myData              = substr($data, 8, $end - 8);
         $data                = substr($data, $end + 1);
         $this->excludedWords = unserialize($myData, $unserializeOptions) ?: [];
 
         $end            = strpos($data, "\n");
-        $myData         = substr($data, 8, $end);
+        $myData         = substr($data, 8, $end - 8);
         $data           = substr($data, $end + 1);
         $this->metadata = unserialize($myData, $unserializeOptions) ?: [];
 
         $end    = strpos($data, "\n");
-        $myData = substr($data, 8, $end);
+        $myData = substr($data, 8, $end - 8);
         // $data      = substr($data, $end + 1);
         $this->toc = unserialize($myData, $unserializeOptions) ?: [];
 
