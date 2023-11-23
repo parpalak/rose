@@ -90,8 +90,8 @@ class IntegrationTest extends Unit
 
         $this->assertEquals([
             '20:id_2' => 2.5953804134970615,
-            '20:id_1' => 0.12778564557899275,
-            '10:id_1' => 0.08519043038599518,
+            '20:id_1' => 0.12828323517212156,
+            '10:id_1' => 0.08569157515491249,
         ], $resultSet2->getSortedRelevanceByExternalId());
 
         $items = $resultSet2->getItems();
@@ -101,7 +101,7 @@ class IntegrationTest extends Unit
         $this->assertEquals('url1', $items[2]->getUrl());
         $this->assertEquals('Description can be used in snippets', $items[2]->getDescription());
         $this->assertEquals(new \DateTime('2016-08-24 00:00:00'), $items[2]->getDate());
-        $this->assertEquals(0.08519043038599518, $items[2]->getRelevance());
+        $this->assertEquals(0.08569157515491249, $items[2]->getRelevance());
         $this->assertEquals('I have changed the <i>content</i>.', $items[2]->getSnippet());
 
         $this->assertEquals(2.5953804134970615, $items[0]->getRelevance());
@@ -112,7 +112,7 @@ class IntegrationTest extends Unit
 
         $this->assertEquals([
             '20:id_2' => 2.5953804134970615,
-            '20:id_1' => 0.12778564557899275
+            '20:id_1' => 0.12828323517212156
         ], $resultSet2->getSortedRelevanceByExternalId());
 
         $this->assertEquals(3, $resultSet2->getTotalCount());
@@ -146,7 +146,7 @@ class IntegrationTest extends Unit
             'Тут есть тонкость - нужно проверить, как происходит экранировка в <i>сущностях</i> вроде + и &amp;<i>plus</i>;. Для этого нужно включить в текст само сочетание букв "<i>plus</i>".',
             $resultSet3->getItems()[0]->getSnippet()
         );
-        $this->assertEquals(18.327969620020077, $resultSet3->getItems()[0]->getRelevance());
+        $this->assertEquals(18.35150247903209, $resultSet3->getItems()[0]->getRelevance());
 
         // Query 4
         $resultSet4 = $finder->find(new Query('эпл'));
@@ -171,7 +171,7 @@ class IntegrationTest extends Unit
             'Русский текст. <b>Красным заголовком</b>. АБВГ',
             $resultItems4[0]->getHighlightedTitle($stemmer)
         );
-        $this->assertEquals( 38.858378912122475, $resultSet4->getItems()[0]->getRelevance());
+        $this->assertEquals(38.86779205572728, $resultSet4->getItems()[0]->getRelevance());
 
         // Query 5
         $resultSet5 = $finder->find(new Query('русский'));
@@ -189,7 +189,7 @@ class IntegrationTest extends Unit
         // Query 6
         $resultSet6 = $finder->find(new Query('учитель не должен'));
         $this->assertCount(1, $resultSet6->getItems());
-        $this->assertEquals(55.06322790532708, $resultSet6->getItems()[0]->getRelevance());
+        $this->assertEquals(55.0961739079439, $resultSet6->getItems()[0]->getRelevance());
 
         // Query 7: Test empty queries
         $resultSet7 = $finder->find(new Query(''));
@@ -266,11 +266,12 @@ class IntegrationTest extends Unit
         $this->assertEquals('Alternative text', $img1->getAlt());
 
         if ($readStorage instanceof PdoStorage && strpos($GLOBALS['s2_rose_test_db']['dsn'], 'sqlite') !== 0) {
+            $indexer->index(new Indexable('dummy', 'Dummy new', ''));
             $similarItems = $readStorage->getSimilar(new ExternalId('id_2', 20), false);
             $this->assertInstanceOf(TocEntryWithMetadata::class, $similarItems[0]['tocWithMetadata']);
             $this->assertEquals($right = [
                 'toc_id'      => '1',
-                'word_count'  => '13',
+                'word_count'  => '16',
                 'external_id' => 'id_1',
                 'instance_id' => '10',
                 'title'       => 'Test page title',

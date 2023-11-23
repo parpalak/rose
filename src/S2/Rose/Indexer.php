@@ -79,20 +79,23 @@ class Indexer
     protected function addToIndex(ExternalId $externalId, string $title, ContentWithMetadata $content, string $keywords): void
     {
         $sentenceCollection = $content->getSentenceMap()->toSentenceCollection();
-        $contentWords       = $sentenceCollection->getWordsArray();
+        $contentWordsArray  = $sentenceCollection->getWordsArray();
 
-        foreach ($contentWords as $i => $word) {
+        foreach ($contentWordsArray as $i => $word) {
             if ($this->storage->isExcludedWord($word)) {
-                unset($contentWords[$i]);
+                unset($contentWordsArray[$i]);
             }
         }
 
-        $this->storage->addMetadata($externalId, \count($contentWords), $content->getImageCollection());
+        $titleWordsArray = self::arrayFromStr($title);
+        $keywordsArray   = self::arrayFromStr($keywords);
+
+        $this->storage->addMetadata($externalId, \count($titleWordsArray) + \count($contentWordsArray), $content->getImageCollection());
         $this->storage->addSnippets($externalId, ...$sentenceCollection->getSnippetSources());
         $this->storage->addToFulltextIndex(
-            $this->getStemsWithComponents(self::arrayFromStr($title)),
-            $this->getStemsWithComponents(self::arrayFromStr($keywords)), // TODO consider different semantics of space and comma?
-            $this->getStemsWithComponents($contentWords),
+            $this->getStemsWithComponents($titleWordsArray),
+            $this->getStemsWithComponents($keywordsArray), // TODO consider different semantics of space and comma?
+            $this->getStemsWithComponents($contentWordsArray),
             $externalId
         );
     }
