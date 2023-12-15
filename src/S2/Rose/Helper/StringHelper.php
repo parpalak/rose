@@ -65,7 +65,7 @@ class StringHelper
      */
     public static function sentencesFromCode(string $text): array
     {
-        $substrings = preg_split('#(\r?\n\r?){2,}#Su', $text);
+        $substrings = preg_split('#(\r?\n\r?){1,}#Su', $text);
         array_walk($substrings, 'trim');
 
         return $substrings;
