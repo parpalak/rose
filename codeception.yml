@@ -1,7 +1,8 @@
 actor: Tester
 paths:
   tests: tests
-  log: tests/_output
+  log: tests/_output # prior to 5.0?
+  output: tests/_output # ~5.0?
   data: tests/_data
   support: tests/_support
   envs: tests/_envs

@@ -12,11 +12,11 @@
     "php": ">=7.4",
     "ext-json": "*",
     "symfony/polyfill-mbstring": "^1.2",
-    "psr/log": "^1.1"
+    "psr/log": "^1.1|^2.0|^3.0"
   },
   "require-dev": {
-    "codeception/codeception": "^4.2",
-    "codeception/module-asserts": "^1.3"
+    "codeception/codeception": "^4.2|^5.0",
+    "codeception/module-asserts": "^1.3|^3.0"
   },
   "suggest": {
     "ext-dom": "*",

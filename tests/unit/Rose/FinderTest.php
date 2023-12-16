@@ -8,7 +8,7 @@
 namespace S2\Rose\Test;
 
 use Codeception\Test\Unit;
-use Codeception\Util\Stub;
+use Codeception\Stub;
 use S2\Rose\Entity\ExternalId;
 use S2\Rose\Entity\ExternalIdCollection;
 use S2\Rose\Entity\Metadata\ImgCollection;
@@ -22,6 +22,11 @@ use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\FulltextIndexContent;
 use S2\Rose\Storage\FulltextIndexPositionBag;
 use S2\Rose\Storage\StorageReadInterface;
+
+if (!class_exists(Stub::class)) {
+    // Remove on dropping support for Codeception 4.x
+    class_alias('Codeception\Util\Stub', Stub::class);
+}
 
 /**
  * @group finder
