@@ -3,6 +3,8 @@
 This is a search engine designed for content sites with simplified yet functional English and Russian morphology support.
 It indexes your content and provides a full-text search.
 
+<img src="doc/rose.svg">
+
 ## Requirements
 
 1. PHP 7.4 or later.
@@ -76,45 +78,43 @@ use S2\Rose\Entity\Indexable;
 
 // Main parameters
 $indexable = new Indexable(
-	'id_1',            // External ID - an identifier in your system 
-	'Test page title', // Title 
-	'This is the first page to be indexed. I have to make up a content.',
-	1                  // Instance ID - an optional ID of your subsystem 
+    'id_1',            // External ID - an identifier in your system 
+    'Test page title', // Title 
+    'This is the first page to be indexed. I have to make up a content.',
+    1                  // Instance ID - an optional ID of your subsystem 
 );
 
 // Other optional parameters
 $indexable
-	->setKeywords('singlekeyword, multiple keywords')       // The same as Meta Keywords
-	->setDescription('Description can be used in snippets') // The same as Meta Description
-	->setDate(new \DateTime('2016-08-24 00:00:00'))
-	->setUrl('url1')
-	->setRelevanceRatio(3.14)                               // Multiplier for important pages
+    ->setKeywords('singlekeyword, multiple keywords')       // The same as Meta Keywords
+    ->setDescription('Description can be used in snippets') // The same as Meta Description
+    ->setDate(new \DateTime('2016-08-24 00:00:00'))
+    ->setUrl('url1')
+    ->setRelevanceRatio(3.14)                               // Multiplier for important pages
 ;
 
 $indexer->index($indexable);
 
 $indexable = new Indexable(
-	'id_2',
-	'Test page title 2',
-	'This is the second page to be indexed. Let\'s compose something new.'
+    'id_2',
+    'Test page title 2',
+    'This is the second page to be indexed. Let\'s compose something new.'
 );
 $indexable->setKeywords('content, page');
 
 $indexer->index($indexable);
 ```
 
-The constructor of `Indexable` requires 4 arguments:
+The constructor of `Indexable` has 4 arguments:
 - external ID - an arbitrary string that is sufficient for your code to identify the page;
 - page title;
 - page content;
 - instance ID - an optional integer ID of the page source (e.g., for multi-site services), as explained below.
 
 Optional parameters that you can provide include: keywords, description, date, relevance ratio, and URL.
-Keywords are indexed and searched with higher relevance.
-The description can be used for building a snippet (see below).
-The URL can be an arbitrary string.
-
+Keywords are indexed and searched with higher relevance. The description can be used for building a snippet (see below).
 It is suggested to use the content of "keyword" and "description" meta-tags, if available, for this purpose.
+The URL can be an arbitrary string.
 
 The `Indexer::index()` method is used for both adding and updating the index.
 If the content is unchanged, this method skips the operation. Otherwise, the content is being removed and indexed again.
@@ -138,15 +138,15 @@ $finder    = new Finder($storage, $stemmer);
 $resultSet = $finder->find(new Query('content'));
 
 foreach ($resultSet->getItems() as $item) {
-	                         // first iteration:              second iteration:
-	$item->getId();          // 'id_2'                        'id_1'
-	$item->getInstanceId();  // null                          1
-	$item->getTitle();       // 'Test page title 2'           'Test page title'
-	$item->getUrl();         // ''                            'url1'
-	$item->getDescription(); // ''                            'Description can be used in snippets'
-	$item->getDate();        // null                          new \DateTime('2016-08-24 00:00:00')
-	$item->getRelevance();   // 4.1610856664112195            0.26907154598642522
-	$item->getSnippet();     // 'This is the second page...'  'I have to make up a <i>content</i>.'
+                             // first iteration:              second iteration:
+    $item->getId();          // 'id_2'                        'id_1'
+    $item->getInstanceId();  // null                          1
+    $item->getTitle();       // 'Test page title 2'           'Test page title'
+    $item->getUrl();         // ''                            'url1'
+    $item->getDescription(); // ''                            'Description can be used in snippets'
+    $item->getDate();        // null                          new \DateTime('2016-08-24 00:00:00')
+    $item->getRelevance();   // 4.1610856664112195            0.26907154598642522
+    $item->getSnippet();     // 'This is the second page...'  'I have to make up a <i>content</i>.'
 }
 ```
 
@@ -154,8 +154,8 @@ Modify the `Query` object to use a pagination:
 ```php
 $query = new Query('content');
 $query
-	->setLimit(10)  // 10 results per page
-	->setOffset(20) // third page
+    ->setLimit(10)  // 10 results per page
+    ->setOffset(20) // third page
 ;
 $resultSet = $finder->find($query);
 
@@ -167,9 +167,9 @@ Provide instance id to limit the scope of the search with a subsystem:
 $resultSet = $finder->find((new Query('content'))->setInstanceId(1));
 
 foreach ($resultSet->getItems() as $item) {
-	                         // first iteration only:
-	$item->getId();          // 'id_1'
-	$item->getInstanceId();  // 1
+                             // first iteration only:
+    $item->getId();          // 'id_1'
+    $item->getInstanceId();  // 1
 }
 ```
 
@@ -261,4 +261,4 @@ $similarItems = $readStorage->getSimilar(new ExternalId('id_2'));
 ```
 
 > [!NOTE]
-> Recommendations are supported on MySQL and PostgreSQL databases, but they are not implemented in SQLite due to limited SQL support.
+> Recommendations are supported on MySQL and PostgreSQL databases. They are not implemented in SQLite due to limited SQL support.
