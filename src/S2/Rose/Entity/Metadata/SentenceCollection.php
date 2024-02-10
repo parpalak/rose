@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /**
- * @copyright 2023 Roman Parpalak
+ * @copyright 2023-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -104,13 +104,13 @@ class SentenceCollection
         // We allow letters, digits and some punctuation: ".,-"
         $content = preg_replace('#[^\\-.,0-9\\p{L}^_]+#u', ' ', $content);
         $content = mb_strtolower($content);
-        $content = str_replace([", ", ". ", "- ", 'ё'], [' ', ' ', ' ', 'е'], $content);
+        $content = str_replace(['ё'], ['е'], $content);
 
         // These punctuation characters are meant to be inside words and numbers.
         // Remove trailing characters when splitting the words.
         $content = rtrim($content, '-.,');
 
-        $words = explode(' ', $content);
+        $words = preg_split('#[\\-.,]*?[ ]+#S', $content);
         StringHelper::removeLongWords($words);
 
         return $words;

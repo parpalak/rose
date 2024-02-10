@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -14,11 +14,14 @@ use S2\Rose\Entity\Query;
  */
 class QueryTest extends Unit
 {
-    public function testFilterInput()
+    public function testFilterInput(): void
     {
         $this->assertEquals([1, 2], (new Query('1|||2'))->valueToArray());
         $this->assertEquals([1, 2], (new Query('1\\\\\\2'))->valueToArray());
         $this->assertEquals(['a', 'b'], (new Query('a/b'))->valueToArray());
         $this->assertEquals(['a', 'b'], (new Query(' a   b   '))->valueToArray());
+        $this->assertEquals(['..'], (new Query('..'))->valueToArray());
+        $this->assertEquals(['...'], (new Query('...'))->valueToArray());
+        $this->assertEquals(['a..b'], (new Query('a..b'))->valueToArray());
     }
 }

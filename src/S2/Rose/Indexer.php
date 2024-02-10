@@ -2,7 +2,7 @@
 /**
  * Creates search index
  *
- * @copyright 2010-2023 Roman Parpalak
+ * @copyright 2010-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -207,8 +207,8 @@ class Indexer
 
             // If the word contains punctuation marks like hyphen, add a variant without it
             if (false !== strpbrk($stemmedWord, '-.,')) {
-                foreach (preg_split('#[\-.,]#', $word) as $k => $subWord) {
-                    if ($subWord) {
+                foreach (preg_split('#[\p{L}\d]\K[\-.,]+|[\-.,]+(?=[\p{L}\d])#u', $word) as $k => $subWord) {
+                    if ($subWord !== '' && $subWord !== $word) {
                         $componentsOfCompoundWords[(string)($i + 0.001 * ($k + 1))] = $this->stemmer->stemWord($subWord, false);
                     }
                 }

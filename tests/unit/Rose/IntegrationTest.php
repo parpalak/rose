@@ -2,7 +2,7 @@
 /** @noinspection PhpComposerExtensionStubsInspection */
 
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -90,7 +90,7 @@ class IntegrationTest extends Unit
 
         $this->assertEquals([
             '20:id_2' => 2.5953804134970615,
-            '20:id_1' => 0.12828323517212156,
+            '20:id_1' => 0.12932092968696407,
             '10:id_1' => 0.08569157515491249,
         ], $resultSet2->getSortedRelevanceByExternalId());
 
@@ -112,7 +112,7 @@ class IntegrationTest extends Unit
 
         $this->assertEquals([
             '20:id_2' => 2.5953804134970615,
-            '20:id_1' => 0.12828323517212156
+            '20:id_1' => 0.12932092968696407
         ], $resultSet2->getSortedRelevanceByExternalId());
 
         $this->assertEquals(3, $resultSet2->getTotalCount());
@@ -264,6 +264,10 @@ class IntegrationTest extends Unit
         $this->assertEquals('20', $img1->getWidth());
         $this->assertEquals('25', $img1->getHeight());
         $this->assertEquals('Alternative text', $img1->getAlt());
+
+        // Empty result
+        $this->assertCount(0, $finder->find(new Query('..'))->getItems());
+        $this->assertCount(0, $finder->find(new Query('...'))->getItems());
 
         if ($readStorage instanceof PdoStorage && strpos($GLOBALS['s2_rose_test_db']['dsn'], 'sqlite') !== 0) {
             $indexer->index(new Indexable('dummy', 'Dummy new', ''));
@@ -418,7 +422,7 @@ class IntegrationTest extends Unit
                 ->setDate(new \DateTime('2016-08-24 00:00:00'))
                 ->setUrl('url1')
             ,
-            (new Indexable('id_1', 'Another instance', 'The same id but another instance. Word "content" is present here. Twice: content.', 20))
+            (new Indexable('id_1', 'Another instance', 'The same id but another instance. Word "content" is present here. Twice: content. Delimiters must be $...$ or  \[...\]', 20))
             ,
             (new Indexable('id_4', 'Another instance', 'Nothing is here but images: <img src="1.jpg" width="10" height="15"> <img src="2.jpg" width="20" height="25" alt="Alternative text" />', 20))
             ,

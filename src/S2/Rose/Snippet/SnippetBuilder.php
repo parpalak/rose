@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /**
- * @copyright 2011-2023 Roman Parpalak
+ * @copyright 2011-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -84,6 +84,7 @@ class SnippetBuilder
             $stems = array_merge($stems, $this->stemmer->irregularWordsFromStems($stems));
 
             $regexRules = $this->stemmer->getRegexTransformationRules();
+            $regexRules['#\\.#'] = '\\.'; // escaping dot in the following preg_match_all() call
             $stemsForRegex = array_map(static fn(string $stem): string => preg_replace(
                 array_keys($regexRules),
                 array_values($regexRules),

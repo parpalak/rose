@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /**
- * @copyright 2017-2023 Roman Parpalak
+ * @copyright 2017-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -87,7 +87,7 @@ class SnippetLine
             // TODO: After implementing formatting this regex became a set of crutches.
             // One has to break the snippets into words, clear formatting, convert words to stems
             // and detect what stems has been found. Then highlight the original text based on words source offset.
-            $wordPattern               = implode('|', $this->foundWords);
+            $wordPattern               = implode('|', array_map(static fn(string $word) => preg_quote($word, '#'), $this->foundWords));
             $wordPatternWithFormatting = '(?:\\\\[' . StringHelper::FORMATTING_SYMBOLS . '])*(?:' . $wordPattern . ')(?:\\\\[' . strtoupper(StringHelper::FORMATTING_SYMBOLS) . '])*';
             $replacedLine              = preg_replace_callback(
                 '#(?:\\s|^|\p{P})\\K' . $wordPatternWithFormatting . '(?:\\s+(?:' . $wordPatternWithFormatting . '))*\\b#su',
