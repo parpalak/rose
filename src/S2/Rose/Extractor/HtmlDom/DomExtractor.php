@@ -246,7 +246,7 @@ class DomExtractor implements ExtractorInterface
 
             case 'img':
                 $domState->attachImg(
-                    html_entity_decode($domNode->getAttribute('src'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5),
+                    rawurldecode(html_entity_decode($domNode->getAttribute('src'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)),
                     $domNode->getAttribute('width'),
                     $domNode->getAttribute('height'),
                     html_entity_decode($domNode->getAttribute('alt'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)

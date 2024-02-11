@@ -260,7 +260,7 @@ class IntegrationTest extends Unit
 
         $img1 = $resultSet11->getItems()[0]->getImageCollection()->offsetGet(1);
         $this->assertNotNull($img1);
-        $this->assertEquals('2.jpg', $img1->getSrc());
+        $this->assertEquals('2 3.jpg', $img1->getSrc());
         $this->assertEquals('20', $img1->getWidth());
         $this->assertEquals('25', $img1->getHeight());
         $this->assertEquals('Alternative text', $img1->getAlt());
@@ -424,7 +424,7 @@ class IntegrationTest extends Unit
             ,
             (new Indexable('id_1', 'Another instance', 'The same id but another instance. Word "content" is present here. Twice: content. Delimiters must be $...$ or  \[...\]', 20))
             ,
-            (new Indexable('id_4', 'Another instance', 'Nothing is here but images: <img src="1.jpg" width="10" height="15"> <img src="2.jpg" width="20" height="25" alt="Alternative text" />', 20))
+            (new Indexable('id_4', 'Another instance', 'Nothing is here but images: <img src="1.jpg" width="10" height="15"> <img src="2%203.jpg" width="20" height="25" alt="Alternative text" />', 20))
             ,
         ];
 
