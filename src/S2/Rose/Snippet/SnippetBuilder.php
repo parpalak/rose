@@ -79,48 +79,10 @@ class SnippetBuilder
             return $snippet;
         }
 
-        $stemsForRegex = $stems;
-        if ($this->stemmer instanceof IrregularWordsStemmerInterface) {
-            $stems = array_merge($stems, $this->stemmer->irregularWordsFromStems($stems));
-
-            $regexRules = $this->stemmer->getRegexTransformationRules();
-            $regexRules['#\\.#'] = '\\.'; // escaping dot in the following preg_match_all() call
-            $stemsForRegex = array_map(static fn(string $stem): string => preg_replace(
-                array_keys($regexRules),
-                array_values($regexRules),
-                $stem
-            ), $stems);
-        }
-
-        $joinedStems = implode('|', $stemsForRegex);
+        $extractor = new WordsByStemsExtractor($this->stemmer, $stems);
 
         foreach ($snippetSources as $snippetSource) {
-            // Check the text for the query words
-            // NOTE: Make sure the modifier S works correct on cyrillic
-            // TODO: After implementing formatting this regex became a set of crutches.
-            // One has to break the snippets into words, clear formatting, convert words to stems
-            // and detect what stems has been found. Then highlight the original text based on words source offset.
-            preg_match_all(
-                '#(?<=[^\\p{L}]|^|\\\\[' . StringHelper::FORMATTING_SYMBOLS . '])(' . $joinedStems . ')\\p{L}*#Ssui',
-                $snippetSource->getText(),
-                $matches,
-                PREG_OFFSET_CAPTURE
-            );
-
-            $foundWords = $foundStems = [];
-            foreach ($matches[0] as $i => $wordInfo) {
-                $word           = $wordInfo[0];
-                $stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
-                $stemmedWord    = $this->stemmer->stemWord($word);
-
-                // Ignore entry if the word stem differs from needed ones
-                if (!$stemEqualsWord && !\in_array($stemmedWord, $stems, true)) {
-                    continue;
-                }
-
-                $foundWords[$word]        = 1;
-                $foundStems[$stemmedWord] = 1;
-            }
+            [$foundWords, $foundStems] = $extractor->extract($snippetSource->getText());
 
             if (\count($foundWords) === 0) {
                 continue;

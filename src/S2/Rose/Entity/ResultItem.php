@@ -10,7 +10,7 @@ use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\RuntimeException;
-use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
+use S2\Rose\Snippet\WordsByStemsExtractor;
 use S2\Rose\Stemmer\StemmerInterface;
 
 class ResultItem
@@ -165,43 +165,10 @@ class ResultItem
             throw new InvalidArgumentException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
-        $stems         = $this->foundWords;
-        $stemsForRegex = $stems;
-        if ($stemmer instanceof IrregularWordsStemmerInterface) {
-            $stems = array_merge($stems, $stemmer->irregularWordsFromStems($this->foundWords));
+        $extractor = new WordsByStemsExtractor($stemmer, $this->foundWords);
 
-            $regexRules    = $stemmer->getRegexTransformationRules();
-            $stemsForRegex = array_map(static fn(string $stem): string => preg_replace(
-                array_keys($regexRules),
-                array_values($regexRules),
-                $stem
-            ), $stems);
-        }
+        [$foundWords,] = $extractor->extract($this->title);
 
-        $joinedStems = implode('|', $stemsForRegex);
-
-        // Check the text for the query words
-        // TODO: Make sure the modifier S works correct on cyrillic
-        preg_match_all(
-            '#(?<=[^\\p{L}]|^)(' . $joinedStems . ')\\p{L}*#Ssui',
-            $this->title,
-            $matches,
-            PREG_OFFSET_CAPTURE
-        );
-
-        $foundWords = [];
-        foreach ($matches[0] as $i => $wordInfo) {
-            $word           = $wordInfo[0];
-            $stemEqualsWord = ($wordInfo[0] === $matches[1][$i][0]);
-            $stemmedWord    = $stemmer->stemWord($word);
-
-            // Ignore entry if the word stem differs from needed ones
-            if (!$stemEqualsWord && !\in_array($stemmedWord, $this->foundWords, true)) {
-                continue;
-            }
-
-            $foundWords[$word] = 1;
-        }
 
         $snippetLine = new SnippetLine(
             $this->title,
