@@ -202,6 +202,12 @@ class SnippetsTest extends Unit
             '<span class="highlight">Одна из</span> часто указываемых <span class="highlight">ошибок в веб-дизайне</span>:',
             $resultSet->getItems()[0]->getFormattedSnippet()
         );
+
+        $resultSet = $this->finder->find(new Query('fastcgi_cache_lock_age'));
+        $this->assertEquals(
+            '<span class="highlight">fastcgi_cache_lock_age</span> 9s;',
+            $resultSet->getItems()[0]->getFormattedSnippet()
+        );
     }
 
     public function indexableProvider()
@@ -245,6 +251,13 @@ div {
 <p><img src="2.jpg" width="300" height="200">
 
 <blockquote>А это цитата, ее тоже надо индексировать.</blockquote>
+
+<pre><code>fastcgi_cache i_upmath;
+fastcgi_cache_valid 200 10m;
+fastcgi_cache_methods GET HEAD;
+fastcgi_cache_lock on;
+fastcgi_cache_lock_age 9s;
+fastcgi_cache_lock_timeout 9s;</code></pre>
 
 <img src="3.jpg" width="300" height="200">
 

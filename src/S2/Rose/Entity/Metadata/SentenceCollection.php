@@ -87,7 +87,7 @@ class SentenceCollection
             }
             $newSize = $wordsInSentence + $oldSize;
 
-            if ($wordsInSentence >= 3) { // Skip too short snippets
+            if ($wordsInSentence >= 2) { // Skip too short snippets
                 $this->cachedSnippetSources[$idx] = new SnippetSource($sentence, $this->formatId, $oldSize, $newSize - 1);
             }
 
