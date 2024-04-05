@@ -265,6 +265,11 @@ class IntegrationTest extends Unit
         $this->assertEquals('25', $img1->getHeight());
         $this->assertEquals('Alternative text', $img1->getAlt());
 
+        // Query 12
+        $resultSet12 = $finder->find(new Query('long_word_with_underscores'));
+        $this->assertCount(1, $resultSet12->getItems());
+        $this->assertEquals('Some sentence with <b>long_word_with_underscores</b>.', $resultSet12->getItems()[0]->getSnippet());
+
         // Empty result
         $this->assertCount(0, $finder->find(new Query('..'))->getItems());
         $this->assertCount(0, $finder->find(new Query('...'))->getItems());
@@ -424,7 +429,7 @@ class IntegrationTest extends Unit
             ,
             (new Indexable('id_1', 'Another instance', 'The same id but another instance. Word "content" is present here. Twice: content. Delimiters must be $...$ or  \[...\]', 20))
             ,
-            (new Indexable('id_4', 'Another instance', 'Nothing is here but images: <img src="1.jpg" width="10" height="15"> <img src="2%203.jpg" width="20" height="25" alt="Alternative text" />', 20))
+            (new Indexable('id_4', 'Another instance', 'Some sentence with long_word_with_underscores. Nothing is here but images: <img src="1.jpg" width="10" height="15"> <img src="2%203.jpg" width="20" height="25" alt="Alternative text" />', 20))
             ,
         ];
 

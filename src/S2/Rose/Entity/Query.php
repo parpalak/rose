@@ -117,7 +117,7 @@ class Query
         $content = str_replace(['«', '»', '“', '”', '‘', '’'], '"', $content);
         $content = str_replace(['---', '--', '–', '−'], '—', $content);
         $content = preg_replace('#,\\s+,#u', ',,', $content);
-        $content = preg_replace('#[^\\-\\p{L}0-9\\^\\.,\\(\\)";?!…:—]+#iu', ' ', $content);
+        $content = preg_replace('#[^\\-\\p{L}0-9^_.,()";?!…:—]+#iu', ' ', $content);
         $content = preg_replace('#\\n+#', ' ', $content);
         $content = preg_replace('#\\s+#u', ' ', $content);
         $content = mb_strtolower($content);
