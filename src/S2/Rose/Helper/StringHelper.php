@@ -45,15 +45,19 @@ class StringHelper
         $substrings = str_replace("�", ' ', $substrings);
 
         if ($hasFormatting) {
-            // We keep the formatting scope within a single sentence.
+            // We keep the formatting scope through several sentences.
             //
             // For example, consider the input: 'Sentence <i>1. Sentence 2. Sentence</i> 3.'
-            // After processing, it becomes ['Sentence <i>1.</i>', 'Sentence 2.', '<i>Sentence</i> 3.'].
-            //
-            // This approach is reasonable because individual sentences are typically joined into snippets,
-            // and preserving formatting across multiple sentences may not be meaningful.
-            array_walk($substrings, static function (string &$text) {
-                $text = self::fixUnbalancedInternalFormatting($text);
+            // After processing, it becomes ['Sentence <i>1.</i>', '<i>Sentence 2.</i>', '<i>Sentence</i> 3.'].
+            $tagsFromPrevSentence = [];
+            array_walk($substrings, static function (string &$text) use (&$tagsFromPrevSentence) {
+                foreach (array_reverse($tagsFromPrevSentence) as $possibleTag => $num) {
+                    if ($num > 0) {
+                        $text = str_repeat('\\' . $possibleTag, $num) . $text;
+                        $tagsFromPrevSentence[$possibleTag] = 0;
+                    }
+                }
+                $text = self::fixUnbalancedInternalFormatting($text, $tagsFromPrevSentence);
             });
         }
 
@@ -101,11 +105,11 @@ class StringHelper
         ]);
     }
 
-    public static function fixUnbalancedInternalFormatting(string $text): string
+    public static function fixUnbalancedInternalFormatting(string $text, array &$tagsNum): string
     {
         preg_match_all('#\\\\([' . self::FORMATTING_SYMBOLS . '])#i', $text, $matches);
 
-        $tagsNum = [];
+//        $tagsNum = [];
         foreach ($matches[1] as $match) {
             $lowerMatch           = strtolower($match);
             $tagsNum[$lowerMatch] = ($tagsNum[$lowerMatch] ?? 0) + ($match === $lowerMatch ? 1 : -1);
@@ -118,8 +122,7 @@ class StringHelper
                 $result = str_repeat('\\' . $possibleTag, -$num) . $result;
             }
         }
-        $tagsNum = array_reverse($tagsNum);
-        foreach ($tagsNum as $possibleTag => $num) {
+        foreach (array_reverse($tagsNum) as $possibleTag => $num) {
             if ($num > 0) {
                 $result .= str_repeat('\\' . strtoupper($possibleTag), $num);
             }

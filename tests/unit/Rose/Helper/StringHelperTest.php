@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /**
- * @copyright 2023 Roman Parpalak
+ * @copyright 2023-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -17,9 +17,9 @@ class StringHelperTest extends Unit
     /**
      * @dataProvider sentenceDataProvider
      */
-    public function testSentences(string $text, array $sentences): void
+    public function testSentences(string $text, array $sentences, bool $hasFormatting = false): void
     {
-        foreach (StringHelper::sentencesFromText($text, false) as $i => $str) {
+        foreach (StringHelper::sentencesFromText($text, $hasFormatting) as $i => $str) {
             $this->assertEquals($sentences[$i], $str);
         }
     }
@@ -36,6 +36,9 @@ class StringHelperTest extends Unit
                 '1, 2, 3 и т. д.',
                 'Цифры, буквы, и т. п., могут встретиться.',
             ]],
+            ['Sentence \i1. Sentence 2. Sentence\I 3.', ['Sentence \i1.\I', '\iSentence 2.\I', '\iSentence\I 3.'], true],
+            ['Sentence \i1. Sentence 2. Sentence\B 3.', ['Sentence \i1.\I', '\iSentence 2.\I', '\b\iSentence\B 3.\I'], true],
+            ['\i\uSentence \b1\B. Sentence 2. Sentence 3.\U\I', ['\i\uSentence \b1\B.\U\I', '\i\uSentence 2.\U\I', '\i\uSentence 3.\U\I'], true],
             [
                 'Поезд отправился из пункта А в пункт Б. Затем вернулся назад.',
                 [
@@ -97,13 +100,49 @@ class StringHelperTest extends Unit
         ];
     }
 
-    public function testFixUnbalancedInternalFormatting(): void
+    /**
+     * @dataProvider unbalancedInternalFormattingDataProvider
+     */
+    public function testFixUnbalancedInternalFormatting(string $text, string $expected, array $expectedTags): void
     {
-        $this->assertEquals('\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.\\I', StringHelper::fixUnbalancedInternalFormatting('\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.'));
-        $this->assertEquals('', StringHelper::fixUnbalancedInternalFormatting(''));
-        $this->assertEquals('456789i', StringHelper::fixUnbalancedInternalFormatting('456789i'));
-        $this->assertEquals('\\i456789\\I', StringHelper::fixUnbalancedInternalFormatting('456789\\I'));
-        $this->assertEquals('\\u456789\\U', StringHelper::fixUnbalancedInternalFormatting('\\u456789'));
-        $this->assertEquals('\\i\\d\\u\\D\\\\I\\b\\B\\U', StringHelper::fixUnbalancedInternalFormatting('\\u\\D\\\\I\\b'));
+        $tags = [];
+        $this->assertEquals($expected, StringHelper::fixUnbalancedInternalFormatting($text, $tags));
+        $this->assertEquals($expectedTags, $tags);
+    }
+
+    public function unbalancedInternalFormattingDataProvider(): array
+    {
+        return [
+            [
+                '\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.',
+                '\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.\\I',
+                ['i' => 1, 'b' => 0],
+            ],
+            [
+                '',
+                '',
+                [],
+            ],
+            [
+                '456789i',
+                '456789i',
+                [],
+            ],
+            [
+                '456789\\I',
+                '\\i456789\\I',
+                ['i' => -1],
+            ],
+            [
+                '\\u456789',
+                '\\u456789\\U',
+                ['u' => 1],
+            ],
+            [
+                '\\u\\D\\\\I\\b',
+                '\\i\\d\\u\\D\\\\I\\b\\B\\U',
+                ['i' => -1, 'd' => -1, 'u' => 1, 'b' => 1],
+            ],
+        ];
     }
 }
