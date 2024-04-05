@@ -119,6 +119,11 @@ class StringHelperTest extends Unit
                 ['i' => 1, 'b' => 0],
             ],
             [
+                'Normal text with escaped formatting symbols like \\\\draw or \\\\inline or \\\\\\\\uuu.',
+                'Normal text with escaped formatting symbols like \\\\draw or \\\\inline or \\\\\\\\uuu.',
+                [],
+            ],
+            [
                 '',
                 '',
                 [],
@@ -134,14 +139,24 @@ class StringHelperTest extends Unit
                 ['i' => -1],
             ],
             [
+                '456789\\\\I',
+                '456789\\\\I',
+                [],
+            ],
+            [
+                '456789\\\\\\I',
+                '\\i456789\\\\\\I',
+                ['i' => -1],
+            ],
+            [
                 '\\u456789',
                 '\\u456789\\U',
                 ['u' => 1],
             ],
             [
                 '\\u\\D\\\\I\\b',
-                '\\i\\d\\u\\D\\\\I\\b\\B\\U',
-                ['i' => -1, 'd' => -1, 'u' => 1, 'b' => 1],
+                '\\d\\u\\D\\\\I\\b\\B\\U',
+                ['d' => -1, 'u' => 1, 'b' => 1],
             ],
         ];
     }

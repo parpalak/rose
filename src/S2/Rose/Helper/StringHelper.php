@@ -107,9 +107,8 @@ class StringHelper
 
     public static function fixUnbalancedInternalFormatting(string $text, array &$tagsNum): string
     {
-        preg_match_all('#\\\\([' . self::FORMATTING_SYMBOLS . '])#i', $text, $matches);
+        preg_match_all('#(?:\\\\{2})*(*SKIP)\K\\\\([' . self::FORMATTING_SYMBOLS . '])#i', $text, $matches);
 
-//        $tagsNum = [];
         foreach ($matches[1] as $match) {
             $lowerMatch           = strtolower($match);
             $tagsNum[$lowerMatch] = ($tagsNum[$lowerMatch] ?? 0) + ($match === $lowerMatch ? 1 : -1);
