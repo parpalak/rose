@@ -182,6 +182,7 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
         'кое-кем'  => 'кое-кто',
         'кое-ком'  => 'кое-кто',
 
+        'печать' => 'печат', // стеммер считает, что это глагол
 
         'шея'   => '',
         'шеи'   => 'шея',
