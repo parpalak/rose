@@ -32,7 +32,7 @@ class PostgresRepository extends AbstractRepository
                 throw new RuntimeException('Cannot drop and create tables. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
             }
             if ($e->getCode() === '42000') {
-                throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
+                throw new InvalidEnvironmentException($e->getMessage(), (int)$e->getCode(), $e);
             }
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while creating tables: "%s".',

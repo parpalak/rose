@@ -58,7 +58,7 @@ class MysqlRepository extends AbstractRepository
                 throw new RuntimeException('Cannot drop and create tables. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
             }
             if ($e->getCode() === '42000') {
-                throw new InvalidEnvironmentException($e->getMessage(), $e->getCode(), $e);
+                throw new InvalidEnvironmentException($e->getMessage(), (int)$e->getCode(), $e);
             }
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while creating tables: "%s".',
@@ -114,16 +114,16 @@ class MysqlRepository extends AbstractRepository
         try {
             $statement = $this->pdo->prepare($sql);
             $statement->execute([
-                'external_id'      => $externalId->getId(),
-                'instance_id'      => (int)$externalId->getInstanceId(),
+                'external_id' => $externalId->getId(),
+                'instance_id' => (int)$externalId->getInstanceId(),
 
-                'title'            => $entry->getTitle(),
-                'description'      => $entry->getDescription(),
-                'added_at'         => $entry->getFormattedDate(),
-                'timezone'         => $entry->getTimeZone(),
-                'url'              => $entry->getUrl(),
-                'relevance_ratio'  => $entry->getRelevanceRatio(),
-                'hash'             => $entry->getHash(),
+                'title'           => $entry->getTitle(),
+                'description'     => $entry->getDescription(),
+                'added_at'        => $entry->getFormattedDate(),
+                'timezone'        => $entry->getTimeZone(),
+                'url'             => $entry->getUrl(),
+                'relevance_ratio' => $entry->getRelevanceRatio(),
+                'hash'            => $entry->getHash(),
 
                 'title2'           => $entry->getTitle(),
                 'description2'     => $entry->getDescription(),

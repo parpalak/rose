@@ -45,13 +45,17 @@ jobs:
             mysql_versions: '8.1'
           -
             operating_system: 'ubuntu-22.04'
+            php_versions: 8.2
+            mysql_versions: 'mariadb-11.4'
+          -
+            operating_system: 'ubuntu-22.04'
             php_versions: 8.3
             mysql_versions: '8.2'
 
     runs-on: '${{ matrix.operating_system }}'
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: shogo82148/actions-setup-mysql@v1
         with:
           mysql-version: ${{ matrix.mysql_versions }}

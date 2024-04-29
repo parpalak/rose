@@ -18,12 +18,15 @@ jobs:
     runs-on: '${{ matrix.operating_system }}'
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: 'Setup PHP'
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php_versions }}
+
+      - name: Show SQLite version
+        run: php --ri sqlite3
 
       - name: Install dependencies
         run: COMPOSER_MEMORY_LIMIT=-1 composer install --prefer-dist --no-interaction
