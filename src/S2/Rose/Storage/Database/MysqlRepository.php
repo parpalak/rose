@@ -321,12 +321,23 @@ LIMIT :limit";
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
-        $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
-			toc_id INT(11) UNSIGNED NOT NULL,
-			word_count INT(11) UNSIGNED NOT NULL,
-			images JSON NOT NULL,
-			PRIMARY KEY (toc_id)
-		) ENGINE=InnoDB CHARACTER SET ' . $charset);
+
+        try {
+            $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
+                toc_id INT(11) UNSIGNED NOT NULL,
+                word_count INT(11) UNSIGNED NOT NULL,
+                images JSON NOT NULL,
+                PRIMARY KEY (toc_id)
+            ) ENGINE=InnoDB CHARACTER SET ' . $charset);
+        } catch (\PDOException $e) {
+            // Fallback for old MariaDB < 10.2 with no JSON alias support
+            $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
+                toc_id INT(11) UNSIGNED NOT NULL,
+                word_count INT(11) UNSIGNED NOT NULL,
+                images LONGTEXT NOT NULL,
+                PRIMARY KEY (toc_id)
+            ) ENGINE=InnoDB CHARACTER SET ' . $charset);
+        }
 
         $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::SNIPPET) . ' (

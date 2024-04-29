@@ -27,6 +27,7 @@ jobs:
           - 'mariadb-11.0'
           - 'mariadb-11.1'
           - 'mariadb-11.2'
+          - '5.6'
           - '5.7'
         php_versions:
           - '7.4'

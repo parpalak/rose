@@ -8,6 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating_system: ['ubuntu-22.04']
+        postgresql-version: [10, 11, 12, 13, 14, 15, 16]
         php_versions:
           - '8.2'
 
@@ -15,12 +16,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: ikalnytskyi/action-setup-postgres@v4
-        with:
-          username: postgres
-          password: 12345
-          database: s2_rose_test
-          port: 5432
+
+      - name: Install PostgreSQL
+        env:
+          POSTGRESQL_VERSION: ${{ matrix.postgresql-version }}
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get -y install "postgresql-$POSTGRESQL_VERSION"
+          sudo service postgresql start
+
+      - name: Set up PostgreSQL
+        run: |
+          sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '12345';"
+          sudo -u postgres psql -c "CREATE DATABASE s2_rose_test OWNER postgres;"
 
       - name: 'Setup PHP'
         uses: shivammathur/setup-php@v2
