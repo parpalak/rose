@@ -2,7 +2,7 @@
 /**
  * @copyright 2024 Roman Parpalak
  * @license MIT
- * @package S2
+ * @package Rose
  */
 
 declare(strict_types=1);

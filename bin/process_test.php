@@ -4,6 +4,10 @@
  * @license   MIT
  */
 
+if (PHP_SAPI !== 'cli') {
+    die;
+}
+
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../tests/config.php';
 

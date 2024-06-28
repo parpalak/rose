@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+/**
+ * @copyright 2024 Roman Parpalak
+ * @license   http://opensource.org/licenses/MIT MIT
+ * @package   Rose
+ */
+
+if (PHP_SAPI !== 'cli') {
+    die;
+}
+
+require __DIR__ . '/../vendor/autoload.php';
+
+if (count($argv) < 3) {
+    die('Usage: ' . $argv[0] . ' <kind> <argument>' . PHP_EOL);
+}
+
+$kind     = $argv[1];
+$argument = $argv[2];
+
+$stemmer = match ($kind) {
+    'russian' => new \S2\Rose\Stemmer\PorterStemmerRussian(),
+    'english' => new \S2\Rose\Stemmer\PorterStemmerEnglish(),
+    default => throw new \Exception('Unknown stemmer kind: ' . $kind),
+};
+
+echo $stemmer->stemWord($argument), PHP_EOL;
