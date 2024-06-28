@@ -231,7 +231,11 @@ class SqliteRepository extends AbstractRepository
     public function startTransaction(): void
     {
         try {
-            $this->pdo->beginTransaction();
+            if (!$this->pdo->inTransaction()) {
+                $this->pdo->beginTransaction();
+            } else {
+                $this->inExternalTransaction = true;
+            }
         } catch (\PDOException $e) {
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while starting transaction: "%s".',

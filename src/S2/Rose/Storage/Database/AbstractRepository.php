@@ -42,6 +42,7 @@ abstract class AbstractRepository
     protected string $prefix;
     protected array $options;
     protected \PDO $pdo;
+    protected bool $inExternalTransaction = false;
 
     public function __construct(\PDO $pdo, string $prefix = '', array $options = [])
     {
@@ -572,8 +573,12 @@ abstract class AbstractRepository
     public function startTransaction(): void
     {
         try {
-            $this->pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
-            $this->pdo->beginTransaction();
+            if (!$this->pdo->inTransaction()) {
+                $this->pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+                $this->pdo->beginTransaction();
+            } else {
+                $this->inExternalTransaction = true;
+            }
         } catch (\PDOException $e) {
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while starting transaction: "%s".',
@@ -589,7 +594,11 @@ abstract class AbstractRepository
     public function commitTransaction(): void
     {
         try {
-            $this->pdo->commit();
+            if ($this->inExternalTransaction) {
+                $this->inExternalTransaction = false;
+            } else {
+                $this->pdo->commit();
+            }
         } catch (\PDOException $e) {
             throw new UnknownException(sprintf(
                 'Unknown exception "%s" occurred while committing transaction: "%s".',
