@@ -37,7 +37,8 @@ class MysqlRepository extends AbstractRepository
 
         try {
             try {
-                $this->dropAndCreateTables($charset, self::KEYLEN);
+                $this->drop();
+                $this->createTables($charset, self::KEYLEN);
             } catch (\PDOException $e) {
                 if ($charset === 'utf8mb4') {
                     // See https://stackoverflow.com/questions/30761867/mysql-error-the-maximum-column-size-is-767-bytes
@@ -47,7 +48,8 @@ class MysqlRepository extends AbstractRepository
                     // of $e->errorInfo: [42000, 1071, 'Specified key was too long; max key length is 767 bytes']
                     // and ['HY000', 1709, 'Index column size too large. The maximum column size is 767 bytes.'].
 
-                    $this->dropAndCreateTables($charset, self::UTF8MB4_KEYLEN);
+                    $this->drop();
+                    $this->createTables($charset, self::UTF8MB4_KEYLEN);
                 } else {
                     throw $e;
                 }
@@ -302,9 +304,8 @@ LIMIT :limit";
         return $e->getCode() === '42S22'; // e.g. SQLSTATE[42S22]: Column not found: 1054 Unknown column 'f.positions' in 'field list'
     }
 
-    private function dropAndCreateTables(string $charset, int $keyLen): void
+    private function createTables(string $charset, int $keyLen): void
     {
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			external_id VARCHAR(255) NOT NULL,
@@ -319,8 +320,6 @@ LIMIT :limit";
 			PRIMARY KEY (`id`),
 			UNIQUE KEY (instance_id, external_id(' . $keyLen . '))
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
-
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
 
         try {
             $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
@@ -339,7 +338,6 @@ LIMIT :limit";
             ) ENGINE=InnoDB CHARACTER SET ' . $charset);
         }
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::SNIPPET) . ' (
 			toc_id INT(11) UNSIGNED NOT NULL,
 			max_word_pos INT(11) UNSIGNED NOT NULL,
@@ -349,7 +347,6 @@ LIMIT :limit";
 			PRIMARY KEY (toc_id, max_word_pos)
 		) ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=4 ENGINE=InnoDB CHARACTER SET ' . $charset);
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
 			word_id INT(11) UNSIGNED NOT NULL,
 			toc_id INT(11) UNSIGNED NOT NULL,
@@ -358,7 +355,6 @@ LIMIT :limit";
 			KEY (toc_id)
 		) ENGINE=InnoDB CHARACTER SET ' . $charset);
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
 			id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
 			name VARCHAR(255) NOT NULL DEFAULT "",

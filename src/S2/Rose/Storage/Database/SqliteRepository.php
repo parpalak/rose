@@ -28,7 +28,8 @@ class SqliteRepository extends AbstractRepository
     public function erase(): void
     {
         try {
-            $this->dropAndCreateTables();
+            $this->drop();
+            $this->createTables();
         } catch (\PDOException $e) {
             if ($this->isLockWaitingException($e)) {
                 throw new RuntimeException('Cannot drop and create tables. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
@@ -266,9 +267,8 @@ class SqliteRepository extends AbstractRepository
         return 1 === $e->errorInfo[1] && 'HY000' === $e->errorInfo[0] && strpos($e->getMessage(), 'no such column') !== false;
     }
 
-    private function dropAndCreateTables(): void
+    private function createTables(): void
     {
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
             id INTEGER PRIMARY KEY,
             external_id VARCHAR(255) NOT NULL,
@@ -283,14 +283,12 @@ class SqliteRepository extends AbstractRepository
             UNIQUE (instance_id, external_id)
 		)');
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
 			toc_id INTEGER PRIMARY KEY,
 			word_count INTEGER NOT NULL,
 			images JSON NOT NULL
 		)');
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
         // TODO compression?
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::SNIPPET) . ' (
             toc_id INTEGER NOT NULL,
@@ -301,7 +299,6 @@ class SqliteRepository extends AbstractRepository
             PRIMARY KEY (toc_id, max_word_pos)
 		)');
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
             word_id INTEGER NOT NULL,
             toc_id INTEGER NOT NULL,
@@ -313,7 +310,6 @@ class SqliteRepository extends AbstractRepository
             $this->getTableName(self::FULLTEXT_INDEX)
         ));
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
             id INTEGER PRIMARY KEY,
             name VARCHAR(255) NOT NULL DEFAULT \'\',

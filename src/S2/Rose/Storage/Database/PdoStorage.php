@@ -62,6 +62,11 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
         $this->getRepository()->erase();
     }
 
+    public function drop(): void
+    {
+        $this->getRepository()->drop();
+    }
+
     /**
      * {@inheritdoc}
      *

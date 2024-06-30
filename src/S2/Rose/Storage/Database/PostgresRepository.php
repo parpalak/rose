@@ -26,7 +26,8 @@ class PostgresRepository extends AbstractRepository
     public function erase(): void
     {
         try {
-            $this->dropAndCreateTables();
+            $this->drop();
+            $this->createTables();
         } catch (\PDOException $e) {
             if ($this->isLockWaitingException($e)) {
                 throw new RuntimeException('Cannot drop and create tables. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
@@ -265,9 +266,8 @@ LIMIT :limit";
         return $e->getCode() === '42703'; // e.g. SQLSTATE[42703]: Undefined column: 7 ERROR:  column f.positions does not exist...
     }
 
-    private function dropAndCreateTables(): void
+    private function createTables(): void
     {
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::TOC) . ' (
             id SERIAL PRIMARY KEY,
             external_id VARCHAR(255) NOT NULL,
@@ -282,14 +282,12 @@ LIMIT :limit";
             UNIQUE (instance_id, external_id)
 		)');
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::METADATA) . ' (
 			toc_id SERIAL PRIMARY KEY,
 			word_count INT NOT NULL,
 			images JSON NOT NULL
 		)');
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
         // TODO compression?
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::SNIPPET) . ' (
             toc_id INT NOT NULL,
@@ -300,7 +298,6 @@ LIMIT :limit";
             PRIMARY KEY (toc_id, max_word_pos)
 		)');
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::FULLTEXT_INDEX) . ' (
             word_id INT NOT NULL,
             toc_id INT NOT NULL,
@@ -312,7 +309,6 @@ LIMIT :limit";
             $this->getTableName(self::FULLTEXT_INDEX)
         ));
 
-        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
         $this->pdo->exec('CREATE TABLE ' . $this->getTableName(self::WORD) . ' (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255) NOT NULL DEFAULT \'\',

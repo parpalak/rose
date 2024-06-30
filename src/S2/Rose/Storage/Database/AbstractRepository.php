@@ -72,6 +72,15 @@ abstract class AbstractRepository
         }
     }
 
+    public function drop(): void
+    {
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::TOC) . ';');
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::METADATA) . ';');
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::SNIPPET) . ';');
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::FULLTEXT_INDEX) . ';');
+        $this->pdo->exec('DROP TABLE IF EXISTS ' . $this->getTableName(self::WORD) . ';');
+    }
+
     abstract public function erase(): void;
 
     abstract public function addToToc(TocEntry $entry, ExternalId $externalId): void;
