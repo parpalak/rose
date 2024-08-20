@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 /**
- * @copyright 2023 Roman Parpalak
+ * @copyright 2023-2024 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Extractor\HtmlDom;
 
@@ -36,27 +38,11 @@ class DomExtractor implements ExtractorInterface
         return class_exists(\DOMDocument::class);
     }
 
-    public static function processTextNode(\DOMText $domNode, DomState $domState, ExtractionErrors $extractionErrors, int $level): void
+    public function processTextNode(\DOMText $domNode, DomState $domState, ExtractionErrors $extractionErrors, int $level): void
     {
         $textContent = $domNode->textContent;
 
-        if ($level <= 1 && trim($textContent) !== '') {
-            try {
-                $extractionErrors->addError(
-                    sprintf(
-                        'Found anonymous text block %s. Consider using <p> tag as a text container.',
-                        json_encode(
-                            mb_strlen($textContent) > 33 ? mb_substr($textContent, 0, 30) . '...' : $textContent,
-                            JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-                        )
-                    ),
-                    'anon_text',
-                    $domNode->getLineNo()
-                );
-            } catch (\JsonException $e) {
-                throw new \LogicException('Impossible exception occurred.');
-            }
-        }
+        $this->checkContentForWarnings($level, $textContent, $extractionErrors, $domNode);
 
         $domState->attachContent($domNode->getNodePath(), $textContent);
     }
@@ -76,7 +62,7 @@ class DomExtractor implements ExtractorInterface
         $domState         = new DomState();
         $extractionErrors = new ExtractionErrors();
 
-        static::walkDomNode($dom->getElementsByTagName('body')[0], $domState, $extractionErrors, 0);
+        $this->walkDomNode($dom->getElementsByTagName('body')[0], $domState, $extractionErrors, 0);
 
         $contentWithMetadata = $domState->toContentWithMetadata();
 
@@ -108,10 +94,10 @@ class DomExtractor implements ExtractorInterface
         return new ExtractionResult($contentWithMetadata, $extractionErrors);
     }
 
-    protected static function walkDomNode(\DOMNode $domNode, DomState $domState, ExtractionErrors $extractionErrors, int $level): void
+    protected function walkDomNode(\DOMNode $domNode, DomState $domState, ExtractionErrors $extractionErrors, int $level): void
     {
         if ($domNode instanceof \DOMText) {
-            self::processTextNode($domNode, $domState, $extractionErrors, $level);
+            $this->processTextNode($domNode, $domState, $extractionErrors, $level);
 
             return;
         }
@@ -275,5 +261,26 @@ class DomExtractor implements ExtractorInterface
         }
 
         return self::NODE_OTHER_INLINE;
+    }
+
+    protected function checkContentForWarnings(int $level, string $textContent, ExtractionErrors $extractionErrors, \DOMText $domNode): void
+    {
+        if ($level <= 1 && trim($textContent) !== '') {
+            try {
+                $extractionErrors->addError(
+                    sprintf(
+                        'Found anonymous text block %s. Consider using <p> tag as a text container.',
+                        json_encode(
+                            mb_strlen($textContent) > 33 ? mb_substr($textContent, 0, 30) . '...' : $textContent,
+                            JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                        )
+                    ),
+                    'anon_text',
+                    $domNode->getLineNo()
+                );
+            } catch (\JsonException $e) {
+                throw new \LogicException('Impossible exception occurred.');
+            }
+        }
     }
 }
