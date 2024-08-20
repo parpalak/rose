@@ -2,7 +2,7 @@
 /**
  * Fulltext search
  *
- * @copyright 2010-2023 Roman Parpalak
+ * @copyright 2010-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -29,10 +29,22 @@ class Finder
     protected ?string $highlightTemplate = null;
     protected ?string $snippetLineSeparator = null;
 
+    /**
+     * @var string[]
+     */
+    protected array $highlightMaskRegexArray = [];
+
     public function __construct(StorageReadInterface $storage, StemmerInterface $stemmer)
     {
         $this->storage = $storage;
         $this->stemmer = $stemmer;
+    }
+
+    public function setHighlightMaskRegexArray(array $highlightMaskRegexArray): self
+    {
+        $this->highlightMaskRegexArray = $highlightMaskRegexArray;
+
+        return $this;
     }
 
     public function setHighlightTemplate(string $highlightTemplate): self
@@ -135,6 +147,7 @@ class Finder
         $resultSet->addProfilePoint('Snippets: obtaining');
 
         $sb = new SnippetBuilder($this->stemmer, $this->snippetLineSeparator);
+        $sb->setHighlightMaskRegexArray($this->highlightMaskRegexArray);
         try {
             $sb->attachSnippets($resultSet, $snippetResult);
         } catch (ImmutableException|UnknownIdException $e) {

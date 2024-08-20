@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 /**
  * @copyright 2017-2024 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Entity;
 
@@ -23,13 +25,18 @@ class SnippetLine
 
     protected float $relevance = 0;
 
-    protected ?string $lineWithoutEntities = null;
+    protected ?string $lineWithoutMaskedFragments = null;
 
     /**
      * @var string[]
      */
-    protected array $storedEntities = [];
+    protected array $maskedFragments = [];
     private int $formatId;
+
+    /**
+     * @var string[]
+     */
+    private array $maskRegexArray = [];
 
     public function __construct(string $line, int $formatId, array $foundWords, float $relevance)
     {
@@ -82,7 +89,7 @@ class SnippetLine
         if (\count($this->foundWords) === 0) {
             $result = $this->line;
         } else {
-            $line = $this->getLineWithoutEntities();
+            $line = $this->getLineWithoutMaskedFragments();
 
             // TODO: After implementing formatting this regex became a set of crutches.
             // One has to break the snippets into words, clear formatting, convert words to stems
@@ -95,7 +102,7 @@ class SnippetLine
                 $line
             );
 
-            $result = $this->restoreEntities($replacedLine);
+            $result = $this->restoreMaskedFragments($replacedLine);
         }
 
         if ($this->formatId === SnippetSource::FORMAT_INTERNAL) {
@@ -109,40 +116,47 @@ class SnippetLine
         return $result;
     }
 
-    protected function getLineWithoutEntities(): string
+    public function setMaskRegexArray(array $regexes): void
     {
-        if ($this->lineWithoutEntities !== null) {
-            return $this->lineWithoutEntities;
+        $this->maskRegexArray = $regexes;
+    }
+
+    protected function getLineWithoutMaskedFragments(): string
+    {
+        if ($this->lineWithoutMaskedFragments !== null) {
+            return $this->lineWithoutMaskedFragments;
         }
 
         // Remove substrings that are not store markers
-        $this->lineWithoutEntities = str_replace(self::STORE_MARKER, '', $this->line);
+        $this->lineWithoutMaskedFragments = str_replace(self::STORE_MARKER, '', $this->line);
 
-        $this->lineWithoutEntities = htmlspecialchars($this->lineWithoutEntities);
+        $this->lineWithoutMaskedFragments = htmlspecialchars($this->lineWithoutMaskedFragments);
 
-        $this->lineWithoutEntities = preg_replace_callback(
-            '#&(\\#[1-9]\d{1,3}|[A-Za-z][0-9A-Za-z]+);#',
-            function (array $matches) {
-                $this->storedEntities[] = $matches[0];
+        foreach (array_merge($this->maskRegexArray, ['#&(?:\\#[1-9]\d{1,3}|[A-Za-z][0-9A-Za-z]+);#']) as $maskRegex) {
+            $this->lineWithoutMaskedFragments = preg_replace_callback(
+                $maskRegex,
+                function (array $matches) {
+                    $this->maskedFragments[] = $matches[0];
 
-                return self::STORE_MARKER;
-            },
-            $this->lineWithoutEntities
-        );
+                    return self::STORE_MARKER;
+                },
+                $this->lineWithoutMaskedFragments
+            );
+        }
 
-        return $this->lineWithoutEntities;
+        return $this->lineWithoutMaskedFragments;
     }
 
-    protected function restoreEntities(string $line): string
+    protected function restoreMaskedFragments(string $line): string
     {
         $i = 0;
         while (true) {
             $pos = strpos($line, self::STORE_MARKER);
-            if ($pos === false || !isset($this->storedEntities[$i])) {
+            if ($pos === false || !isset($this->maskedFragments[$i])) {
                 break;
             }
 
-            $line = substr_replace($line, $this->storedEntities[$i], $pos, \strlen(self::STORE_MARKER));
+            $line = substr_replace($line, $this->maskedFragments[$i], $pos, \strlen(self::STORE_MARKER));
             $i++;
         }
 

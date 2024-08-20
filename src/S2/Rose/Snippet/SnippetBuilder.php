@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 /**
  * @copyright 2011-2024 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Snippet;
 
@@ -13,8 +15,6 @@ use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\UnknownIdException;
-use S2\Rose\Helper\StringHelper;
-use S2\Rose\Stemmer\IrregularWordsStemmerInterface;
 use S2\Rose\Stemmer\StemmerInterface;
 use S2\Rose\Storage\Dto\SnippetResult;
 
@@ -23,10 +23,22 @@ class SnippetBuilder
     protected StemmerInterface $stemmer;
     protected ?string $snippetLineSeparator;
 
+    /**
+     * @var string[]
+     */
+    protected array $highlightMaskRegexArray = [];
+
     public function __construct(StemmerInterface $stemmer, ?string $snippetLineSeparator = null)
     {
         $this->stemmer              = $stemmer;
         $this->snippetLineSeparator = $snippetLineSeparator;
+    }
+
+    public function setHighlightMaskRegexArray(array $regexes): self
+    {
+        $this->highlightMaskRegexArray = $regexes;
+
+        return $this;
     }
 
     /**
@@ -96,6 +108,8 @@ class SnippetBuilder
                     return $relevanceByStems[$stem] ?? 0;
                 }, array_keys($foundStems)))
             );
+
+            $snippetLine->setMaskRegexArray($this->highlightMaskRegexArray);
 
             $snippet->attachSnippetLine($snippetSource->getMinPosition(), $snippetSource->getMaxPosition(), $snippetLine);
         }

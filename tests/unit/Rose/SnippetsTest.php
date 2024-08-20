@@ -2,7 +2,7 @@
 /** @noinspection PhpUnhandledExceptionInspection */
 
 /**
- * @copyright 2017-2023 Roman Parpalak
+ * @copyright 2017-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -66,6 +66,7 @@ class SnippetsTest extends Unit
         $this->indexer = new Indexer($this->writeStorage, $this->stemmer);
         $this->finder  = new Finder($this->readStorage, $this->stemmer);
         $this->finder->setHighlightTemplate('<span class="highlight">%s</span>');
+        $this->finder->setHighlightMaskRegexArray(['#\$\$(?:[^$]++|\$(?!\$))*+\$\$#']);
     }
 
     /**
@@ -208,6 +209,12 @@ class SnippetsTest extends Unit
             '<span class="highlight">fastcgi_cache_lock_age</span> 9s;',
             $resultSet->getItems()[0]->getFormattedSnippet()
         );
+
+        $resultSet = $this->finder->find(new Query('nu'));
+        $this->assertEquals(
+            'Абзац с формулой с буквой <span class="highlight">nu</span>, которая не должна подсвечиваться в формуле $$E=h\nu$$.',
+            $resultSet->getItems()[0]->getFormattedSnippet()
+        );
     }
 
     public function indexableProvider()
@@ -262,6 +269,8 @@ fastcgi_cache_lock_timeout 9s;</code></pre>
 <img src="3.jpg" width="300" height="200">
 
 <p>Ошибка <i>астатически</i> даёт более простую систему дифференциальных уравнений, если исключить небольшой угол тангажа. Если пренебречь малыми величинами, то видно, что механическая природа устойчиво требует большего внимания к анализу ошибок, которые даёт устойчивый маховик. Исходя из уравнения Эйлера, прибор вертикально позволяет пренебречь колебаниями корпуса, хотя этого в любом случае требует поплавковый ньютонометр.</p>
+
+<p>Абзац с формулой с буквой nu, которая не должна подсвечиваться в формуле $$E=h\nu$$.</p>
 
 <p>Уравнение возмущенного движения поступательно характеризует подвижный объект. Прецессия гироскопа косвенно интегрирует нестационарный вектор угловой скорости, изменяя направление движения. Угловая скорость, обобщая изложенное, неподвижно не входит своими составляющими, что очевидно, в силы нормальных реакций связей, так же как и кожух. Динамическое уравнение Эйлера, в силу третьего закона Ньютона, вращательно связывает ньютонометр, не забывая о том, что интенсивность диссипативных сил, характеризующаяся величиной коэффициента D, должна лежать в определённых пределах. Еще 1 раз проверим, как gt работает защита против &lt;script&gt;alert();&lt;/script&gt; xss-уязвимостей.</p>'),
             new Indexable('id_4', 'Мне не душно', 'Я просто не ощущаю уровень углекислого газа в воздухе. Меня не устраивает.'),
