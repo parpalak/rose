@@ -1,8 +1,8 @@
 <?php
 /**
  * @copyright 2024 Roman Parpalak
- * @license MIT
- * @package Rose
+ * @license   MIT
+ * @package   Rose
  */
 
 declare(strict_types=1);
@@ -85,6 +85,7 @@ class WordsByStemsExtractor
      * check each fragment for a match with the searched stem.
      *
      * @param string $text
+     *
      * @return string[]
      */
     private function getWords(string $text): array
@@ -93,6 +94,6 @@ class WordsByStemsExtractor
             return [$text];
         }
 
-        return array_merge(explode('-', $text), [$text]);
+        return array_merge(array_filter(explode('-', $text), static fn(string $word) => $word !== ''), [$text]);
     }
 }

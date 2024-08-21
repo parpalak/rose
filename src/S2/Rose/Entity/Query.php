@@ -115,46 +115,44 @@ class Query
 
         // Normalize
         $content = str_replace(['«', '»', '“', '”', '‘', '’'], '"', $content);
-        $content = str_replace(['---', '--', '–', '−'], '—', $content);
+        $content = str_replace('−', '-', $content); // Replace minus sign to a hyphen
+        $content = str_replace(['---', '–', '−'], '—', $content); // Normalize dashes
         $content = preg_replace('#,\\s+,#u', ',,', $content);
         $content = preg_replace('#[^\\-\\p{L}0-9^_.,()";?!…:—]+#iu', ' ', $content);
-        $content = preg_replace('#\\n+#', ' ', $content);
-        $content = preg_replace('#\\s+#u', ' ', $content);
         $content = mb_strtolower($content);
 
-        $content = preg_replace('#(,+)#u', '\\1 ', $content);
+        // Replace decimal separators: ',' -> '.'
+        $content = preg_replace('#(?<=^|\\s)(\\-?\\d+),(\\d+)(?=\\s|$)#u', '\\1.\\2', $content);
 
-        $content = preg_replace('#[ |\\/]+#', ' ', $content);
-
-        $words = explode(' ', $content);
-        foreach ($words as $k => $v) {
-            // Separate special chars from the letter combination
-            if (strlen($v) > 1) {
-                foreach (['—', '^', '(', ')', '"', ':', '?', '!'] as $specialChar) {
-                    if (mb_substr($v, 0, 1) == $specialChar || mb_substr($v, -1) == $specialChar) {
-                        $words[$k] = str_replace($specialChar, '', $v);
-                        $words[]   = $specialChar;
-                    }
-                }
-            }
-
-            // Separate hyphen from the letter combination
-            if (strlen($v) > 1 && (substr($v, 0, 1) == '-' || substr($v, -1) == '-')) {
-                $words[$k] = str_replace('-', '', $v);
-                $words[]   = '-';
-            }
-
-            // Replace 'ё' inside words
-            if (false !== strpos($v, 'ё') && $v != 'ё') {
-                $words[$k] = str_replace('ё', 'е', $v);
-            }
-
-            // Remove ','
-            if (preg_match('#^[^,]+,$#u', $v) || preg_match('#^,[^,]+$#u', $v)) {
-                $words[$k] = str_replace(',', '', $v);
-                $words[]   = ',';
+        // Separate special chars at the beginning of the word
+        while (true) {
+            $content = preg_replace('#(?:^|\\s)\K([—^()"?:!])(?=[^\s])#u', '\\1 ', $content, -1, $count);
+            if ($count === 0) {
+                break;
             }
         }
+
+        // Separate special chars at the end of the word
+        while (true) {
+            $content = preg_replace('#(?<=[^\s])([—^()"?:!])(?=\\s|$)#u', ' \\1', $content, -1, $count);
+            if ($count === 0) {
+                break;
+            }
+        }
+
+        // Separate groups of commas
+        $content = preg_replace('#(,+)#u', ' \\1 ', $content);
+
+        $words = preg_split('#\\s+#', $content);
+        foreach ($words as $k => &$v) {
+            // Replace 'ё' inside words
+            if ($v !== 'ё' && false !== strpos($v, 'ё')) {
+                $v = str_replace('ё', 'е', $v);
+            }
+        }
+        unset($v);
+
+        $words = array_unique($words);
 
         StringHelper::removeLongWords($words);
 

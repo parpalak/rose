@@ -101,10 +101,10 @@ class SentenceCollection
      */
     public static function breakIntoWords(string $content): array
     {
-        // Replace comma as decimal separator to dot
-        $content = preg_replace('/[\s()]\d+\K,(?=\d+(?:[\s()]|\.\s))/', '.', $content);
+        // Replace decimal separator: ',' -> '.'
+        $content = preg_replace('#(?:^|[\s()])-?\d+\K,(?=\d+(?:$|[\s()]|\.\s))#', '.', $content);
 
-        // We allow letters, digits and some punctuation: ".,-"
+        // We allow letters, digits and some punctuation: ".,-^_"
         $content = str_replace(',', ', ', $content);
         $content = preg_replace('#[^\\-.,0-9\\p{L}^_]+#u', ' ', $content);
         $content = mb_strtolower($content);
