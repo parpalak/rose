@@ -10,7 +10,7 @@ namespace S2\Rose\Stemmer;
  */
 class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
 {
-    private const SUPPORTS_REGEX = '#^[a-zA-Z\-0-9\'’]*$#Su';
+    private const SUPPORTS_REGEX = '#(?:^|-|\d)[a-zA-Z\'’]+$#Su';
 
     protected static array $irregularWords = [
         'skis'   => 'ski',

@@ -13,16 +13,16 @@ if (PHP_SAPI !== 'cli') {
 require __DIR__ . '/../vendor/autoload.php';
 
 if (count($argv) < 3) {
-    die('Usage: ' . $argv[0] . ' <kind> <argument>' . PHP_EOL);
+    die('Usage: ' . $argv[0] . ' <language> <argument>' . PHP_EOL);
 }
 
-$kind     = $argv[1];
+$language = $argv[1];
 $argument = $argv[2];
 
-$stemmer = match ($kind) {
+$stemmer = match ($language) {
     'russian' => new \S2\Rose\Stemmer\PorterStemmerRussian(),
     'english' => new \S2\Rose\Stemmer\PorterStemmerEnglish(),
-    default => throw new \Exception('Unknown stemmer kind: ' . $kind),
+    default => throw new \Exception('Unknown stemmer language: ' . $language),
 };
 
 echo $stemmer->stemWord($argument), PHP_EOL;

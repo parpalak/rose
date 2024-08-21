@@ -7,7 +7,7 @@ namespace S2\Rose\Stemmer;
  */
 class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
 {
-    const SUPPORTS_REGEX = '#^[а-яА-ЯёЁ\-0-9]*$#Su';
+    const SUPPORTS_REGEX = '#(?:^|-|\d)[а-яА-ЯёЁ]+$#Su';
 
     const VOWEL            = '/аеиоуыэюя/Su';
     const PERFECTIVEGROUND = '/((ив|ивши|ившись|ыв|ывши|ывшись)|((?<=[ая])(в|вши|вшись)))$/Su';
@@ -295,6 +295,9 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
         'модем'  => '',
         'модема' => 'модем',
         'модему' => 'модем',
+
+        'токен'  => '',
+        'токена' => 'токен',
 
         'ищу'   => 'иска',
         'ищешь' => 'иска',
