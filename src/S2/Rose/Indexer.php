@@ -206,8 +206,8 @@ class Indexer
             $stemmedWord = $this->stemmer->stemWord($word, false);
 
             // If the word contains punctuation marks like hyphen, add a variant without it
-            if (false !== strpbrk($stemmedWord, '-.,')) {
-                foreach (preg_split('#[\p{L}\d]\K[\-.,]+|[\-.,]+(?=[\p{L}\d])#u', $word) as $k => $subWord) {
+            if (false !== strpbrk($stemmedWord, StringHelper::WORD_COMPONENT_DELIMITERS)) {
+                foreach (preg_split('#(?<=[\p{L}\d])[\-.,]+|[\-.,]++(?=[\p{L}\d])#u', $word) as $k => $subWord) {
                     if ($subWord !== '' && $subWord !== $word) {
                         $componentsOfCompoundWords[(string)($i + 0.001 * ($k + 1))] = $this->stemmer->stemWord($subWord, false);
                     }

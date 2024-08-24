@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 /**
  * @copyright 2023-2024 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Test\Helper;
 
@@ -159,6 +161,76 @@ class StringHelperTest extends Unit
                 '\\u\\D\\\\I\\b',
                 '\\d\\u\\D\\\\I\\b\\B\\U',
                 ['d' => -1, 'u' => 1, 'b' => 1],
+            ],
+            [
+                '\i123 \b456 \i789',
+                '\i123 \b456 \i789\B\I\I', // NOTE: This not what one expects. Current implementation does not account for the same nested tags since they do not make sense
+                ['i' => 2, 'b' => 1],
+            ],
+            [
+                '\I 123 \i',
+                '\I 123 \i',
+                ['i' => 0],
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider getUnbalancedInternalFormattingDataProvider
+     */
+    public function testGetUnbalancedInternalFormatting(string $text, array $expected): void
+    {
+        $this->assertEquals($expected, StringHelper::getUnbalancedInternalFormatting($text));
+    }
+
+    public function getUnbalancedInternalFormattingDataProvider(): array
+    {
+        return [
+            [
+                '\\iThis is \\bformatted text\\I with \\Bspecial characters\\i.',
+                [['i'], []],
+            ],
+            [
+                'Normal text with escaped formatting symbols like \\\\draw or \\\\inline or \\\\\\\\uuu.',
+                [[], []],
+            ],
+            ['', [[], []]],
+            ['456789i', [[], []]],
+            [
+                '456789\\I',
+                [[], ['I']],
+            ],
+            [
+                '456789\\\\I',
+                [[], []],
+            ],
+            [
+                '456789\\\\\\I',
+                [[], ['I']],
+            ],
+            [
+                '456789\\\\\\\\I',
+                [[], []],
+            ],
+            [
+                '456789\\\\\\\\\\I',
+                [[], ['I']],
+            ],
+            [
+                '\\u456789',
+                [['u'], []],
+            ],
+            [
+                '\\u\\D\\\\I\\b',
+                [['u', 'b'], ['D']],
+            ],
+            [
+                '\i123 \b456 \i789',
+                [['i', 'b', 'i'], []],
+            ],
+            [
+                '\I 123 \i',
+                [['i'], ['I']],
             ],
         ];
     }

@@ -1,13 +1,12 @@
-<?php declare(strict_types=1);
+<?php
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2024 Roman Parpalak
  * @license   MIT
  */
 
-namespace S2\Rose\Entity;
+declare(strict_types=1);
 
-use S2\Rose\Entity\Metadata\SnippetSource;
-use S2\Rose\Helper\StringHelper;
+namespace S2\Rose\Entity;
 
 class Snippet
 {
@@ -19,7 +18,6 @@ class Snippet
      * @var SnippetLine[]
      */
     protected array $snippetLines = [];
-    protected array $snippetLineWeights = [];
 
     /**
      * @var SnippetLine[]
@@ -27,15 +25,12 @@ class Snippet
     protected array $introductionSnippetLines;
     protected string $textIntroduction = '';
 
-    protected int $foundWordCount = 0;
-
     protected string $highlightTemplate;
-    private array $snippetMinWordPositions = [];
-    private array $snippetMaxWordPositions = [];
+    protected array $snippetMinWordPositions = [];
+    protected array $snippetMaxWordPositions = [];
 
-    public function __construct(int $foundWordNum, string $highlightTemplate, SnippetLine ...$introductionSnippetLines)
+    public function __construct(string $highlightTemplate, SnippetLine ...$introductionSnippetLines)
     {
-        $this->foundWordCount           = $foundWordNum;
         $this->highlightTemplate        = $highlightTemplate;
         $this->introductionSnippetLines = $introductionSnippetLines;
     }
@@ -50,7 +45,6 @@ class Snippet
     public function attachSnippetLine(int $minWordPosition, int $maxWordPosition, SnippetLine $snippetLine): self
     {
         $this->snippetLines[]            = $snippetLine;
-        $this->snippetLineWeights[]      = $snippetLine->getRelevance();
         $this->snippetMinWordPositions[] = $minWordPosition;
         $this->snippetMaxWordPositions[] = $maxWordPosition;
 
@@ -67,7 +61,7 @@ class Snippet
         return implode(' ', $result);
     }
 
-    public function toString(float $acceptableRelevance = 0.6, bool $includeFormatting = false): ?string
+    public function toString(bool $includeFormatting = false): ?string
     {
         $stat = [];
         foreach ($this->snippetLines as $index => $snippetLine) {
@@ -99,17 +93,11 @@ class Snippet
             $resultSnippetLines[$idx] = $this->snippetLines[$idx];
         }
 
-        if ($this->calcLinesRelevance($resultSnippetLines) < $acceptableRelevance) {
-            return null;
-        }
-
         return $this->implodeLines($resultSnippetLines, $includeFormatting);
     }
 
     /**
      * @param array|SnippetLine[] $snippetLines
-     *
-     * @return string
      */
     private function implodeLines(array $snippetLines, bool $includeFormatting): string
     {
@@ -148,26 +136,5 @@ class Snippet
         }
 
         return $result;
-    }
-
-    /**
-     * @param array|SnippetLine[] $snippetLines
-     *
-     * @return float|int
-     */
-    private function calcLinesRelevance(array $snippetLines)
-    {
-        if (!($this->foundWordCount > 0)) {
-            return 0;
-        }
-
-        $foundWords = [];
-        foreach ($snippetLines as $snippetLine) {
-            foreach ($snippetLine->getFoundWords() as $word) {
-                $foundWords[$word] = 1;
-            }
-        }
-
-        return \count($foundWords) * 1.0 / $this->foundWordCount;
     }
 }

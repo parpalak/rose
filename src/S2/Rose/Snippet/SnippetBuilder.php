@@ -65,8 +65,9 @@ class SnippetBuilder
     public function buildSnippet(array $foundPositionsByStems, string $highlightTemplate, array $relevanceByStems, SnippetSource ...$snippetSources): Snippet
     {
         // Stems of the words found in the $id chapter
-        $stems        = [];
-        $foundWordNum = 0;
+        $stems            = [];
+        $foundWordNum     = 0;
+        $snippetRelevance = [];
         foreach ($foundPositionsByStems as $stem => $positions) {
             if (empty($positions)) {
                 //  Not a fulltext search result (e.g. title from single keywords)
@@ -74,6 +75,11 @@ class SnippetBuilder
             }
             $stems[] = $stem;
             $foundWordNum++;
+            foreach ($snippetSources as $snippetIndex => $snippetSource) {
+                if ($snippetSource->coversOneOfPositions($positions)) {
+                    $snippetRelevance[$snippetIndex] = ($snippetRelevance[$snippetIndex] ?? 0) + ($relevanceByStems[$stem] ?? 0);
+                }
+            }
         }
 
         $introSnippetLines = array_map(
@@ -81,7 +87,7 @@ class SnippetBuilder
             \array_slice($snippetSources, 0, 2)
         );
 
-        $snippet = new Snippet($foundWordNum, $highlightTemplate, ...$introSnippetLines);
+        $snippet = new Snippet($highlightTemplate, ...$introSnippetLines);
 
         if ($this->snippetLineSeparator !== null) {
             $snippet->setLineSeparator($this->snippetLineSeparator);
@@ -91,24 +97,18 @@ class SnippetBuilder
             return $snippet;
         }
 
-        $extractor = new WordsByStemsExtractor($this->stemmer, $stems);
-
-        foreach ($snippetSources as $snippetSource) {
-            [$foundWords, $foundStems] = $extractor->extract($snippetSource->getText());
-
-            if (\count($foundWords) === 0) {
+        foreach ($snippetSources as $snippetIndex => $snippetSource) {
+            if (!isset($snippetRelevance[$snippetIndex])) {
                 continue;
             }
 
             $snippetLine = new SnippetLine(
                 $snippetSource->getText(),
                 $snippetSource->getFormatId(),
-                array_keys($foundWords),
-                array_sum(array_map(static function ($stem) use ($relevanceByStems) {
-                    return $relevanceByStems[$stem] ?? 0;
-                }, array_keys($foundStems)))
+                $this->stemmer,
+                $stems,
+                $snippetRelevance[$snippetIndex] ?? 0
             );
-
             $snippetLine->setMaskRegexArray($this->highlightMaskRegexArray);
 
             $snippet->attachSnippetLine($snippetSource->getMinPosition(), $snippetSource->getMaxPosition(), $snippetLine);

@@ -675,24 +675,4 @@ class PorterStemmerEnglish extends AbstractStemmer implements StemmerInterface
 
         return $word;
     }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function getIrregularWords(): array
-    {
-        return self::$irregularWords;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getRegexTransformationRules(): array
-    {
-        return array_merge([
-            '#i$#i'  => '[iy]', // legaci -> legacy
-            '#e$#i'  => '', // live -> living, rate -> rating
-            '#bl$#i' => 'bi?l', //  possibl -> possibility, but abl -> able
-        ], $this->nextStemmer !== null ? $this->nextStemmer->getRegexTransformationRules() : []);
-    }
 }

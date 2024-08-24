@@ -1,12 +1,14 @@
-<?php declare(strict_types=1);
+<?php
 /**
- * @copyright 2020-2023 Roman Parpalak
+ * @copyright 2020-2024 Roman Parpalak
  * @license   MIT
  */
 
+declare(strict_types=1);
+
 namespace S2\Rose\Stemmer;
 
-abstract class AbstractStemmer implements IrregularWordsStemmerInterface
+abstract class AbstractStemmer
 {
     protected ?StemmerInterface $nextStemmer;
 
@@ -14,27 +16,4 @@ abstract class AbstractStemmer implements IrregularWordsStemmerInterface
     {
         $this->nextStemmer = $nextStemmer;
     }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function irregularWordsFromStems(array $stems): array
-    {
-        $flippedStems = array_flip($stems);
-
-        $words = array_keys(array_filter($this->getIrregularWords(), static function ($irregularStem) use ($flippedStems) {
-            return isset($flippedStems[$irregularStem]);
-        }));
-
-        if ($this->nextStemmer instanceof IrregularWordsStemmerInterface) {
-            $words = array_merge($words, $this->nextStemmer->irregularWordsFromStems($stems));
-        }
-
-        return $words;
-    }
-
-    /**
-     * @return array|string[]
-     */
-    abstract protected function getIrregularWords(): array;
 }

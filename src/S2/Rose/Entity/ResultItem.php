@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2024 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Entity;
 
@@ -10,7 +12,6 @@ use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\RuntimeException;
-use S2\Rose\Snippet\WordsByStemsExtractor;
 use S2\Rose\Stemmer\StemmerInterface;
 
 class ResultItem
@@ -113,7 +114,7 @@ class ResultItem
             return $this->description;
         }
 
-        $snippet = $this->snippet->toString(0.3);
+        $snippet = $this->snippet->toString();
         if ($snippet) {
             return $snippet;
         }
@@ -127,7 +128,7 @@ class ResultItem
             return $this->description;
         }
 
-        $snippet = $this->snippet->toString(0.3, true);
+        $snippet = $this->snippet->toString(true);
         if ($snippet) {
             return $snippet;
         }
@@ -137,8 +138,6 @@ class ResultItem
 
     /**
      * @param string[] $words
-     *
-     * @return $this
      */
     public function setFoundWords(array $words): self
     {
@@ -148,14 +147,7 @@ class ResultItem
     }
 
     /**
-     * TODO Refactor the highlight logic to a separate class.
-     *
-     * @param StemmerInterface $stemmer
-     *
-     * @return string
-     *
      * @throws RuntimeException
-     * @see \S2\Rose\Snippet\SnippetBuilder::buildSnippet for dublicated logic
      */
     public function getHighlightedTitle(StemmerInterface $stemmer): string
     {
@@ -165,16 +157,12 @@ class ResultItem
             throw new InvalidArgumentException('Highlight template must contain "%s" substring for sprintf() function.');
         }
 
-        $extractor = new WordsByStemsExtractor($stemmer, $this->foundWords);
-
-        [$foundWords,] = $extractor->extract($this->title);
-
-
         $snippetLine = new SnippetLine(
             $this->title,
             SnippetSource::FORMAT_PLAIN_TEXT,
-            array_keys($foundWords),
-            \count($foundWords)
+            $stemmer,
+            $this->foundWords,
+            0
         );
 
         return $snippetLine->getHighlighted($template, false);

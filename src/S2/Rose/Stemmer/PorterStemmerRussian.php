@@ -346,9 +346,6 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
         /**
          * TODO How to deal with postfixes like "кто-либо" -> "кого-либо"?
          * Ignoring postfix is not an option - there are a lot of trash results found.
-         * Transforming like `stem('кто') . '-либо'` requires some hack for reverse transform when highlighting.
-         *
-         * @see \S2\Rose\Stemmer\IrregularWordsStemmerInterface::irregularWordsFromStems
          */
         // $word = preg_replace('/^(.*)-(то|либо|нибудь)$/Su', '-\\2-\\1', $word);
 
@@ -413,23 +410,5 @@ class PorterStemmerRussian extends AbstractStemmer implements StemmerInterface
         $s    = \preg_replace($re, $to, $s);
 
         return $orig !== $s;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function getIrregularWords(): array
-    {
-        return self::$irregularWords;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getRegexTransformationRules(): array
-    {
-        return array_merge([
-            '#е#i' => '[её]',
-        ], $this->nextStemmer !== null ? $this->nextStemmer->getRegexTransformationRules() : []);
     }
 }

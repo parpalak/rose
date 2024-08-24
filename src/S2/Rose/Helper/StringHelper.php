@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
 /**
- * @copyright 2020-2023 Roman Parpalak
+ * @copyright 2020-2024 Roman Parpalak
  * @license   MIT
  */
+
+declare(strict_types=1);
 
 namespace S2\Rose\Helper;
 
@@ -14,6 +16,9 @@ class StringHelper
     public const SUBSCRIPT   = 'd';
 
     public const FORMATTING_SYMBOLS = self::BOLD . self::ITALIC . self::SUPERSCRIPT . self::SUBSCRIPT;
+
+    // Characters that split the word into components
+    public const WORD_COMPONENT_DELIMITERS = '-.,';
 
     public static function removeLongWords(array &$words): void
     {
@@ -53,7 +58,7 @@ class StringHelper
             array_walk($substrings, static function (string &$text) use (&$tagsFromPrevSentence) {
                 foreach (array_reverse($tagsFromPrevSentence) as $possibleTag => $num) {
                     if ($num > 0) {
-                        $text = str_repeat('\\' . $possibleTag, $num) . $text;
+                        $text                               = str_repeat('\\' . $possibleTag, $num) . $text;
                         $tagsFromPrevSentence[$possibleTag] = 0;
                     }
                 }
@@ -105,6 +110,11 @@ class StringHelper
         ]);
     }
 
+    /**
+     * @Note: This approach with counting formatting symbols gives wrong results for the same nested tags.
+     * For example, for '\i 1 \b 2 \i 3' it returns '\i 1 \b 2 \i 3 \B\I\I', however '\i 1 \b 2 \i 3\I\B\I' is expected.
+     * It's ok since nesting of formatting tags like <i>a<i>b</i></i> do not make a lot of sense.
+     */
     public static function fixUnbalancedInternalFormatting(string $text, array &$tagsNum): string
     {
         preg_match_all('#\\\\(?:\\\\(*SKIP)\\\\)*\K[' . self::FORMATTING_SYMBOLS . ']#i', $text, $matches);
@@ -128,5 +138,38 @@ class StringHelper
         }
 
         return $result;
+    }
+
+    /**
+     * @return array{0: array<string>, 1: array<string>}
+     */
+    public static function getUnbalancedInternalFormatting(string $text): array
+    {
+        preg_match_all('#\\\\(?:\\\\(*SKIP)\\\\)*\K[' . self::FORMATTING_SYMBOLS . ']#i', $text, $matches);
+
+        $openStack  = [];
+        $closeStack = [];
+
+        foreach ($matches[0] as $match) {
+            $lowerMatch = strtolower($match);
+            if ($match === $lowerMatch) {
+                $openStack[] = $match;
+                continue;
+            }
+
+            $found = false;
+            for ($i = \count($openStack); $i--;) {
+                if ($openStack[$i] === $lowerMatch) {
+                    array_splice($openStack, $i, 1);
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $closeStack[] = $match;
+            }
+        }
+
+        return [$openStack, $closeStack];
     }
 }

@@ -1,7 +1,7 @@
 <?php /** @noinspection PhpUnhandledExceptionInspection */
 
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -15,6 +15,7 @@ use S2\Rose\Entity\Snippet;
 use S2\Rose\Entity\SnippetLine;
 use S2\Rose\Exception\ImmutableException;
 use S2\Rose\Exception\UnknownIdException;
+use S2\Rose\Stemmer\PorterStemmerEnglish;
 
 /**
  * @group entity
@@ -64,7 +65,7 @@ class ResultSetTest extends Unit
     {
         $this->expectException(UnknownIdException::class);
         $resultSet = new ResultSet();
-        $resultSet->attachSnippet(new ExternalId('not found'), new Snippet(0, '<i>%s</i>', new SnippetLine('', SnippetSource::FORMAT_PLAIN_TEXT, [], 0.0)));
+        $resultSet->attachSnippet(new ExternalId('not found'), new Snippet('<i>%s</i>', new SnippetLine('', SnippetSource::FORMAT_PLAIN_TEXT, new PorterStemmerEnglish(), [], 0.0)));
     }
 
     public function testNotFrozenGetFoundExternalIds()

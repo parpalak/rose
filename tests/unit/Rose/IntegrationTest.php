@@ -106,7 +106,7 @@ class IntegrationTest extends Unit
 
         $this->assertEquals(2.5953804134970615, $items[0]->getRelevance());
         $this->assertEquals(new \DateTime('2016-08-20 00:00:00+00:00'), $items[0]->getDate());
-        $this->assertEquals('This is the second page to be indexed. Let\'s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
+        $this->assertEquals('This is the second page to be indexed. Let&#039;s compose something new.', $items[0]->getSnippet(), 'No snippets due to keyword match, no description provided, first sentences are used.');
 
         $resultSet2 = $finder->find((new Query('content'))->setLimit(2));
 
