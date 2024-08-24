@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2024 Roman Parpalak
  * @license   MIT
  */
 
@@ -54,6 +54,18 @@ class StemmerTest extends Unit
         $this->assertEquals('доб', $this->russianStemmer->stemWord('добившись'));
     }
 
+    public function testParticles(): void
+    {
+        $this->assertEquals('кто-нибудь', $this->russianStemmer->stemWord('кого-нибудь'));
+        $this->assertEquals('когда-нибудь', $this->russianStemmer->stemWord('когда-нибудь'));
+        $this->assertEquals('что-то', $this->russianStemmer->stemWord('чему-то'));
+        $this->assertEquals('нехитр-то', $this->russianStemmer->stemWord('нехитрое-то'));
+        $this->assertEquals('когда-либо', $this->russianStemmer->stemWord('когда-либо'));
+        $this->assertEquals('что-либо', $this->russianStemmer->stemWord('чем-либо'));
+        $this->assertEquals('кое-что', $this->russianStemmer->stemWord('кое-чем'));
+        $this->assertEquals('кое-кто', $this->russianStemmer->stemWord('кое-кого'));
+    }
+
     public function testStem(): void
     {
         $this->assertEquals('ухмыляться', $this->englishStemmer->stemWord('ухмыляться'));
@@ -64,11 +76,6 @@ class StemmerTest extends Unit
         $this->assertEquals('рраф', $this->russianStemmer->stemWord('Ррафа'));
 
         $this->assertEquals('метро', $this->russianStemmer->stemWord('метро'));
-
-        $this->assertEquals('кое-кто', $this->russianStemmer->stemWord('кое-кого'));
-        $this->assertEquals('чем-либ', $this->russianStemmer->stemWord('чем-либо'));
-        $this->assertEquals('когда-нибудь', $this->russianStemmer->stemWord('когда-нибудь'));
-        $this->assertEquals('нехитрое-т', $this->russianStemmer->stemWord('нехитрое-то'));
 
         $this->assertEquals('экзамен', $this->russianStemmer->stemWord('экзамен'));
         $this->assertEquals('экзамен', $this->russianStemmer->stemWord('экзамена'));
