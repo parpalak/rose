@@ -2,7 +2,7 @@
 /** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
 /**
- * @copyright 2023 Roman Parpalak
+ * @copyright 2023-2025 Roman Parpalak
  * @license   MIT
  */
 
@@ -37,7 +37,7 @@ class SqliteRepository extends AbstractRepository
             if ($e->getCode() === '42000') {
                 throw new InvalidEnvironmentException($e->getMessage(), (int)$e->getCode(), $e);
             }
-            throw new UnknownException(sprintf(
+            throw new UnknownException(\sprintf(
                 'Unknown exception "%s" occurred while creating tables: "%s".',
                 $e->getCode(),
                 $e->getMessage()
@@ -65,7 +65,7 @@ class SqliteRepository extends AbstractRepository
             if ($this->isLockWaitingException($e)) {
                 throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
             }
-            throw new UnknownException(sprintf(
+            throw new UnknownException(\sprintf(
                 'Unknown exception with code "%s" occurred while fulltext indexing: "%s".',
                 $e->getCode(),
                 $e->getMessage()
@@ -117,7 +117,7 @@ class SqliteRepository extends AbstractRepository
                     $e
                 );
             }
-            throw new UnknownException(sprintf(
+            throw new UnknownException(\sprintf(
                 'Unknown exception with code "%s" occurred while adding to TOC: "%s".',
                 $e->getCode(),
                 $e->getMessage()
@@ -143,12 +143,18 @@ class SqliteRepository extends AbstractRepository
     {
         $tableNames = array_map(fn($s) => $this->pdo->quote($this->getTableName($s)), array_keys(self::DEFAULT_TABLE_NAMES));
 
-        $sql = 'SELECT name, pgsize FROM dbstat WHERE name IN  (' . implode(',', $tableNames) . ');';
+        // NOTE: sqlite_master has been renamed to sqlite_schema in 3.33.0, but still works as an alias
+        $sql = 'SELECT m.tbl_name AS name, SUM(pgsize) AS pgsize
+            FROM sqlite_master AS m
+            INNER JOIN dbstat AS d ON d.name = m.name
+            WHERE m.tbl_name IN  (' . implode(',', $tableNames) . ')
+            GROUP BY m.tbl_name
+        ';
 
         $tableStatuses = $this->pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
 
         if (\count($tableStatuses) !== \count($tableNames)) {
-            throw new EmptyIndexException(sprintf(
+            throw new EmptyIndexException(\sprintf(
                 'Some storage tables are missed in the database. Call %s::erase() first.',
                 PdoStorage::class
             ));
@@ -187,7 +193,7 @@ class SqliteRepository extends AbstractRepository
 
             $orWhere[] = 's.toc_id = ' . $internalIds[$externalId->toString()] . ' AND ('
                 . implode(' OR ', array_map(
-                    static fn(int $pos) => sprintf('s.min_word_pos <= %1$s AND s.max_word_pos >= %1$s', $pos),
+                    static fn(int $pos) => \sprintf('s.min_word_pos <= %1$s AND s.max_word_pos >= %1$s', $pos),
                     $positions
                 ))
                 . ')';
@@ -238,7 +244,7 @@ class SqliteRepository extends AbstractRepository
                 $this->inExternalTransaction = true;
             }
         } catch (\PDOException $e) {
-            throw new UnknownException(sprintf(
+            throw new UnknownException(\sprintf(
                 'Unknown exception "%s" occurred while starting transaction: "%s".',
                 $e->getCode(),
                 $e->getMessage()
@@ -305,7 +311,7 @@ class SqliteRepository extends AbstractRepository
             positions TEXT NOT NULL,
             PRIMARY KEY (word_id, toc_id)
 		)');
-        $this->pdo->exec(sprintf(
+        $this->pdo->exec(\sprintf(
             'CREATE INDEX idx_%1$s_toc_id ON %1$s (toc_id);',
             $this->getTableName(self::FULLTEXT_INDEX)
         ));
