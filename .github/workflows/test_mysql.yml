@@ -27,43 +27,54 @@ jobs:
           - 'mariadb-11.0'
           - 'mariadb-11.1'
           - 'mariadb-11.2'
+          - 'mariadb-11.3'
+          - 'mariadb-11.4'
+          - 'mariadb-11.5'
+          - 'mariadb-11.6'
+          - 'mariadb-11.7'
+          - 'mariadb-11.8'
+          - 'mariadb-12.0'
+          - 'mariadb-12.1'
           - '5.6'
           - '5.7'
+          - '8.0'
+          - '8.1'
+          - '8.2'
+          - '8.3'
+          - '8.4'
+          - '9.0'
+          - '9.1'
+          - '9.2'
+          - '9.3'
+          - '9.4'
+          - '9.5'
         php_versions:
-          - '7.4'
+          - '8.4'
         include:
           -
             operating_system: 'ubuntu-22.04'
-            php_versions: 8.0
-            mysql_versions: 'mariadb-11.3'
+            mysql_versions: 'mariadb-11.8'
+            php_versions: '7.4'
           -
             operating_system: 'ubuntu-22.04'
-            php_versions: 8.1
-            mysql_versions: '8.0'
+            mysql_versions: 'mariadb-11.8'
+            php_versions: '8.0'
           -
             operating_system: 'ubuntu-22.04'
-            php_versions: 8.2
-            mysql_versions: '8.1'
-#          - # TODO 11.4.3 has a problem with SSL certificates in github actions
-#            operating_system: 'ubuntu-22.04'
-#            php_versions: 8.2
-#            mysql_versions: 'mariadb-11.4'
+            mysql_versions: 'mariadb-11.8'
+            php_versions: '8.1'
           -
-            operating_system: 'ubuntu-24.04'
-            php_versions: 8.3
-            mysql_versions: '8.2'
+            operating_system: 'ubuntu-22.04'
+            mysql_versions: 'mariadb-11.8'
+            php_versions: '8.2'
           -
-            operating_system: 'ubuntu-24.04'
-            php_versions: 8.3
-            mysql_versions: '8.3'
+            operating_system: 'ubuntu-22.04'
+            mysql_versions: 'mariadb-11.8'
+            php_versions: '8.3'
           -
-            operating_system: 'ubuntu-24.04'
-            php_versions: 8.3
-            mysql_versions: '8.4'
-          -
-            operating_system: 'ubuntu-24.04'
-            php_versions: 8.3
-            mysql_versions: '9.0'
+            operating_system: 'ubuntu-22.04'
+            mysql_versions: 'mariadb-11.8'
+            php_versions: '8.5'
 
     runs-on: '${{ matrix.operating_system }}'
 
@@ -91,8 +102,8 @@ jobs:
         run: cp tests/config.php.dist.mysql tests/config.php
 
       - name: Run test cases
-        run: php bin/codecept run --skip-group profile
+        run: php -d register_argc_argv=On bin/codecept run --skip-group profile
 
       - name: Run profiling
         if: success() || failure()
-        run: php bin/codecept run -g profile -d
+        run: php -d register_argc_argv=On bin/codecept run -g profile -d

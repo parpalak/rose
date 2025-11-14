@@ -8,9 +8,9 @@ jobs:
       fail-fast: false
       matrix:
         operating_system: ['ubuntu-22.04']
-        postgresql-version: [10, 11, 12, 13, 14, 15, 16]
+        postgresql-version: [10, 11, 12, 13, 14, 15, 16, 17, 18]
         php_versions:
-          - '8.2'
+          - '8.4'
 
     runs-on: '${{ matrix.operating_system }}'
 
