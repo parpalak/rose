@@ -66,5 +66,10 @@ class QueryTest extends Unit
         // Tests for compatibility of multiple rules
         $this->assertEquals(['a—b', '"', 'text'], (new Query('a–b «text»'))->valueToArray());
         $this->assertEquals(['a', ',', 'b'], (new Query(" a, \n   b "))->valueToArray());
+
+        // Invalid inputs
+        $this->assertSame([], (new Query(null))->valueToArray());
+        $this->assertSame([], (new Query(['foo' => 'bar']))->valueToArray());
+        $this->assertSame(['ре'], array_values((new Query(rawurldecode('%D1%80%D0%B5%D0')))->valueToArray()));
     }
 }

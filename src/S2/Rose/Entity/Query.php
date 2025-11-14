@@ -111,37 +111,42 @@ class Query
      */
     public function valueToArray()
     {
-        $content = strip_tags($this->value);
+        $content = self::normalizeValue($this->value);
+        if ($content === '') {
+            return [];
+        }
+
+        $content = strip_tags($content);
 
         // Normalize
         $content = str_replace(['«', '»', '“', '”', '‘', '’'], '"', $content);
         $content = str_replace('−', '-', $content); // Replace minus sign to a hyphen
         $content = str_replace(['---', '–', '−'], '—', $content); // Normalize dashes
-        $content = preg_replace('#,\\s+,#u', ',,', $content);
-        $content = preg_replace('#[^\\-\\p{L}0-9^_.,()";?!…:—]+#iu', ' ', $content);
+        $content = self::safePregReplace('#,\\s+,#u', ',,', $content);
+        $content = self::safePregReplace('#[^\\-\\p{L}0-9^_.,()";?!…:—]+#iu', ' ', $content);
         $content = mb_strtolower($content);
 
         // Replace decimal separators: ',' -> '.'
-        $content = preg_replace('#(?<=^|\\s)(\\-?\\d+),(\\d+)(?=\\s|$)#u', '\\1.\\2', $content);
+        $content = self::safePregReplace('#(?<=^|\\s)(\\-?\\d+),(\\d+)(?=\\s|$)#u', '\\1.\\2', $content);
 
         // Separate special chars at the beginning of the word
         while (true) {
-            $content = preg_replace('#(?:^|\\s)\K([—^()"?:!])(?=[^\s])#u', '\\1 ', $content, -1, $count);
-            if ($count === 0) {
+            $content = self::safePregReplace('#(?:^|\\s)\K([—^()"?:!])(?=[^\s])#u', '\\1 ', $content, -1, $count);
+            if ($count === 0 || $content === '') {
                 break;
             }
         }
 
         // Separate special chars at the end of the word
         while (true) {
-            $content = preg_replace('#(?<=[^\s])([—^()"?:!])(?=\\s|$)#u', ' \\1', $content, -1, $count);
-            if ($count === 0) {
+            $content = self::safePregReplace('#(?<=[^\s])([—^()"?:!])(?=\\s|$)#u', ' \\1', $content, -1, $count);
+            if ($count === 0 || $content === '') {
                 break;
             }
         }
 
         // Separate groups of commas
-        $content = preg_replace('#(,+)#u', ' \\1 ', $content);
+        $content = self::safePregReplace('#(,+)#u', ' \\1 ', $content);
 
         $words = preg_split('#\\s+#', $content);
         foreach ($words as $k => &$v) {
@@ -160,5 +165,47 @@ class Query
         // $words = array_values($words); // <- moved to helper
 
         return $words;
+    }
+
+    private static function normalizeValue($value): string
+    {
+        if (\is_string($value)) {
+            $stringValue = $value;
+        } elseif (\is_scalar($value) || (class_exists(\Stringable::class) && $value instanceof \Stringable)) {
+            $stringValue = (string)$value;
+        } else {
+            return '';
+        }
+
+        return self::normalizeUtf8($stringValue);
+    }
+
+    private static function normalizeUtf8(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        if (mb_check_encoding($value, 'UTF-8')) {
+            return $value;
+        }
+
+        $previousSubstitute = mb_substitute_character();
+        mb_substitute_character('none');
+        $converted = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+        mb_substitute_character($previousSubstitute);
+
+        if ($converted === false) {
+            return '';
+        }
+
+        return $converted;
+    }
+
+    private static function safePregReplace(string $pattern, string $replacement, string $subject, int $limit = -1, ?int &$count = null): string
+    {
+        $result = preg_replace($pattern, $replacement, $subject, $limit, $count);
+
+        return $result === null ? '' : $result;
     }
 }
