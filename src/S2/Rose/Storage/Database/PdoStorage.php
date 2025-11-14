@@ -2,8 +2,8 @@
 /** @noinspection PhpComposerExtensionStubsInspection */
 
 /**
- * @copyright    2016-2023 Roman Parpalak
- * @license      MIT
+ * @copyright 2016-2025 Roman Parpalak
+ * @license   https://opensource.org/license/mit MIT
  */
 
 namespace S2\Rose\Storage\Database;
@@ -14,10 +14,11 @@ use S2\Rose\Entity\Metadata\ImgCollection;
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Entity\TocEntry;
 use S2\Rose\Entity\TocEntryWithMetadata;
+use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
-use S2\Rose\Helper\StringHelper;
+use S2\Rose\Helper\SnippetFormatter;
 use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Exception\EmptyIndexException;
@@ -43,6 +44,11 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function __construct(\PDO $pdo, string $prefix = 's2_rose_', array $options = [])
     {
+        $this->assertValidIdentifier($prefix, 'prefix');
+        array_walk($options, function ($value, $key) {
+            $this->assertValidIdentifier($value, \sprintf('table name for "%s"', $key));
+        });
+
         $this->pdo     = $pdo;
         $this->prefix  = $prefix;
         $this->options = $options;
@@ -279,12 +285,12 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     }
 
     /**
-     * @param ExternalId $externalId An id of indexed item to search other similar items
+     * @param ExternalId $externalId        An id of indexed item to search other similar items
      * @param bool       $includeFormatting Switch the snippets to HTML formatting if available
-     * @param int|null   $instanceId Id of instance where to search these similar items
-     * @param int        $minCommonWords Lower limit for common words. The less common words,
-     *                                   the more items are returned, but among them the proportion
-     *                                   of irrelevant items is increasing.
+     * @param int|null   $instanceId        Id of instance where to search these similar items
+     * @param int        $minCommonWords    Lower limit for common words. The less common words,
+     *                                      the more items are returned, but among them the proportion
+     *                                      of irrelevant items is increasing.
      * @param int        $limit
      *
      * @return array
@@ -304,9 +310,8 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
             if (!isset($row['snippet2'])) {
                 $row['snippet2'] = '';
             }
-            // TODO take into account format_id of these snippets
-            $row['snippet']  = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet']) : StringHelper::clearInternalFormatting($row['snippet']);
-            $row['snippet2'] = $includeFormatting ? StringHelper::convertInternalFormattingToHtml($row['snippet2']) : StringHelper::clearInternalFormatting($row['snippet2']);
+            $row['snippet']  = $this->formatSnippet($row['snippet'], $row['snippet_format_id'] ?? SnippetSource::FORMAT_PLAIN_TEXT, $includeFormatting);
+            $row['snippet2'] = $this->formatSnippet($row['snippet2'], $row['snippet2_format_id'] ?? SnippetSource::FORMAT_PLAIN_TEXT, $includeFormatting);
         }
 
         return $data;
@@ -423,6 +428,22 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     private function getExternalIdFromRow(array $row): ExternalId
     {
         return new ExternalId($row['external_id'], $row['instance_id'] > 0 ? $row['instance_id'] : null);
+    }
+
+    private function formatSnippet(string $text, int $formatId, bool $includeFormatting): string
+    {
+        return SnippetFormatter::toOutput($text, $formatId, $includeFormatting);
+    }
+
+    private function assertValidIdentifier(string $value, string $label): void
+    {
+        if ($value === '') {
+            return;
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $value)) {
+            throw new InvalidArgumentException(\sprintf('Invalid %s "%s". Allowed characters: [A-Za-z0-9_]', $label, $value));
+        }
     }
 
     /**

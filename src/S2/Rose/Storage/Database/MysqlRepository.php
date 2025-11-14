@@ -2,8 +2,8 @@
 /** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
 /**
- * @copyright 2020-2023 Roman Parpalak
- * @license   MIT
+ * @copyright 2020-2025 Roman Parpalak
+ * @license   https://opensource.org/license/mit MIT
  */
 
 declare(strict_types=1);
@@ -79,15 +79,16 @@ class MysqlRepository extends AbstractRepository
     {
         $partWords = static::prepareWords($words);
 
-        $sql = 'INSERT IGNORE INTO ' . $this->getTableName(self::WORD) . ' (name) VALUES ("' . implode(
-                '"),("',
-                array_map(static function ($x) {
-                    return addslashes($x);
-                }, $partWords)
-            ) . '")';
+        if (\count($partWords) === 0) {
+            return;
+        }
+
+        $sql = 'INSERT IGNORE INTO ' . $this->getTableName(self::WORD)
+            . ' (name) VALUES ' . implode(',', array_fill(0, \count($partWords), '(?)'));
 
         try {
-            $this->pdo->exec($sql);
+            $statement = $this->pdo->prepare($sql);
+            $statement->execute(array_values($partWords));
         } catch (\PDOException $e) {
             if ($this->isLockWaitingException($e)) {
                 throw new RuntimeException('Cannot insert words. Possible deadlock? Database reported: ' . $e->getMessage(), 0, $e);
@@ -174,7 +175,9 @@ SELECT
     t.*, -- добавляем к ней оглавление
     -- и первые 2 предложения из текста
     (SELECT snippet FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1) AS snippet,
-    (SELECT snippet FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1 OFFSET 1) AS snippet2
+    (SELECT format_id FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1) AS snippet_format_id,
+    (SELECT snippet FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1 OFFSET 1) AS snippet2,
+    (SELECT format_id FROM {$snippetTable} AS sn WHERE sn.toc_id = t.id ORDER BY sn.max_word_pos LIMIT 1 OFFSET 1) AS snippet2_format_id
 FROM (
     SELECT -- Перебираем все возможные заметки и вычисляем релевантность каждой для подбора рекомендаций
         i.toc_id,
