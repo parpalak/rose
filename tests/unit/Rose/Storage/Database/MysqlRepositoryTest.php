@@ -35,7 +35,7 @@ class MysqlRepositoryTest extends Unit
                         $this->pdo = $pdo;
                     }
 
-                    public function execute(?array $params = null): bool
+                    public function execute($params = null): bool
                     {
                         $this->pdo->executedParams[] = $params ?? [];
 

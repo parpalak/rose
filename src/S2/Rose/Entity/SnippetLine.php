@@ -1,7 +1,7 @@
 <?php
 /**
- * @copyright 2017-2024 Roman Parpalak
- * @license   MIT
+ * @copyright 2017-2025 Roman Parpalak
+ * @license   https://opensource.org/license/mit MIT
  */
 
 declare(strict_types=1);
@@ -10,13 +10,12 @@ namespace S2\Rose\Entity;
 
 use S2\Rose\Entity\Metadata\SnippetSource;
 use S2\Rose\Exception\RuntimeException;
+use S2\Rose\Helper\SnippetTextHelper;
 use S2\Rose\Helper\StringHelper;
 use S2\Rose\Stemmer\StemmerInterface;
 
 class SnippetLine
 {
-    private const STORE_MARKER = "\r";
-
     /**
      * @var string[]
      */
@@ -137,15 +136,7 @@ class SnippetLine
 
         $result = $this->restoreMaskedFragments($replacedLine);
 
-        if ($this->formatId === SnippetSource::FORMAT_INTERNAL) {
-            if ($includeFormatting) {
-                $result = StringHelper::convertInternalFormattingToHtml($result);
-            } else {
-                $result = StringHelper::clearInternalFormatting($result);
-            }
-        }
-
-        return $result;
+        return SnippetTextHelper::convertFormatting($result, $this->formatId, $includeFormatting);
     }
 
     public function setMaskRegexArray(array $regexes): void
@@ -193,7 +184,7 @@ class SnippetLine
         $flippedStems = array_flip($this->stemsFoundSomewhere);
         foreach ($wordArray as [$rawWord, $offset]) {
             $word = $this->formatId === SnippetSource::FORMAT_INTERNAL ? StringHelper::clearInternalFormatting($rawWord) : $rawWord;
-            $word = str_replace(self::STORE_MARKER, '', $word);
+            $word = str_replace(SnippetTextHelper::STORE_MARKER, '', $word);
 
             if ($word === '') {
                 // No need to call $intervals->skipInterval() since regex may work several times on a single delimiter
@@ -212,7 +203,7 @@ class SnippetLine
                     $subWordArray = preg_split('#[\-.,]+#u', $rawWord, -1, \PREG_SPLIT_OFFSET_CAPTURE);
                     foreach ($subWordArray as [$rawSubWord, $subOffset]) {
                         $subWord = $this->formatId === SnippetSource::FORMAT_INTERNAL ? StringHelper::clearInternalFormatting($rawSubWord) : $rawSubWord;
-                        $subWord = str_replace(self::STORE_MARKER, '', $subWord);
+                        $subWord = str_replace(SnippetTextHelper::STORE_MARKER, '', $subWord);
 
                         if ($rawSubWord === '') {
                             continue;
@@ -240,39 +231,13 @@ class SnippetLine
             return $this->lineWithoutMaskedFragments;
         }
 
-        // Remove substrings that are not store markers
-        $this->lineWithoutMaskedFragments = str_replace(self::STORE_MARKER, '', $this->line);
-
-        $this->lineWithoutMaskedFragments = htmlspecialchars($this->lineWithoutMaskedFragments, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML401);
-
-        foreach (array_merge($this->maskRegexArray, ['#&(?:\\#[1-9]\d{1,3}|[A-Za-z][0-9A-Za-z]+);#']) as $maskRegex) {
-            $this->lineWithoutMaskedFragments = preg_replace_callback(
-                $maskRegex,
-                function (array $matches) {
-                    $this->maskedFragments[] = $matches[0];
-
-                    return self::STORE_MARKER;
-                },
-                $this->lineWithoutMaskedFragments
-            );
-        }
+        $this->lineWithoutMaskedFragments = SnippetTextHelper::sanitize($this->line, $this->maskRegexArray, $this->maskedFragments);
 
         return $this->lineWithoutMaskedFragments;
     }
 
     protected function restoreMaskedFragments(string $line): string
     {
-        $i = 0;
-        while (true) {
-            $pos = strpos($line, self::STORE_MARKER);
-            if ($pos === false || !isset($this->maskedFragments[$i])) {
-                break;
-            }
-
-            $line = substr_replace($line, $this->maskedFragments[$i], $pos, \strlen(self::STORE_MARKER));
-            $i++;
-        }
-
-        return $line;
+        return SnippetTextHelper::restore($line, $this->maskedFragments);
     }
 }

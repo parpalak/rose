@@ -18,7 +18,7 @@ use S2\Rose\Exception\InvalidArgumentException;
 use S2\Rose\Exception\LogicException;
 use S2\Rose\Exception\UnknownException;
 use S2\Rose\Exception\UnknownIdException;
-use S2\Rose\Helper\SnippetFormatter;
+use S2\Rose\Helper\SnippetTextHelper;
 use S2\Rose\Storage\Dto\SnippetQuery;
 use S2\Rose\Storage\Dto\SnippetResult;
 use S2\Rose\Storage\Exception\EmptyIndexException;
@@ -432,7 +432,7 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
 
     private function formatSnippet(string $text, int $formatId, bool $includeFormatting): string
     {
-        return SnippetFormatter::toOutput($text, $formatId, $includeFormatting);
+        return SnippetTextHelper::prepareForOutput($text, $formatId, $includeFormatting);
     }
 
     private function assertValidIdentifier(string $value, string $label): void
