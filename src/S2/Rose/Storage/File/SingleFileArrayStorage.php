@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2025 Roman Parpalak
  * @license   MIT
  */
 
@@ -48,9 +48,7 @@ class SingleFileArrayStorage extends ArrayStorage
             $return[] = ProfileHelper::getProfilePoint('Reading index file', -$start_time + ($start_time = microtime(true)));
         }
 
-        $end    = strpos($data, "\n");
-        $myData = substr($data, 8, $end - 8);
-        $data   = substr($data, $end + 1);
+        $myData = $this->extractSerializedSection($data);
         $unserializeOptions = ['allowed_classes' => [
             \DateTime::class,
             TocEntry::class,
@@ -60,19 +58,13 @@ class SingleFileArrayStorage extends ArrayStorage
         ]];
         $this->fulltextProxy->setFulltextIndex(unserialize($myData, $unserializeOptions) ?: []);
 
-        $end                 = strpos($data, "\n");
-        $myData              = substr($data, 8, $end - 8);
-        $data                = substr($data, $end + 1);
+        $myData              = $this->extractSerializedSection($data);
         $this->excludedWords = unserialize($myData, $unserializeOptions) ?: [];
 
-        $end            = strpos($data, "\n");
-        $myData         = substr($data, 8, $end - 8);
-        $data           = substr($data, $end + 1);
+        $myData         = $this->extractSerializedSection($data);
         $this->metadata = unserialize($myData, $unserializeOptions) ?: [];
 
-        $end    = strpos($data, "\n");
-        $myData = substr($data, 8, $end - 8);
-        // $data      = substr($data, $end + 1);
+        $myData = $this->extractSerializedSection($data);
         $this->toc = unserialize($myData, $unserializeOptions) ?: [];
 
 
@@ -91,7 +83,7 @@ class SingleFileArrayStorage extends ArrayStorage
     public function save(): void
     {
         @unlink($this->filename);
-        file_put_contents($this->filename, '<?php //' . 'a:' . \count($this->fulltextProxy->getFulltextIndex()) . ':{');
+        file_put_contents($this->filename, '<?php die; //' . 'a:' . \count($this->fulltextProxy->getFulltextIndex()) . ':{');
         $buffer = '';
         $length = 0;
         foreach ($this->fulltextProxy->getFulltextIndex() as $word => $data) {
@@ -115,5 +107,24 @@ class SingleFileArrayStorage extends ArrayStorage
 
         file_put_contents($this->filename, '      //' . serialize($this->toc) . "\n", FILE_APPEND);
         $this->toc = [];
+    }
+
+    private function extractSerializedSection(string &$data): string
+    {
+        $endPos = strpos($data, "\n");
+        if ($endPos === false) {
+            $line = $data;
+            $data = '';
+        } else {
+            $line = substr($data, 0, $endPos);
+            $data = substr($data, $endPos + 1);
+        }
+
+        $commentPos = strpos($line, '//');
+        if ($commentPos === false) {
+            throw new \RuntimeException('Broken SingleFileArrayStorage format: "//" marker not found.');
+        }
+
+        return substr($line, $commentPos + 2);
     }
 }
