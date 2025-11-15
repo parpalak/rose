@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2020 Roman Parpalak
+ * @copyright 2016-2025 Roman Parpalak
  * @license   MIT
  */
 
@@ -10,6 +10,8 @@ use S2\Rose\Helper\StringHelper;
 
 class Query
 {
+    private const MAX_WORDS = 64;
+
     /**
      * @var string
      */
@@ -164,6 +166,10 @@ class Query
         // Fix keys
         // $words = array_values($words); // <- moved to helper
 
+        if (\count($words) > self::MAX_WORDS) {
+            $words = \array_slice($words, 0, self::MAX_WORDS);
+        }
+
         return $words;
     }
 
@@ -206,6 +212,6 @@ class Query
     {
         $result = preg_replace($pattern, $replacement, $subject, $limit, $count);
 
-        return $result === null ? '' : $result;
+        return $result ?? '';
     }
 }
