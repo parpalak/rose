@@ -1,7 +1,7 @@
 <?php
 /**
- * @copyright 2016-2024 Roman Parpalak
- * @license   MIT
+ * @copyright 2016-2025 Roman Parpalak
+ * @license   https://opensource.org/license/mit MIT
  */
 
 namespace S2\Rose\Test\Entity;
@@ -66,6 +66,10 @@ class QueryTest extends Unit
         // Tests for compatibility of multiple rules
         $this->assertEquals(['a—b', '"', 'text'], (new Query('a–b «text»'))->valueToArray());
         $this->assertEquals(['a', ',', 'b'], (new Query(" a, \n   b "))->valueToArray());
+        $this->assertEquals(
+            ['похоже', ',', 'лучшие', 'времена', 'наступили', 'я', 'решил', 'доработать', 'и', 'опубликовать', 'движок'],
+            (new Query('Похоже, лучшие времена наступили. Я решил доработать и опубликовать движок.'))->valueToArray()
+        );
 
         // Invalid inputs
         $this->assertSame([], (new Query(null))->valueToArray());

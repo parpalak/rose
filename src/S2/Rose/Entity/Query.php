@@ -1,7 +1,7 @@
 <?php
 /**
  * @copyright 2016-2025 Roman Parpalak
- * @license   MIT
+ * @license   https://opensource.org/license/mit MIT
  */
 
 namespace S2\Rose\Entity;
@@ -156,6 +156,18 @@ class Query
             if ($v !== 'ё' && false !== strpos($v, 'ё')) {
                 $v = str_replace('ё', 'е', $v);
             }
+
+            if ($v === '' || !preg_match('#[\\p{L}\\d]#u', $v)) {
+                continue;
+            }
+
+            $trimmed = rtrim($v, StringHelper::WORD_COMPONENT_DELIMITERS);
+            if ($trimmed === '') {
+                unset($words[$k]);
+                continue;
+            }
+
+            $v = $trimmed;
         }
         unset($v);
 
