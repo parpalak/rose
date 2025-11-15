@@ -4,20 +4,18 @@
  * @license   https://opensource.org/license/mit MIT
  */
 
-declare(strict_types=1);
-
-namespace S2\Rose\Test\Storage;
+namespace S2\Rose\Test\Storage\Database;
 
 use Codeception\Test\Unit;
 use S2\Rose\Exception\InvalidArgumentException;
-use S2\Rose\Storage\Database\PdoStorage;
+use S2\Rose\Storage\Database\MysqlRepository;
 
-class PdoStorageValidationTest extends Unit
+class RepositoryValidationTest extends Unit
 {
     public function testRejectsInvalidPrefix(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new PdoStorage(new class extends \PDO {
+        new MysqlRepository(new class extends \PDO {
             public function __construct() {}
         }, 'bad;DROP', []);
     }
@@ -25,8 +23,8 @@ class PdoStorageValidationTest extends Unit
     public function testRejectsInvalidTableOverride(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new PdoStorage(new class extends \PDO {
+        new MysqlRepository(new class extends \PDO {
             public function __construct() {}
-        }, 'ok_prefix_', ['toc' => 'toc;DROP']);
+        }, 'ok_prefix', ['toc' => 'toc;DROP']);
     }
 }

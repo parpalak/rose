@@ -2,7 +2,7 @@
 /** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
 /**
- * @copyright 2020-2023 Roman Parpalak
+ * @copyright 2020-2025 Roman Parpalak
  * @license   MIT
  */
 
@@ -46,9 +46,16 @@ abstract class AbstractRepository
 
     public function __construct(\PDO $pdo, string $prefix = '', array $options = [])
     {
+        $this->assertValidIdentifier($prefix, 'prefix');
+
+        $options = array_merge(self::DEFAULT_TABLE_NAMES, $options);
+        array_walk($options, function ($value, $key) {
+            $this->assertValidIdentifier($value, sprintf('table name for "%s"', $key));
+        });
+
         $this->pdo     = $pdo;
         $this->prefix  = $prefix;
-        $this->options = array_merge(self::DEFAULT_TABLE_NAMES, $options);
+        $this->options = $options;
     }
 
     /**
@@ -628,5 +635,16 @@ abstract class AbstractRepository
     private function getExternalIdFromRow(array $row): ExternalId
     {
         return new ExternalId($row['external_id'], is_numeric($row['instance_id']) && $row['instance_id'] > 0 ? (int)$row['instance_id'] : null);
+    }
+
+    private function assertValidIdentifier(string $value, string $label): void
+    {
+        if ($value === '') {
+            return;
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $value)) {
+            throw new InvalidArgumentException(sprintf('Invalid %s "%s". Allowed characters: [A-Za-z0-9_]', $label, $value));
+        }
     }
 }

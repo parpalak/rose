@@ -44,11 +44,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
      */
     public function __construct(\PDO $pdo, string $prefix = 's2_rose_', array $options = [])
     {
-        $this->assertValidIdentifier($prefix, 'prefix');
-        array_walk($options, function ($value, $key) {
-            $this->assertValidIdentifier($value, \sprintf('table name for "%s"', $key));
-        });
-
         $this->pdo     = $pdo;
         $this->prefix  = $prefix;
         $this->options = $options;
@@ -433,17 +428,6 @@ class PdoStorage implements StorageWriteInterface, StorageReadInterface, Storage
     private function formatSnippet(string $text, int $formatId, bool $includeFormatting): string
     {
         return SnippetTextHelper::prepareForOutput($text, $formatId, $includeFormatting);
-    }
-
-    private function assertValidIdentifier(string $value, string $label): void
-    {
-        if ($value === '') {
-            return;
-        }
-
-        if (!preg_match('/^[A-Za-z0-9_]+$/', $value)) {
-            throw new InvalidArgumentException(\sprintf('Invalid %s "%s". Allowed characters: [A-Za-z0-9_]', $label, $value));
-        }
     }
 
     /**
