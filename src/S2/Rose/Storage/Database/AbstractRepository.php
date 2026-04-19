@@ -2,7 +2,7 @@
 /** @noinspection PhpUnnecessaryLocalVariableInspection */
 /** @noinspection SqlDialectInspection */
 /**
- * @copyright 2020-2025 Roman Parpalak
+ * @copyright 2020-2026 Roman Parpalak
  * @license   MIT
  */
 
@@ -216,7 +216,7 @@ abstract class AbstractRepository
      * @throws EmptyIndexException
      * @throws UnknownException
      */
-    public function findFulltextByWords(array $words, int $instanceId = null): \Generator
+    public function findFulltextByWords(array $words, ?int $instanceId = null): \Generator
     {
         $sql = '
 			SELECT w.name AS word, t.external_id, t.instance_id, f.positions, COALESCE(m.word_count, 0) AS word_count, t.relevance_ratio

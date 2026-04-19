@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2020-2024 Roman Parpalak
+ * @copyright 2020-2026 Roman Parpalak
  * @license   MIT
  */
 
@@ -12,7 +12,7 @@ abstract class AbstractStemmer
 {
     protected ?StemmerInterface $nextStemmer;
 
-    public function __construct(StemmerInterface $nextStemmer = null)
+    public function __construct(?StemmerInterface $nextStemmer = null)
     {
         $this->nextStemmer = $nextStemmer;
     }

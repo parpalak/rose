@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2026 Roman Parpalak
  * @license   MIT
  */
 
@@ -82,7 +82,7 @@ class Indexable
         return $this->date;
     }
 
-    public function setDate(\DateTime $date = null): self
+    public function setDate(?\DateTime $date = null): self
     {
         $this->date = $date;
 

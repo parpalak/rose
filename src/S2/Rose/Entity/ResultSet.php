@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /**
- * @copyright 2016-2023 Roman Parpalak
+ * @copyright 2016-2026 Roman Parpalak
  * @license   MIT
  */
 
@@ -37,7 +37,7 @@ class ResultSet
     protected string $highlightTemplate = '<i>%s</i>';
     protected ResultTrace $trace;
 
-    public function __construct(int $limit = null, int $offset = 0, bool $isDebug = false)
+    public function __construct(?int $limit = null, int $offset = 0, bool $isDebug = false)
     {
         $this->limit   = $limit;
         $this->offset  = $offset;
